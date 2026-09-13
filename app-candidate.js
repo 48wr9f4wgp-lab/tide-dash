@@ -1,4 +1,4 @@
-// TIDE DASH v0.11 — Beginner Guide: transparent fishing chance / tide explanation
+// TIDE DASH v0.11.1 — Tide Literacy: teach the current tide without duplicating fishing advice
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -410,6 +410,50 @@ function fishingGuide(t,we,now=new Date()){
 
   return{score,label,stars,shortReason:tideReason,tideMove,magic,range,condition};
 }
+
+function tideRead(t){
+  const p=t.phaseProgress==null?.5:Math.max(0,Math.min(1,t.phaseProgress));
+  const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low";
+  const up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
+  const direction=down?"下げ":up?"上げ":"転流";
+  const target=down?"干潮へ":up?"満潮へ":"転流付近";
+  let stage,meaning;
+  if(p<.12){stage="始まり";meaning="流れが出始める"}
+  else if(p<.35){stage="前半";meaning="流れが強まりやすい"}
+  else if(p<.65){stage="中盤";meaning="潮が動きやすい"}
+  else if(p<.88){stage="後半";meaning="流れは弱まりやすい"}
+  else{stage="終盤";meaning="潮止まりが近い"}
+  return{p,direction,target,stage,meaning,summary:`${direction}${stage}｜${target}・${meaning}`};
+}
+
+async function showTideHelp(){
+  const r=await resolveStation(false),now=new Date();
+  let t;
+  try{t=await tide(now,r.station)}catch(_){
+    const a=new Alert();a.title="潮の見方";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
+  }
+  const tr=tideRead(t),pct=t.phaseProgress==null?"--":`${Math.round(t.phaseProgress*100)}%`;
+  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventClock(t.nextEvent)} / ${t.nextEvent.level}cm`:"--";
+  const a=new Alert();
+  a.title="🌊 潮の見方";
+  a.message=[
+    `いま：${tr.direction}${tr.stage}（${pct}）`,
+    `意味：${tr.target}。${tr.meaning}目安`,
+    `次：${next}`,
+    "",
+    "グラフの基本",
+    "↗ 右上がり＝上げ潮（干潮→満潮）",
+    "↘ 右下がり＝下げ潮（満潮→干潮）",
+    "▲＝満潮　▼＝干潮　NOW＝現在",
+    "",
+    "％は『前の満干潮から次の満干潮まで、時間がどこまで進んだか』です。流速そのものではありません。",
+    "",
+    "満潮・干潮の前後は潮流が緩みやすく、その中間は動きやすい傾向があります。ただし潮位と実際の潮流は同じではなく、地形・風・河川・海峡などで変わります。"
+  ].join("\n");
+  a.addAction("閉じる");
+  await a.presentAlert();
+}
+
 async function showGuide(){
   const r=await resolveStation(false),now=new Date();
   let t,wp=null;
@@ -496,7 +540,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const w=new ListWidget(),large=(config.widgetFamily||"large")==="large";
   w.setPadding(large?16:12,14,large?14:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
-  const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide");
+  const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
   const fg=fishingGuide(t,we,new Date());
 
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
@@ -522,7 +566,10 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
   const dr=down?"↘ 下げ":up?"↗ 上げ":"→ 転流付近",ph=t.phaseProgress==null?"":` ${Math.round(t.phaseProgress*100)}%`;
   text(cur,`推算潮位  ${dr}${ph}`,large?11:9,C.t.sub);
-  if(large)text(cur,`🎣 ${fg.label} · ${fg.shortReason}`,9,C.t.a,true);
+  if(large){
+    const tr=tideRead(t),teach=text(cur,`潮読み  ${tr.summary}`,9,C.t.a,true);
+    if(tideHelpURL)teach.url=tideHelpURL;
+  }
 
   st.addSpacer();
   const nx=st.addStack();nx.layoutVertically();nx.backgroundColor=new Color(C.t.panel,.48);nx.cornerRadius=12;nx.setPadding(large?7:5,large?9:7,large?7:5,large?9:7);
@@ -593,6 +640,7 @@ async function present(w){
 }
 async function main(){
   const action=args.queryParameters?.action;
+  if(config.runsInApp&&action==="tidehelp"){await showTideHelp();return null;}
   if(config.runsInApp&&action==="guide"){await showGuide();return null;}
   if(config.runsInApp&&action==="settings"){
     await settings();const w=await buildCurrent(true);await present(w);return null;
