@@ -1,9 +1,10 @@
-// TIDE DASH v0.9 — UX Lock: rolling 24h / explicit refresh / simplified station flow
+// TIDE DASH v0.10 — Reliability: static station master / stale cache visibility
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
   prefs:"TideDashPrefs.json",
   catalog:"TideDashStations.json",
+  stationCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/stations.json",
   farKm:50,
   maxFavorites:5,
   defaultFav:{code:"UC",name:"内浦",lat:35.0167,lon:138.8833,area:"沼津"},
@@ -19,6 +20,7 @@ const cacheDir=fm.joinPath(fm.documentsDirectory(),C.cache);
 if(!fm.fileExists(cacheDir))fm.createDirectory(cacheDir,true);
 const prefPath=fm.joinPath(fm.documentsDirectory(),C.prefs);
 const catPath=fm.joinPath(fm.documentsDirectory(),C.catalog);
+const NET={fallbacks:[]};
 
 const p2=n=>String(n).padStart(2,"0");
 const dateKey=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
@@ -81,21 +83,42 @@ function parseStations(html){
   return out;
 }
 async function stationCatalog(){
+  let local=null;
   try{
     if(fm.fileExists(catPath)){
       const o=JSON.parse(fm.readString(catPath));
-      if(o.savedAt&&Date.now()-o.savedAt<7*86400000&&o.stations?.length>50)return o.stations;
+      if(Array.isArray(o.stations)&&o.stations.length>200)local=o;
+      if(local?.savedAt&&Date.now()-local.savedAt<7*86400000)return local.stations;
     }
   }catch(_){}
+
+  // Primary catalog: versioned static snapshot generated from the official JMA list.
+  try{
+    const r=new Request(C.stationCatalogURL+(C.stationCatalogURL.includes("?")?"&":"?")+"t="+Date.now());
+    r.timeoutInterval=12;
+    r.headers={"Cache-Control":"no-cache"};
+    const remote=JSON.parse(await r.loadString());
+    if(remote?.complete===true&&Array.isArray(remote.stations)&&remote.stations.length>200){
+      const packed={...remote,savedAt:Date.now()};
+      fm.writeString(catPath,JSON.stringify(packed));
+      return remote.stations;
+    }
+  }catch(_){}
+
+  // Network failure: a previously validated full catalog is safer than a tiny fallback set.
+  if(local?.stations?.length>200)return local.stations;
+
+  // Legacy recovery path only. This is not the normal runtime path.
   try{
     const r=new Request("https://www.data.jma.go.jp/kaiyou/db/tide/suisan/station");
     r.timeoutInterval=15;
     const st=parseStations(await r.loadString());
-    if(st.length>50){
-      fm.writeString(catPath,JSON.stringify({savedAt:Date.now(),stations:st}));
+    if(st.length>200){
+      fm.writeString(catPath,JSON.stringify({savedAt:Date.now(),complete:true,count:st.length,stations:st}));
       return st;
     }
   }catch(_){}
+
   return [
     C.defaultFav,
     {code:"TK",name:"東京",lat:35.65,lon:139.7667,area:"東京湾"},
@@ -221,7 +244,12 @@ async function cache(url,key,ttl){
     const r=new Request(url);r.timeoutInterval=15;
     const s=await r.loadString();fm.writeString(path,s);return s;
   }catch(e){
-    if(fm.fileExists(path))return fm.readString(path);
+    if(fm.fileExists(path)){
+      const mod=fm.modificationDate(path);
+      const ageMin=mod?Math.max(0,Math.round((Date.now()-mod.getTime())/60000)):null;
+      if(key.startsWith("weather_")||key.startsWith("marine_"))NET.fallbacks.push({key,ageMin});
+      return fm.readString(path);
+    }
     throw e;
   }
 }
@@ -470,6 +498,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
 }
 
 async function buildCurrent(forceLocation=false){
+  NET.fallbacks.length=0;
   const r=await resolveStation(forceLocation),now=new Date();
   let t,wp=null,err=null;
   try{t=await tide(now,r.station)}
@@ -477,7 +506,14 @@ async function buildCurrent(forceLocation=false){
     const w=new ListWidget();w.backgroundColor=new Color(C.t.bg1);w.setPadding(14,14,14,14);
     text(w,"TIDE DASH",18,C.t.fg,true);w.addSpacer(8);text(w,"潮位データを取得できません",13,C.t.warn,true);w.addSpacer(4);text(w,String(e),9,C.t.sub);return w;
   }
-  try{wp=await weather(now,r.station)}catch(_){err="天気/波は一時取得不可"}
+  try{wp=await weather(now,r.station)}catch(_){err="⚠ 天気/波を取得できません"}
+  if(!err&&NET.fallbacks.length){
+    const ages=NET.fallbacks.map(x=>x.ageMin).filter(x=>x!=null);
+    const age=ages.length?Math.max(...ages):null;
+    if(age==null)err="⚠ 天気/波はキャッシュ表示";
+    else if(age<60)err=`⚠ 天気/波 キャッシュ ${age}分前`;
+    else err=`⚠ 天気/波 キャッシュ ${Math.floor(age/60)}時間前`;
+  }
   return widget(t,wp,r.station,r.badge,r.badgeColor,err);
 }
 async function present(w){
