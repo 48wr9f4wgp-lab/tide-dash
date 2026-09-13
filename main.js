@@ -1,4 +1,4 @@
-// TIDE DASH v0.2
+// TIDE DASH v0.3
 // Scriptable iPhone widget
 // Tide: Japan Meteorological Agency (JMA) astronomical tide table
 // Weather / wind / waves: Open-Meteo
@@ -10,7 +10,7 @@ const CONFIG = {
   latitude: 35.0167,
   longitude: 138.8833,
   refreshMinutes: 30,
-  cacheFolder: "TideDashCacheV02",
+  cacheFolder: "TideDashCacheV03",
   theme: {
     bgTop: "#061824",
     bgBottom: "#0A3147",
@@ -162,13 +162,19 @@ async function loadAnnual(year) {
 }
 
 async function loadTideBundle(now) {
+  const yesterday = addDays(now, -1);
   const tomorrow = addDays(now, 1);
-  const years = [...new Set([now.getFullYear(), tomorrow.getFullYear()])];
+  const years = [...new Set([
+    yesterday.getFullYear(),
+    now.getFullYear(),
+    tomorrow.getFullYear()
+  ])];
   const maps = await Promise.all(years.map(loadAnnual));
 
   const all = new Map();
   for (const m of maps) for (const [k,v] of m.entries()) all.set(k,v);
 
+  const prevDay = all.get(dateKey(yesterday));
   const today = all.get(dateKey(now));
   const next = all.get(dateKey(tomorrow));
   if (!today) throw new Error(`JMA tide data missing for ${dateKey(now)}`);
@@ -181,14 +187,51 @@ async function loadTideBundle(now) {
   const current = levels[i] + (levels[i+1]-levels[i])*f;
   const slope = levels[i+1]-levels[i];
 
-  const events = today.events.map(e=>({...e, absoluteMinute:e.minute}));
-  if (next) for (const e of next.events) events.push({...e, absoluteMinute:1440+e.minute});
+  const events = [];
+  if (prevDay) {
+    for (const e of prevDay.events) {
+      events.push({...e, absoluteMinute:e.minute-1440});
+    }
+  }
+  for (const e of today.events) {
+    events.push({...e, absoluteMinute:e.minute});
+  }
+  if (next) {
+    for (const e of next.events) {
+      events.push({...e, absoluteMinute:1440+e.minute});
+    }
+  }
   events.sort((a,b)=>a.absoluteMinute-b.absoluteMinute);
 
+  const previousEvent = [...events].reverse().find(e=>e.absoluteMinute<=nowMin) ?? null;
   const nextEvent = events.find(e=>e.absoluteMinute>nowMin) ?? null;
+
+  let phaseProgress = null;
+  if (previousEvent && nextEvent && nextEvent.absoluteMinute > previousEvent.absoluteMinute) {
+    phaseProgress = Math.max(
+      0,
+      Math.min(
+        1,
+        (nowMin - previousEvent.absoluteMinute) /
+        (nextEvent.absoluteMinute - previousEvent.absoluteMinute)
+      )
+    );
+  }
+
   const dailyRange = Math.max(...today.hourly)-Math.min(...today.hourly);
 
-  return { today, next, levels, current, slope, nowMin, nextEvent, dailyRange };
+  return {
+    today,
+    next,
+    levels,
+    current,
+    slope,
+    nowMin,
+    previousEvent,
+    nextEvent,
+    phaseProgress,
+    dailyRange
+  };
 }
 
 async function loadWeather(now) {
@@ -206,8 +249,8 @@ async function loadWeather(now) {
     `&hourly=wave_height,wave_direction,wave_period&timezone=${tz}&forecast_days=2&cell_selection=sea`;
 
   const [w,m] = await Promise.all([
-    cachedJSON(weatherURL, "weather_v02.json", 25*60*1000),
-    cachedJSON(marineURL, "marine_v02.json", 25*60*1000).catch(()=>null)
+    cachedJSON(weatherURL, "weather_v03.json", 25*60*1000),
+    cachedJSON(marineURL, "marine_v03.json", 25*60*1000).catch(()=>null)
   ]);
 
   const key = localHourKey(now);
@@ -244,6 +287,7 @@ async function loadWeather(now) {
       time: `${pad2(dt.getHours())}:00`,
       weatherCode: w.hourly.weather_code[a],
       temp: w.hourly.temperature_2m[a],
+      precip: w.hourly.precipitation[a],
       wind: w.hourly.wind_speed_10m[a],
       wave: b>=0 ? m.hourly.wave_height[b] : null
     });
@@ -418,7 +462,10 @@ function buildWidget(tide, weatherPack, errorText=null) {
   brand.centerAlignContent();
   addText(brand,"TIDE DASH",9,CONFIG.theme.accent,true);
   brand.addSpacer();
-  addPill(brand,"予測",CONFIG.theme.secondary);
+  const updated=new Date();
+  addText(brand,`更新 ${pad2(updated.getHours())}:${pad2(updated.getMinutes())}`,8,CONFIG.theme.muted);
+  brand.addSpacer(6);
+  addPill(brand,"天文潮位",CONFIG.theme.secondary);
 
   w.addSpacer(isLarge ? 8 : 4);
 
@@ -450,13 +497,30 @@ function buildWidget(tide, weatherPack, errorText=null) {
   const current=status.addStack();
   current.layoutVertically();
   addText(current,`${Math.round(tide.current)} cm`,isLarge ? 34 : 24,CONFIG.theme.primary,true);
+
   const dir=tide.slope>0.5 ? "↗ 上げ" : tide.slope<-0.5 ? "↘ 下げ" : "→ 転流付近";
-  addText(current,`推算潮位  ${dir}`,isLarge ? 11 : 9,CONFIG.theme.secondary);
+  const phaseText=tide.phaseProgress==null ? "" : `  ${Math.round(tide.phaseProgress*100)}%`;
+  addText(current,`推算潮位  ${dir}${phaseText}`,isLarge ? 11 : 9,CONFIG.theme.secondary);
+
+  if (isLarge && tide.previousEvent && tide.nextEvent) {
+    const prevLabel=tide.previousEvent.type==="high" ? "満" : "干";
+    const nextLabel=tide.nextEvent.type==="high" ? "満" : "干";
+    addText(
+      current,
+      `${prevLabel}${eventClock(tide.previousEvent)} → ${nextLabel}${eventClock(tide.nextEvent)}`,
+      9,
+      CONFIG.theme.muted
+    );
+  }
 
   status.addSpacer();
 
   const next=status.addStack();
   next.layoutVertically();
+  next.backgroundColor=new Color(CONFIG.theme.panel,0.48);
+  next.cornerRadius=12;
+  next.setPadding(isLarge ? 7 : 5,isLarge ? 9 : 7,isLarge ? 7 : 5,isLarge ? 9 : 7);
+
   if (tide.nextEvent) {
     const e=tide.nextEvent;
     const label=e.type==="high" ? "次の満潮" : "次の干潮";
@@ -492,13 +556,40 @@ function buildWidget(tide, weatherPack, errorText=null) {
   metrics.layoutHorizontally();
 
   if (weather) {
-    addMetric(metrics,"天気",`${weatherEmoji(weather.weatherCode)} ${weather.temp!=null ? Math.round(weather.temp)+"℃" : "--"}`);
+    addMetric(
+      metrics,
+      "天気",
+      `${weatherEmoji(weather.weatherCode)} ${weather.temp!=null ? Math.round(weather.temp)+"℃" : "--"}`,
+      `雨 ${weather.precip!=null ? Number(weather.precip).toFixed(1) : "--"}mm`
+    );
     metrics.addSpacer(5);
-    addMetric(metrics,"風",`${fmt1(weather.wind,"m/s")} ${windDir8(weather.windDir)}`);
+
+    addMetric(
+      metrics,
+      "風",
+      `${fmt1(weather.wind,"m/s")} ${windDir8(weather.windDir)}`
+    );
     metrics.addSpacer(5);
-    addMetric(metrics,"波",fmt1(weather.wave,"m"),weather.wavePeriod!=null ? `${Number(weather.wavePeriod).toFixed(0)}秒周期` : null);
+
+    const waveDetail = [
+      weather.waveDir!=null ? windDir8(weather.waveDir) : null,
+      weather.wavePeriod!=null ? `${Number(weather.wavePeriod).toFixed(0)}秒` : null
+    ].filter(Boolean).join("・");
+
+    addMetric(
+      metrics,
+      "波",
+      fmt1(weather.wave,"m"),
+      waveDetail || null
+    );
     metrics.addSpacer(5);
-    addMetric(metrics,"潮差",`${Math.round(tide.dailyRange)}cm`);
+
+    addMetric(
+      metrics,
+      "潮差",
+      `${Math.round(tide.dailyRange)}cm`,
+      tide.phaseProgress==null ? null : `${dir.replace("↗ ","").replace("↘ ","").replace("→ ","")} ${Math.round(tide.phaseProgress*100)}%`
+    );
   } else {
     addText(metrics,"天気データ取得不可",10,CONFIG.theme.secondary);
   }
@@ -533,6 +624,7 @@ function buildWidget(tide, weatherPack, errorText=null) {
       addText(c,`${Math.round(s.temp)}℃`,9,CONFIG.theme.primary,true);
       addText(c,`風${s.wind!=null ? Number(s.wind).toFixed(1) : "--"}`,8,CONFIG.theme.muted);
       addText(c,`波${s.wave!=null ? Number(s.wave).toFixed(1) : "--"}`,8,CONFIG.theme.muted);
+      addText(c,`雨${s.precip!=null ? Number(s.precip).toFixed(1) : "--"}`,8,CONFIG.theme.muted);
       if (idx<weatherPack.slots.length-1) row.addSpacer();
     });
   }
