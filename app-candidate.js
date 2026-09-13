@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.4 — Visual QA: round-hour graph ticks / clearer next-day event row
+// TIDE DASH v0.11.5 — Visual Simplify Pass: less clutter, stronger hierarchy
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -172,7 +172,7 @@ async function resolveStation(force=false){
       const d=Math.round(n.distanceKm);
       return{
         station:n,prefs:p,
-        badge:d>=C.farKm?`◎ AUTO · 遠方基準点 ${d}km`:`◎ AUTO · 基準点 ${d}km`,
+        badge:`◎ AUTO · ${d}km`,
         badgeColor:d>=C.farKm?C.t.warn:C.t.a
       };
     }
@@ -427,10 +427,10 @@ function tideRead(t){
   const direction=down?"下げ":up?"上げ":"転流";
   const target=down?"干潮へ":up?"満潮へ":"転流付近";
   let stage,meaning;
-  if(p<.12){stage="始まり";meaning="潮位変化が出始める"}
-  else if(p<.35){stage="前半";meaning="潮位変化が大きくなりやすい"}
-  else if(p<.65){stage="中盤";meaning="潮位変化が大きい時間帯"}
-  else if(p<.88){stage="後半";meaning="潮位変化は小さくなりやすい"}
+  if(p<.12){stage="始まり";meaning="変化し始める"}
+  else if(p<.35){stage="前半";meaning="変化大きめへ"}
+  else if(p<.65){stage="中盤";meaning="変化大きめ"}
+  else if(p<.88){stage="後半";meaning="変化小さめへ"}
   else{stage="終盤";meaning="満干潮が近い"}
   return{p,direction,target,stage,meaning,summary:`${direction}${stage}｜${target}・${meaning}`};
 }
@@ -543,8 +543,8 @@ function text(st,s,z,col,b=false){
   const t=st.addText(s);t.font=b?Font.boldSystemFont(z):Font.systemFont(z);t.textColor=new Color(col);t.lineLimit=1;t.minimumScaleFactor=.72;return t;
 }
 function metric(p,l,v,d=null){
-  const b=p.addStack();b.layoutVertically();b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;b.setPadding(6,7,6,7);
-  text(b,l,8,C.t.sub);text(b,v,11,C.t.fg,true);if(d)text(b,d,8,C.t.muted);return b;
+  const b=p.addStack();b.layoutVertically();b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;b.setPadding(7,8,7,8);
+  text(b,l,9,C.t.sub);text(b,v,12,C.t.fg,true);if(d)text(b,d,9,C.t.muted);return b;
 }
 
 function widget(t,wp,S,badge,badgeColor,err=null){
@@ -591,7 +591,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   }
 
   w.addSpacer(large?8:3);
-  const im=w.addImage(graph(t));im.imageSize=new Size(large?325:310,large?110:82);im.applyFittingContentMode();
+  const im=w.addImage(graph(t));im.imageSize=new Size(large?325:310,large?128:88);im.applyFittingContentMode();
   w.addSpacer(large?6:2);
 
   const ex=w.addStack();ex.layoutHorizontally();
@@ -608,7 +608,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     });
   }
 
-  w.addSpacer(large?9:5);
+  w.addSpacer(large?12:6);
   if(we){
     const ms=w.addStack();ms.layoutHorizontally();
     metric(ms,"天気",`${weatherIcon(we.weatherCode)} ${we.temp!=null?Math.round(we.temp)+"℃":"--"}`,`雨 ${we.precip!=null?Number(we.precip).toFixed(1):"--"}mm`);
@@ -617,18 +617,6 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     ms.addSpacer(5);const chance=metric(ms,"釣り目安 ›",fg.stars,fg.label);if(guideURL)chance.url=guideURL;
   }
 
-  if(large&&wp?.slots?.length){
-    w.addSpacer(10);
-    const lb=w.addStack();lb.layoutHorizontally();text(lb,"この先",10,C.t.sub,true);lb.addSpacer();text(lb,"3時間ごと",9,C.t.muted);
-    w.addSpacer(5);
-    const row=w.addStack();row.layoutHorizontally();
-    wp.slots.slice(0,4).forEach((s,i,a)=>{
-      const q=row.addStack();q.layoutVertically();q.centerAlignContent();q.backgroundColor=new Color(C.t.panel,.38);q.cornerRadius=10;q.setPadding(6,8,6,8);
-      text(q,s.time,10,C.t.sub,true);text(q,weatherIcon(s.weatherCode),16,C.t.fg);text(q,`${Math.round(s.temp)}℃`,10,C.t.fg,true);
-      text(q,`風 ${s.wind!=null?Number(s.wind).toFixed(1):"--"}`,9,C.t.muted);text(q,`波 ${s.wave!=null?Number(s.wave).toFixed(1):"--"}`,9,C.t.muted);
-      if(i<a.length-1)row.addSpacer(6);
-    });
-  }
 
   if(err){w.addSpacer(4);text(w,err,8,C.t.warn)}
   w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
