@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.5 — Visual Simplify Pass: less clutter, stronger hierarchy
+// TIDE DASH v0.11.6 — Final Visual Polish: calmer AUTO, clearer tide literacy
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -172,12 +172,12 @@ async function resolveStation(force=false){
       const d=Math.round(n.distanceKm);
       return{
         station:n,prefs:p,
-        badge:`◎ AUTO · ${d}km`,
-        badgeColor:d>=C.farKm?C.t.warn:C.t.a
+        badge:`AUTO · ${d}km`,
+        badgeColor:d>=C.farKm?C.t.warn:C.t.muted
       };
     }
   }
-  if(p.lastStation)return{station:p.lastStation,prefs:p,badge:"◎ AUTO · 前回基準点",badgeColor:C.t.warn};
+  if(p.lastStation)return{station:p.lastStation,prefs:p,badge:"AUTO · 前回地点",badgeColor:C.t.muted};
   return{station:p.favorites[0]||C.defaultFav,prefs:p,badge:"⚠ 位置情報なし",badgeColor:C.t.warn};
 }
 
@@ -434,6 +434,14 @@ function tideRead(t){
   else{stage="終盤";meaning="満干潮が近い"}
   return{p,direction,target,stage,meaning,summary:`${direction}${stage}｜${target}・${meaning}`};
 }
+function tideBrief(tr){
+  const target=tr.target==="干潮へ"?"干潮":tr.target==="満潮へ"?"満潮":"転流";
+  if(tr.p>=.88)return `${target}直前・変化かなり小さめ`;
+  if(tr.p>=.65)return `${target}近く・変化小さめ`;
+  if(tr.p>=.35)return "変化大きめ";
+  if(tr.p>=.12)return "変化が大きくなる";
+  return "変化し始め";
+}
 
 async function showTideHelp(){
   const r=await resolveStation(false),now=new Date();
@@ -557,7 +565,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
   text(pl,S.name,large?22:16,C.t.fg,true);
-  text(pl,`${badge}  ▾`,large?10:8,badgeColor||C.t.a,true);
+  text(pl,`${badge}  ▾`,large?9:8,badgeColor||C.t.muted,true);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
@@ -579,7 +587,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const tr=tideRead(t);
   text(cur,`推算潮位  ${dr}${ph} · ${tr.stage}`,large?11:9,C.t.sub);
   if(large){
-    const teach=text(cur,`潮読み  ${tr.meaning}  ›`,9,C.t.a,true);
+    const teach=text(cur,`潮読み  ${tideBrief(tr)}  ›`,10,C.t.a,true);
     if(tideHelpURL)teach.url=tideHelpURL;
   }
 
