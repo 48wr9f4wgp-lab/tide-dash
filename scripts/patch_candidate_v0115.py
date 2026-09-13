@@ -5,6 +5,7 @@ app_path = Path('app-candidate.js')
 manifest_path = Path('manifest.json')
 app = app_path.read_text(encoding='utf-8')
 
+app = app.replace('// TIDE DASH v0.11.4 — Visual QA: round-hour graph ticks / clearer next-day event row', '// TIDE DASH v0.11.5 — Visual Simplify Pass: less clutter, stronger hierarchy')
 app = app.replace('// TIDE DASH v0.11.4 — Visual Simplify Pass', '// TIDE DASH v0.11.5 — Visual Simplify Pass: less clutter, stronger hierarchy')
 app = app.replace('// TIDE DASH v0.11.3 — Duplication Pass: clearer hierarchy / day rollover / non-redundant event row', '// TIDE DASH v0.11.5 — Visual Simplify Pass: less clutter, stronger hierarchy')
 
@@ -33,7 +34,7 @@ if n != 1:
 manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
 manifest['candidateVersion'] = '0.11.5'
 manifest['candidateEnabled'] = True
-manifest['updatedAt'] = '2026-09-13T14:12:00Z'
+manifest['updatedAt'] = '2026-09-13T14:32:00Z'
 
 required = [
     'TIDE DASH v0.11.5',
