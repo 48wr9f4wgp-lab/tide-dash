@@ -1,9 +1,9 @@
-name: Patch TIDE DASH v0.10 candidate
+name: Patch TIDE DASH v0.11.1 candidate
 
 on:
   push:
     paths:
-      - "scripts/patch_candidate_v010.py"
+      - "scripts/patch_candidate_v0111.py"
       - ".github/workflows/patch-candidate-v010.yml"
   workflow_dispatch:
 
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: "24"
       - name: Patch candidate
-        run: python scripts/patch_candidate_v010.py
+        run: python scripts/patch_candidate_v0111.py
       - name: Syntax check candidate
         run: node --check app-candidate.js
       - name: Commit candidate
@@ -34,5 +34,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app-candidate.js
-          git commit -m "TIDE DASH v0.10 candidate: station master and stale-cache visibility"
+          git commit -m "TIDE DASH v0.11.1 candidate: tide literacy and de-duplicated guidance"
           git push
