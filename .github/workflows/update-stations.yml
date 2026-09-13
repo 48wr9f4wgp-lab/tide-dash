@@ -25,7 +25,7 @@ jobs:
         run: python scripts/update_stations.py
       - name: Commit changes
         run: |
-          if git diff --quiet -- stations.json; then
+          if [ -z "$(git status --porcelain -- stations.json)" ]; then
             echo "No station changes"
             exit 0
           fi
