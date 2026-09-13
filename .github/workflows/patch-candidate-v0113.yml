@@ -1,0 +1,45 @@
+name: Patch TIDE DASH v0.11.3 candidate
+
+on:
+  push:
+    paths:
+      - "scripts/patch_candidate_v0113.py"
+      - ".github/workflows/patch-candidate-v0113.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Patch candidate and manifest
+        run: python scripts/patch_candidate_v0113.py
+      - name: Syntax check candidate
+        run: node --check app-candidate.js
+      - name: Release guard
+        run: |
+          grep -q "TIDE DASH v0.11.3" app-candidate.js
+          grep -q '"candidateVersion":"0.11.3"' manifest.json
+          grep -q '潮読み  ${tr.meaning}' app-candidate.js
+          grep -q 'その後' app-candidate.js
+          grep -q 'eventDayWord' app-candidate.js
+      - name: Commit candidate
+        run: |
+          if git diff --quiet -- app-candidate.js manifest.json; then
+            echo "Candidate already patched"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-candidate.js manifest.json
+          git commit -m "TIDE DASH v0.11.3: remove duplicate labels and clarify day rollover"
+          git push
