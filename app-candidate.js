@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.1 — Tide Literacy: teach the current tide without duplicating fishing advice
+// TIDE DASH v0.11.2 — Tide Literacy Polish: clearer beginner wording and tap affordance
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -418,11 +418,11 @@ function tideRead(t){
   const direction=down?"下げ":up?"上げ":"転流";
   const target=down?"干潮へ":up?"満潮へ":"転流付近";
   let stage,meaning;
-  if(p<.12){stage="始まり";meaning="流れが出始める"}
-  else if(p<.35){stage="前半";meaning="流れが強まりやすい"}
-  else if(p<.65){stage="中盤";meaning="潮が動きやすい"}
-  else if(p<.88){stage="後半";meaning="流れは弱まりやすい"}
-  else{stage="終盤";meaning="潮止まりが近い"}
+  if(p<.12){stage="始まり";meaning="潮位変化が出始める"}
+  else if(p<.35){stage="前半";meaning="潮位変化が大きくなりやすい"}
+  else if(p<.65){stage="中盤";meaning="潮位変化が大きい時間帯"}
+  else if(p<.88){stage="後半";meaning="潮位変化は小さくなりやすい"}
+  else{stage="終盤";meaning="満干潮が近い"}
   return{p,direction,target,stage,meaning,summary:`${direction}${stage}｜${target}・${meaning}`};
 }
 
@@ -448,7 +448,7 @@ async function showTideHelp(){
     "",
     "％は『前の満干潮から次の満干潮まで、時間がどこまで進んだか』です。流速そのものではありません。",
     "",
-    "満潮・干潮の前後は潮流が緩みやすく、その中間は動きやすい傾向があります。ただし潮位と実際の潮流は同じではなく、地形・風・河川・海峡などで変わります。"
+    "この表示は潮位の変化を読んだ目安です。潮位と実際の潮流（流れの速さ・向き）は同じではなく、地形・風・河川・海峡などで変わります。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
@@ -565,9 +565,10 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   text(cur,`${Math.round(t.current)} cm`,large?34:24,C.t.fg,true);
   const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
   const dr=down?"↘ 下げ":up?"↗ 上げ":"→ 転流付近",ph=t.phaseProgress==null?"":` ${Math.round(t.phaseProgress*100)}%`;
-  text(cur,`推算潮位  ${dr}${ph}`,large?11:9,C.t.sub);
+  const tr=tideRead(t);
+  text(cur,`推算潮位  ${dr}${ph} · ${tr.stage}`,large?11:9,C.t.sub);
   if(large){
-    const tr=tideRead(t),teach=text(cur,`潮読み  ${tr.summary}`,9,C.t.a,true);
+    const teach=text(cur,`潮読み  ${tr.target} · ${tr.meaning}  ›`,9,C.t.a,true);
     if(tideHelpURL)teach.url=tideHelpURL;
   }
 
@@ -594,7 +595,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     metric(ms,"天気",`${weatherIcon(we.weatherCode)} ${we.temp!=null?Math.round(we.temp)+"℃":"--"}`,`雨 ${we.precip!=null?Number(we.precip).toFixed(1):"--"}mm`);
     ms.addSpacer(5);metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`);
     ms.addSpacer(5);metric(ms,"波",f1(we.wave,"m"),[we.waveDir!=null?dir8(we.waveDir):null,we.wavePeriod!=null?`${Number(we.wavePeriod).toFixed(0)}秒`:null].filter(Boolean).join("・")||null);
-    ms.addSpacer(5);const chance=metric(ms,"釣り",fg.stars,fg.label);if(guideURL)chance.url=guideURL;
+    ms.addSpacer(5);const chance=metric(ms,"釣り目安 ›",fg.stars,fg.label);if(guideURL)chance.url=guideURL;
   }
 
   if(large&&wp?.slots?.length){
