@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.2 — Tide Literacy Polish: clearer beginner wording and tap affordance
+// TIDE DASH v0.11.3 — Duplication Pass: clearer hierarchy / day rollover / non-redundant event row
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -395,10 +395,10 @@ function fishingGuide(t,we,now=new Date()){
   else{label="潮待ち";stars="★☆☆☆☆"}
 
   let tideReason;
-  if(p<=.12||p>=.88)tideReason="潮止まりが近い";
-  else if(p<=.30)tideReason="潮が動き始める";
-  else if(p<=.70)tideReason="潮が動きやすい";
-  else tideReason="潮はまだ動く";
+  if(p<=.12||p>=.88)tideReason="満干潮が近い";
+  else if(p<=.30)tideReason="潮位変化が増えやすい";
+  else if(p<=.70)tideReason="潮位変化が大きい時間帯";
+  else tideReason="潮位変化が小さくなりやすい";
   if(magic>=.65)tideReason=`マヅメ中・${tideReason}`;
   else if(magic>=.25)tideReason=`マヅメ接近・${tideReason}`;
 
@@ -409,6 +409,15 @@ function fishingGuide(t,we,now=new Date()){
   else condition="釣行条件は穏やか";
 
   return{score,label,stars,shortReason:tideReason,tideMove,magic,range,condition};
+}
+
+function eventDayIndex(e){
+  const m=e?.absoluteMinute??e?.minute??0;
+  return Math.floor(m/1440);
+}
+function eventDayWord(e){
+  const d=eventDayIndex(e);
+  return d===1?"明日 ":d===2?"明後日 ":"";
 }
 
 function tideRead(t){
@@ -433,7 +442,7 @@ async function showTideHelp(){
     const a=new Alert();a.title="潮の見方";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
   const tr=tideRead(t),pct=t.phaseProgress==null?"--":`${Math.round(t.phaseProgress*100)}%`;
-  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventClock(t.nextEvent)} / ${t.nextEvent.level}cm`:"--";
+  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)} / ${t.nextEvent.level}cm`:"--";
   const a=new Alert();
   a.title="🌊 潮の見方";
   a.message=[
@@ -462,20 +471,20 @@ async function showGuide(){
   }
   try{wp=await weather(now,r.station)}catch(_){}
   const we=wp?.current??null,g=fishingGuide(t,we,now);
-  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventClock(t.nextEvent)}`:"--";
+  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
   const a=new Alert();
   a.title=`🎣 ${g.label}  ${g.stars}`;
   a.message=[
     `今の目安：${g.score}/100`,
-    `潮の動き：${Math.round(g.tideMove*100)}%`,
+    `潮位変化要素：${Math.round(g.tideMove*100)}%`,
     `マヅメ要素：${Math.round(g.magic*100)}%`,
     `潮差要素：${Math.round(g.range*100)}%`,
     `次：${next}`,
     `状況：${g.condition}`,
     "",
-    "これは『釣れる確率』ではありません。潮の動き・朝夕マヅメ・潮差から作る初心者向けの目安です。魚種、水温、ベイト、地形、仕掛けなどは未考慮です。",
+    "これは『釣れる確率』ではありません。潮位変化・朝夕マヅメ・潮差から作る初心者向けの目安です。魚種、水温、ベイト、地形、仕掛けなどは未考慮です。",
     "",
-    "潮の基本：満潮・干潮の直前後は潮が緩みやすく、その中間は潮が動きやすい傾向があります。"
+    "潮の基本：満干潮の中間ほど潮位変化が大きくなりやすい傾向があります。実際の潮流の速さ・向きとは別物です。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
@@ -568,14 +577,14 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const tr=tideRead(t);
   text(cur,`推算潮位  ${dr}${ph} · ${tr.stage}`,large?11:9,C.t.sub);
   if(large){
-    const teach=text(cur,`潮読み  ${tr.target} · ${tr.meaning}  ›`,9,C.t.a,true);
+    const teach=text(cur,`潮読み  ${tr.meaning}  ›`,9,C.t.a,true);
     if(tideHelpURL)teach.url=tideHelpURL;
   }
 
   st.addSpacer();
   const nx=st.addStack();nx.layoutVertically();nx.backgroundColor=new Color(C.t.panel,.48);nx.cornerRadius=12;nx.setPadding(large?7:5,large?9:7,large?7:5,large?9:7);
   if(t.nextEvent){
-    const e=t.nextEvent;text(nx,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventClock(e)}`,large?17:13,C.t.fg,true);
+    const e=t.nextEvent;text(nx,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventDayWord(e)}${eventClock(e)}`,large?17:13,C.t.fg,true);
     text(nx,`${leftText(e.absoluteMinute-t.nowMin)} ${e.level}cm`,large?11:9,C.t.sub);
   }
 
@@ -584,10 +593,16 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   w.addSpacer(large?6:2);
 
   const ex=w.addStack();ex.layoutHorizontally();
-  t.futureEvents.slice(0,4).forEach((e,i,a)=>{
-    text(ex,`${e.type==="high"?"▲":"▼"}${eventClock(e)} ${e.level}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
-    if(i<a.length-1)ex.addSpacer();
-  });
+  const rest=t.futureEvents.slice(1,large?4:3);
+  if(rest.length){
+    text(ex,"その後",large?8:7,C.t.muted,true);ex.addSpacer(6);
+    let prevDay=t.nextEvent?eventDayIndex(t.nextEvent):eventDayIndex({absoluteMinute:t.nowMin});
+    rest.forEach((e,i,a)=>{
+      const day=eventDayIndex(e),roll=day!==prevDay?(day===1?"翌 ":day===2?"翌々 ":""):"";
+      text(ex,`${roll}${e.type==="high"?"▲":"▼"}${eventClock(e)} ${e.level}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
+      prevDay=day;if(i<a.length-1)ex.addSpacer();
+    });
+  }
 
   w.addSpacer(large?9:5);
   if(we){
