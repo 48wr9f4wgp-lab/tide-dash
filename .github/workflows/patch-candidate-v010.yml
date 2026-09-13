@@ -1,0 +1,38 @@
+name: Patch TIDE DASH v0.10 candidate
+
+on:
+  push:
+    paths:
+      - "scripts/patch_candidate_v010.py"
+      - ".github/workflows/patch-candidate-v010.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Patch candidate
+        run: python scripts/patch_candidate_v010.py
+      - name: Syntax check candidate
+        run: node --check app-candidate.js
+      - name: Commit candidate
+        run: |
+          if git diff --quiet -- app-candidate.js; then
+            echo "Candidate already patched"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-candidate.js
+          git commit -m "TIDE DASH v0.10 candidate: station master and stale-cache visibility"
+          git push
