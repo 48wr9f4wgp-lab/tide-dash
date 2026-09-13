@@ -1,7 +1,7 @@
-// TIDE DASH v0.7 — AUTO nearest station without distance cutoff
+// TIDE DASH v0.8 — one-tap refresh + station settings
 const C = {
   refresh: 30,
-  cache: "TideDashCacheV07",
+  cache: "TideDashCacheV08",
   prefs: "TideDashPrefs.json",
   catalog: "TideDashStations.json",
   defaultFav: { code:"UC", name:"内浦", lat:35.0167, lon:138.8833, area:"沼津" },
@@ -34,6 +34,13 @@ const dir8 = d => {
 };
 const weatherIcon = c => c==null?"·":c===0?"☀︎":[1,2].includes(c)?"🌤":c===3?"☁︎":[45,48].includes(c)?"霧":[51,53,55,56,57,61,63,65,66,67,80,81,82].includes(c)?"☂︎":[71,73,75,77,85,86].includes(c)?"雪":[95,96,99].includes(c)?"雷":"·";
 const f1 = (v,s="") => v==null ? "--" : `${Number(v).toFixed(1)}${s}`;
+
+function scriptURL(action){
+  try {
+    const base=URLScheme.forRunningScript();
+    return `${base}${base.includes("?")?"&":"?"}action=${encodeURIComponent(action)}`;
+  } catch(_) { return null; }
+}
 
 function loadPrefs(){
   const base={mode:"auto",favorite:C.defaultFav,lastStation:C.defaultFav,lastLocation:null};
@@ -145,11 +152,7 @@ async function resolveStation(force=false){
     if (n){
       p.lastStation=n;
       savePrefs(p);
-      return {
-        station:n,
-        prefs:p,
-        badge:`◎ AUTO ${Math.round(n.distanceKm)}km`
-      };
+      return {station:n,prefs:p,badge:`◎ AUTO ${Math.round(n.distanceKm)}km`};
     }
   }
 
@@ -262,11 +265,7 @@ function parseLine(line){
     return out;
   };
 
-  return {
-    key:`${year}-${p2(mo)}-${p2(da)}`,
-    hourly,
-    events:[...ev(80,"high"),...ev(108,"low")].sort((a,b)=>a.minute-b.minute)
-  };
+  return {key:`${year}-${p2(mo)}-${p2(da)}`,hourly,events:[...ev(80,"high"),...ev(108,"low")].sort((a,b)=>a.minute-b.minute)};
 }
 function parseAnnual(s){
   const m=new Map();
@@ -302,9 +301,7 @@ async function tide(now,S){
   const pe=[...events].reverse().find(e=>e.absoluteMinute<=nm)||null;
   const ne=events.find(e=>e.absoluteMinute>nm)||null;
   let progress=null;
-  if (pe&&ne&&ne.absoluteMinute>pe.absoluteMinute){
-    progress=Math.max(0,Math.min(1,(nm-pe.absoluteMinute)/(ne.absoluteMinute-pe.absoluteMinute)));
-  }
+  if (pe&&ne&&ne.absoluteMinute>pe.absoluteMinute) progress=Math.max(0,Math.min(1,(nm-pe.absoluteMinute)/(ne.absoluteMinute-pe.absoluteMinute)));
   const ext=today.events.map(e=>e.level);
   const range=ext.length?Math.max(...ext)-Math.min(...ext):Math.max(...today.hourly)-Math.min(...today.hourly);
 
@@ -338,14 +335,7 @@ async function weather(now,S){
     const a=w.hourly?.time?.indexOf(hourKey(d))??-1;
     const b=m?.hourly?.time?.indexOf(hourKey(d))??-1;
     if (a<0) continue;
-    slots.push({
-      time:`${p2(d.getHours())}:00`,
-      weatherCode:w.hourly.weather_code[a],
-      temp:w.hourly.temperature_2m[a],
-      precip:w.hourly.precipitation[a],
-      wind:w.hourly.wind_speed_10m[a],
-      wave:b>=0?m.hourly.wave_height[b]:null
-    });
+    slots.push({time:`${p2(d.getHours())}:00`,weatherCode:w.hourly.weather_code[a],temp:w.hourly.temperature_2m[a],precip:w.hourly.precipitation[a],wind:w.hourly.wind_speed_10m[a],wave:b>=0?m.hourly.wave_height[b]:null});
   }
   return {current,slots};
 }
@@ -376,44 +366,31 @@ function graph(t,width=650,height=220){
   c.addPath(area); c.setFillColor(new Color(C.t.a,.10)); c.fillPath();
 
   c.setStrokeColor(new Color(C.t.grid,.42)); c.setLineWidth(1);
-  for(const h of [0,6,12,18,24]){
-    const p=new Path(),x=X(h*60); p.move(new Point(x,T)); p.addLine(new Point(x,T+H)); c.addPath(p); c.strokePath();
-  }
-  for(const ff of [.33,.66]){
-    const p=new Path(),y=T+H*ff; p.move(new Point(L,y)); p.addLine(new Point(L+W,y)); c.addPath(p); c.strokePath();
-  }
+  for(const h of [0,6,12,18,24]){ const p=new Path(),x=X(h*60); p.move(new Point(x,T)); p.addLine(new Point(x,T+H)); c.addPath(p); c.strokePath(); }
+  for(const ff of [.33,.66]){ const p=new Path(),y=T+H*ff; p.move(new Point(L,y)); p.addLine(new Point(L+W,y)); c.addPath(p); c.strokePath(); }
 
-  const p=new Path();
-  s.forEach((q,i)=>{const pt=new Point(X(q.minute),Y(q.level)); i?p.addLine(pt):p.move(pt);});
+  const p=new Path(); s.forEach((q,i)=>{const pt=new Point(X(q.minute),Y(q.level)); i?p.addLine(pt):p.move(pt);});
   c.addPath(p); c.setStrokeColor(new Color(C.t.a)); c.setLineWidth(5); c.strokePath();
 
-  for(const e of t.today.events){
-    c.setFillColor(new Color(e.type==="high"?C.t.a:C.t.b));
-    c.fillEllipse(new Rect(X(e.minute)-5,Y(e.level)-5,10,10));
-  }
+  for(const e of t.today.events){ c.setFillColor(new Color(e.type==="high"?C.t.a:C.t.b)); c.fillEllipse(new Rect(X(e.minute)-5,Y(e.level)-5,10,10)); }
 
-  const x=X(t.nowMin),y=Y(t.current),nl=new Path();
-  nl.move(new Point(x,T)); nl.addLine(new Point(x,T+H)); c.addPath(nl);
+  const x=X(t.nowMin),y=Y(t.current),nl=new Path(); nl.move(new Point(x,T)); nl.addLine(new Point(x,T+H)); c.addPath(nl);
   c.setStrokeColor(new Color(C.t.fg,.60)); c.setLineWidth(2); c.strokePath();
   c.setFillColor(new Color(C.t.fg)); c.fillEllipse(new Rect(x-9,y-9,18,18));
   c.setFillColor(new Color(C.t.b)); c.fillEllipse(new Rect(x-5,y-5,10,10));
 
   c.setFont(Font.semiboldSystemFont(18)); c.setTextColor(new Color(C.t.sub));
   for(const [m,z] of [[0,"0"],[360,"6"],[720,"12"],[1080,"18"],[1440,"24"]]){
-    const xx=X(m),tw=42;
-    c.drawTextInRect(z,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-25,tw,20));
+    const xx=X(m),tw=42; c.drawTextInRect(z,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-25,tw,20));
   }
   return c.getImage();
 }
 
 function text(st,s,z,col,b=false){
-  const t=st.addText(s);
-  t.font=b?Font.boldSystemFont(z):Font.systemFont(z);
-  t.textColor=new Color(col); t.lineLimit=1; t.minimumScaleFactor=.72; return t;
+  const t=st.addText(s); t.font=b?Font.boldSystemFont(z):Font.systemFont(z); t.textColor=new Color(col); t.lineLimit=1; t.minimumScaleFactor=.72; return t;
 }
 function metric(p,l,v,d=null){
-  const b=p.addStack(); b.layoutVertically(); b.backgroundColor=new Color(C.t.panel,.55);
-  b.cornerRadius=10; b.setPadding(6,7,6,7);
+  const b=p.addStack(); b.layoutVertically(); b.backgroundColor=new Color(C.t.panel,.55); b.cornerRadius=10; b.setPadding(6,7,6,7);
   text(b,l,8,C.t.sub); text(b,v,11,C.t.fg,true); if(d)text(b,d,8,C.t.muted); return b;
 }
 
@@ -423,10 +400,15 @@ function widget(t,wp,S,badge,err=null){
   const g=new LinearGradient(); g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)]; g.locations=[0,1]; w.backgroundGradient=g;
   const we=wp?.current??null;
 
+  const refreshURL=scriptURL("refresh");
+  const settingsURL=scriptURL("settings");
+  if(refreshURL) w.url=refreshURL;
+
   const hd=w.addStack(); hd.layoutHorizontally(); hd.centerAlignContent();
   const pl=hd.addStack(); pl.layoutVertically();
   text(pl,S.name,large?22:16,C.t.fg,true);
-  text(pl,badge,large?10:8,C.t.a,true);
+  text(pl,`${badge}  ›`,large?10:8,C.t.a,true);
+  if(settingsURL) pl.url=settingsURL;
   hd.addSpacer();
   const rr=hd.addStack(); rr.layoutVertically(); const d=new Date();
   text(rr,`${d.getMonth()+1}/${d.getDate()}`,large?15:12,C.t.fg,true);
@@ -447,33 +429,23 @@ function widget(t,wp,S,badge,err=null){
   st.addSpacer();
   const nx=st.addStack(); nx.layoutVertically(); nx.backgroundColor=new Color(C.t.panel,.48); nx.cornerRadius=12;
   nx.setPadding(large?7:5,large?9:7,large?7:5,large?9:7);
-  if (t.nextEvent){
-    const e=t.nextEvent;
-    text(nx,`${e.type==="high"?"次の満潮":"次の干潮"} ${clock(e)}`,large?17:13,C.t.fg,true);
-    text(nx,`${leftText(e.absoluteMinute-t.nowMin)} ${e.level}cm`,large?11:9,C.t.sub);
-  }
+  if (t.nextEvent){ const e=t.nextEvent; text(nx,`${e.type==="high"?"次の満潮":"次の干潮"} ${clock(e)}`,large?17:13,C.t.fg,true); text(nx,`${leftText(e.absoluteMinute-t.nowMin)} ${e.level}cm`,large?11:9,C.t.sub); }
 
   w.addSpacer(large?8:3);
   const im=w.addImage(graph(t)); im.imageSize=new Size(large?325:310,large?110:82); im.applyFittingContentMode();
   w.addSpacer(large?6:2);
 
   const ex=w.addStack(); ex.layoutHorizontally();
-  t.today.events.slice(0,4).forEach((e,i,a)=>{
-    text(ex,`${e.type==="high"?"▲":"▼"}${clock(e)} ${e.level}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
-    if(i<a.length-1)ex.addSpacer();
-  });
+  t.today.events.slice(0,4).forEach((e,i,a)=>{ text(ex,`${e.type==="high"?"▲":"▼"}${clock(e)} ${e.level}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true); if(i<a.length-1)ex.addSpacer(); });
 
   w.addSpacer(large?9:5);
 
   if(we){
     const ms=w.addStack(); ms.layoutHorizontally();
     metric(ms,"天気",`${weatherIcon(we.weatherCode)} ${we.temp!=null?Math.round(we.temp)+"℃":"--"}`,`雨 ${we.precip!=null?Number(we.precip).toFixed(1):"--"}mm`);
-    ms.addSpacer(5);
-    metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`);
-    ms.addSpacer(5);
-    metric(ms,"波",f1(we.wave,"m"),[we.waveDir!=null?dir8(we.waveDir):null,we.wavePeriod!=null?`${Number(we.wavePeriod).toFixed(0)}秒`:null].filter(Boolean).join("・")||null);
-    ms.addSpacer(5);
-    metric(ms,"潮差",`${Math.round(t.dailyRange)}cm`,t.phaseProgress==null?null:`${down?"下げ":up?"上げ":"転流"} ${Math.round(t.phaseProgress*100)}%`);
+    ms.addSpacer(5); metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`);
+    ms.addSpacer(5); metric(ms,"波",f1(we.wave,"m"),[we.waveDir!=null?dir8(we.waveDir):null,we.wavePeriod!=null?`${Number(we.wavePeriod).toFixed(0)}秒`:null].filter(Boolean).join("・")||null);
+    ms.addSpacer(5); metric(ms,"潮差",`${Math.round(t.dailyRange)}cm`,t.phaseProgress==null?null:`${down?"下げ":up?"上げ":"転流"} ${Math.round(t.phaseProgress*100)}%`);
   }
 
   if(large&&wp?.slots?.length){
@@ -482,53 +454,62 @@ function widget(t,wp,S,badge,err=null){
     w.addSpacer(5);
     const row=w.addStack(); row.layoutHorizontally();
     wp.slots.slice(0,4).forEach((s,i,a)=>{
-      const q=row.addStack(); q.layoutVertically(); q.centerAlignContent();
-      q.backgroundColor=new Color(C.t.panel,.38); q.cornerRadius=10; q.setPadding(6,8,6,8);
-      text(q,s.time,10,C.t.sub,true); text(q,weatherIcon(s.weatherCode),16,C.t.fg);
-      text(q,`${Math.round(s.temp)}℃`,10,C.t.fg,true);
-      text(q,`風 ${s.wind!=null?Number(s.wind).toFixed(1):"--"}`,9,C.t.muted);
-      text(q,`波 ${s.wave!=null?Number(s.wave).toFixed(1):"--"}`,9,C.t.muted);
+      const q=row.addStack(); q.layoutVertically(); q.centerAlignContent(); q.backgroundColor=new Color(C.t.panel,.38); q.cornerRadius=10; q.setPadding(6,8,6,8);
+      text(q,s.time,10,C.t.sub,true); text(q,weatherIcon(s.weatherCode),16,C.t.fg); text(q,`${Math.round(s.temp)}℃`,10,C.t.fg,true);
+      text(q,`風 ${s.wind!=null?Number(s.wind).toFixed(1):"--"}`,9,C.t.muted); text(q,`波 ${s.wave!=null?Number(s.wave).toFixed(1):"--"}`,9,C.t.muted);
       if(i<a.length-1)row.addSpacer(6);
     });
   }
 
   if(err){ w.addSpacer(4); text(w,err,8,C.t.warn); }
   w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
-  try { w.url=URLScheme.forRunningScript()+"?action=settings"; } catch(_){}
   return w;
 }
 
-async function main(){
-  if(config.runsInApp && args.queryParameters?.action==="settings"){
-    await settings();
-    const r=await resolveStation(true),now=new Date();
-    const t=await tide(now,r.station);
-    const wp=await weather(now,r.station).catch(()=>null);
-    const w=widget(t,wp,r.station,r.badge);
-    await w.presentLarge();
-    return null;
-  }
-
-  const r=await resolveStation(false),now=new Date();
+async function buildCurrent(forceLocation=false){
+  const r=await resolveStation(forceLocation),now=new Date();
   let t,wp=null,err=null;
   try { t=await tide(now,r.station); }
   catch(e){
     const w=new ListWidget(); w.backgroundColor=new Color(C.t.bg1); w.setPadding(14,14,14,14);
-    text(w,"TIDE DASH",18,C.t.fg,true); w.addSpacer(8);
-    text(w,"潮位データを取得できません",13,C.t.warn,true); w.addSpacer(4);
-    text(w,String(e),9,C.t.sub); return w;
+    text(w,"TIDE DASH",18,C.t.fg,true); w.addSpacer(8); text(w,"潮位データを取得できません",13,C.t.warn,true); w.addSpacer(4); text(w,String(e),9,C.t.sub); return w;
   }
   try { wp=await weather(now,r.station); } catch(_) { err="天気/波は一時取得不可"; }
   return widget(t,wp,r.station,r.badge,err);
 }
 
+async function present(w){
+  const f=config.widgetFamily||"large";
+  if(f==="medium") await w.presentMedium(); else await w.presentLarge();
+}
+
+async function main(){
+  const action=args.queryParameters?.action;
+
+  if(config.runsInApp && action==="settings"){
+    await settings();
+    const w=await buildCurrent(true);
+    await present(w);
+    return null;
+  }
+
+  if(config.runsInApp && action==="refresh"){
+    const p=loadPrefs();
+    if(p.mode==="auto"){
+      p.lastLocation=null;
+      savePrefs(p);
+    }
+    const w=await buildCurrent(true);
+    await present(w);
+    return null;
+  }
+
+  return await buildCurrent(false);
+}
+
 const W=await main();
 if(W){
   if(config.runsInWidget) Script.setWidget(W);
-  else {
-    const f=config.widgetFamily||"large";
-    if(f==="medium") await W.presentMedium();
-    else await W.presentLarge();
-  }
+  else await present(W);
 }
 Script.complete();
