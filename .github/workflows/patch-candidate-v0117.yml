@@ -1,0 +1,53 @@
+name: Patch TIDE DASH v0.11.7 candidate
+
+on:
+  push:
+    paths:
+      - 'scripts/patch_candidate_v0117.py'
+      - '.github/workflows/patch-candidate-v0117.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Patch candidate and manifest
+        run: python scripts/patch_candidate_v0117.py
+      - name: Syntax check candidate
+        run: node --check app-candidate.js
+      - name: Release guard
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          app=Path('app-candidate.js').read_text(encoding='utf-8')
+          m=json.loads(Path('manifest.json').read_text(encoding='utf-8'))
+          assert 'TIDE DASH v0.11.7' in app
+          assert m['candidateVersion']=='0.11.7'
+          assert m['candidateEnabled'] is True
+          assert 'if(!large){' in app
+          assert 'mi.imageSize=new Size(310,62)' in app
+          assert 'if(tideHelpURL)stateLine.url=tideHelpURL' in app
+          assert 'if(guideURL)fish.url=guideURL' in app
+          print('release guard ok')
+          PY
+      - name: Commit candidate
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app-candidate.js manifest.json
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+          else
+            git commit -m 'TIDE DASH v0.11.7: medium layout hardening'
+            git push
+          fi
