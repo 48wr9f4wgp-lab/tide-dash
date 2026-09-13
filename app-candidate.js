@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.3 — Duplication Pass: clearer hierarchy / day rollover / non-redundant event row
+// TIDE DASH v0.11.4 — Visual QA: round-hour graph ticks / clearer next-day event row
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -504,7 +504,9 @@ function graph(t,width=650,height=220){
   c.addPath(area);c.setFillColor(new Color(C.t.a,.10));c.fillPath();
 
   c.setStrokeColor(new Color(C.t.grid,.42));c.setLineWidth(1);
-  const gridTimes=[t.graphStart,t.graphStart+360,t.graphStart+720,t.graphStart+1080,t.graphEnd];
+  const gridTimes=[];
+  const firstGrid=Math.ceil(t.graphStart/360)*360;
+  for(let m=firstGrid;m<=t.graphEnd;m+=360)gridTimes.push(m);
   for(const m of gridTimes){
     const p=new Path(),x=X(m);p.move(new Point(x,T));p.addLine(new Point(x,T+H));c.addPath(p);c.strokePath();
   }
@@ -595,10 +597,12 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const ex=w.addStack();ex.layoutHorizontally();
   const rest=t.futureEvents.slice(1,large?4:3);
   if(rest.length){
-    text(ex,"その後",large?8:7,C.t.muted,true);ex.addSpacer(6);
-    let prevDay=t.nextEvent?eventDayIndex(t.nextEvent):eventDayIndex({absoluteMinute:t.nowMin});
+    const firstDay=eventDayIndex(rest[0]);
+    const rowLabel=firstDay===1?"明日":firstDay===2?"明後日":"その後";
+    text(ex,rowLabel,large?8:7,C.t.muted,true);ex.addSpacer(6);
+    let prevDay=firstDay;
     rest.forEach((e,i,a)=>{
-      const day=eventDayIndex(e),roll=day!==prevDay?(day===1?"翌 ":day===2?"翌々 ":""):"";
+      const day=eventDayIndex(e),roll=i>0&&day!==prevDay?(day===1?"翌 ":day===2?"翌々 ":""):"";
       text(ex,`${roll}${e.type==="high"?"▲":"▼"}${eventClock(e)} ${e.level}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
       prevDay=day;if(i<a.length-1)ex.addSpacer();
     });
