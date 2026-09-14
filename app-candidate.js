@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.8 — Signed Tide Level: explicit datum-relative current height
+// TIDE DASH v0.11.9 — Visual Ergonomics: hierarchy / contrast / signed datum consistency
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -10,7 +10,7 @@ const C={
   defaultFav:{code:"UC",name:"内浦",lat:35.0167,lon:138.8833,area:"沼津"},
   t:{
     bg1:"#061824",bg2:"#0A3147",panel:"#0E3A50",
-    fg:"#F7FBFF",sub:"#9AB5C7",muted:"#6F91A6",
+    fg:"#F7FBFF",sub:"#9AB5C7",muted:"#85A7BA",
     a:"#39E0DB",b:"#6AA8FF",grid:"#34566A",warn:"#FFBD55"
   }
 };
@@ -173,8 +173,8 @@ async function resolveStation(force=false){
       const d=Math.round(n.distanceKm);
       return{
         station:n,prefs:p,
-        badge:`AUTO · ${d}km`,
-        badgeColor:d>=C.farKm?C.t.warn:C.t.muted
+        badge:d>=C.farKm?`AUTO · ⚠ ${d}km`:`AUTO · ${d}km`,
+        badgeColor:C.t.muted
       };
     }
   }
@@ -451,7 +451,7 @@ async function showTideHelp(){
     const a=new Alert();a.title="潮の見方";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
   const tr=tideRead(t),pct=t.phaseProgress==null?"--":`${Math.round(t.phaseProgress*100)}%`;
-  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)} / ${t.nextEvent.level}cm`:"--";
+  const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)} / ${signedTide(t.nextEvent.level)}cm`:"--";
   const a=new Alert();
   a.title="🌊 潮の見方";
   a.message=[
@@ -555,6 +555,12 @@ function metric(p,l,v,d=null){
   const b=p.addStack();b.layoutVertically();b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;b.setPadding(7,8,7,8);
   text(b,l,9,C.t.sub);text(b,v,12,C.t.fg,true);if(d)text(b,d,9,C.t.muted);return b;
 }
+function badgeLine(st,badge,z,col){
+  const m=String(badge).match(/^(.*?)(⚠.*)$/);
+  if(!m)return text(st,badge,z,col,true);
+  const r=st.addStack();r.layoutHorizontally();
+  text(r,m[1],z,col,true);text(r,m[2],z,C.t.warn,true);return r;
+}
 
 function widget(t,wp,S,badge,badgeColor,err=null){
   const w=new ListWidget(),large=(config.widgetFamily||"large")==="large";
@@ -569,14 +575,14 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     const mh=w.addStack();mh.layoutHorizontally();mh.centerAlignContent();
     const ml=mh.addStack();ml.layoutVertically();
     text(ml,S.name,15,C.t.fg,true);
-    text(ml,`${badge}  ▾`,8,badgeColor||C.t.sub,true);
+    badgeLine(ml,`${badge}  ▾`,8,badgeColor||C.t.sub);
     if(settingsURL)ml.url=settingsURL;
     mh.addSpacer();
     const md=mh.addStack();md.layoutVertically();
     const nd=new Date();text(md,`${nd.getMonth()+1}/${nd.getDate()}`,10,C.t.fg,true);
     mh.addSpacer(7);
     const mrf=mh.addStack();mrf.layoutVertically();mrf.backgroundColor=new Color(C.t.panel,.55);mrf.cornerRadius=9;mrf.setPadding(3,6,3,6);
-    text(mrf,"↻",14,C.t.a,true);if(refreshURL)mrf.url=refreshURL;
+    text(mrf,"↻",14,C.t.sub,true);if(refreshURL)mrf.url=refreshURL;
 
     w.addSpacer(3);
     const ms=w.addStack();ms.layoutHorizontally();ms.centerAlignContent();
@@ -584,13 +590,13 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     text(mc,`${signedTide(t.current)} cm`,24,C.t.fg,true);
     const mdown=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",mup=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
     const mdr=mdown?"↘ 下げ":mup?"↗ 上げ":"→ 転流",mph=t.phaseProgress==null?"":`${Math.round(t.phaseProgress*100)}%`,mtr=tideRead(t);
-    const stateLine=text(mc,`${mdr}${mph?" "+mph:""}・${mtr.stage}｜${mtr.meaning}`,8,C.t.a,true);
-    if(tideHelpURL)stateLine.url=tideHelpURL;
+    text(mc,`${mdr}${mph?" "+mph:""}・${mtr.stage}｜${mtr.meaning}`,8,C.t.a,true);
+    if(tideHelpURL)mc.url=tideHelpURL;
     ms.addSpacer();
     if(t.nextEvent){
       const e=t.nextEvent,mn=ms.addStack();mn.layoutVertically();mn.backgroundColor=new Color(C.t.panel,.45);mn.cornerRadius=10;mn.setPadding(4,7,4,7);
       text(mn,`${e.type==="high"?"満潮":"干潮"} ${eventDayWord(e)}${eventClock(e)}`,12,C.t.fg,true);
-      text(mn,`${leftText(e.absoluteMinute-t.nowMin)} · ${e.level}cm`,8,C.t.sub);
+      text(mn,`${leftText(e.absoluteMinute-t.nowMin)} · ${signedTide(e.level)}cm`,8,C.t.sub);
     }
 
     w.addSpacer(2);
@@ -618,7 +624,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
   text(pl,S.name,large?22:16,C.t.fg,true);
-  text(pl,`${badge}  ▾`,large?9:8,badgeColor||C.t.muted,true);
+  badgeLine(pl,`${badge}  ▾`,large?9:8,badgeColor||C.t.muted);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
@@ -628,27 +634,28 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   hd.addSpacer(8);
 
   const rf=hd.addStack();rf.layoutVertically();rf.backgroundColor=new Color(C.t.panel,.6);rf.cornerRadius=10;rf.setPadding(5,8,5,8);
-  text(rf,"↻",large?18:15,C.t.a,true);if(refreshURL)rf.url=refreshURL;
+  text(rf,"↻",large?18:15,C.t.sub,true);if(refreshURL)rf.url=refreshURL;
 
   w.addSpacer(large?9:5);
 
   const st=w.addStack();st.layoutHorizontally();st.centerAlignContent();
   const cur=st.addStack();cur.layoutVertically();
+  text(cur,"推算潮位",9,C.t.sub,true);
   text(cur,`${signedTide(t.current)} cm`,large?34:24,C.t.fg,true);
   const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
   const dr=down?"↘ 下げ":up?"↗ 上げ":"→ 転流付近",ph=t.phaseProgress==null?"":` ${Math.round(t.phaseProgress*100)}%`;
   const tr=tideRead(t);
-  text(cur,`推算潮位  ${dr}${ph} · ${tr.stage}`,large?11:9,C.t.sub);
+  text(cur,`${dr}${ph} · ${tr.stage}`,large?11:9,C.t.sub);
   if(large){
-    const teach=text(cur,`潮読み  ${tideBrief(tr)}  ›`,10,C.t.a,true);
-    if(tideHelpURL)teach.url=tideHelpURL;
+    text(cur,`潮読み  ${tideBrief(tr)}  ›`,10,C.t.a,true);
+    if(tideHelpURL)cur.url=tideHelpURL;
   }
 
   st.addSpacer();
   const nx=st.addStack();nx.layoutVertically();nx.backgroundColor=new Color(C.t.panel,.48);nx.cornerRadius=12;nx.setPadding(large?7:5,large?9:7,large?7:5,large?9:7);
   if(t.nextEvent){
     const e=t.nextEvent;text(nx,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventDayWord(e)}${eventClock(e)}`,large?17:13,C.t.fg,true);
-    text(nx,`${leftText(e.absoluteMinute-t.nowMin)} ${e.level}cm`,large?11:9,C.t.sub);
+    text(nx,`${leftText(e.absoluteMinute-t.nowMin)} ${signedTide(e.level)}cm`,large?11:9,C.t.sub);
   }
 
   w.addSpacer(large?8:3);
@@ -664,7 +671,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     let prevDay=firstDay;
     rest.forEach((e,i,a)=>{
       const day=eventDayIndex(e),roll=i>0&&day!==prevDay?(day===1?"翌 ":day===2?"翌々 ":""):"";
-      text(ex,`${roll}${e.type==="high"?"▲":"▼"}${eventClock(e)} ${e.level}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
+      text(ex,`${roll}${e.type==="high"?"▲":"▼"}${eventClock(e)} ${signedTide(e.level)}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
       prevDay=day;if(i<a.length-1)ex.addSpacer();
     });
   }
