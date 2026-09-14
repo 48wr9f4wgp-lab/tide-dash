@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.7 — Medium Hardening: compact hierarchy / tap regression prep
+// TIDE DASH v0.11.8 — Signed Tide Level: explicit datum-relative current height
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -33,6 +33,7 @@ const leftText=m=>{m=Math.max(0,Math.round(m));const h=Math.floor(m/60),mm=m%60;
 const dir8=d=>{if(d==null||Number.isNaN(d))return"--";return["北","北東","東","南東","南","南西","西","北西"][Math.round((((d%360)+360)%360)/45)%8]};
 const weatherIcon=c=>c==null?"·":c===0?"☀︎":[1,2].includes(c)?"🌤":c===3?"☁︎":[45,48].includes(c)?"霧":[51,53,55,56,57,61,63,65,66,67,80,81,82].includes(c)?"☂︎":[71,73,75,77,85,86].includes(c)?"雪":[95,96,99].includes(c)?"雷":"·";
 const f1=(v,s="")=>v==null?"--":`${Number(v).toFixed(1)}${s}`;
+const signedTide=v=>{const n=Math.round(Number(v));return !Number.isFinite(n)?"--":n>0?`+${n}`:n<0?`−${Math.abs(n)}`:"0"};
 
 function scriptURL(action){
   try{
@@ -580,7 +581,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     w.addSpacer(3);
     const ms=w.addStack();ms.layoutHorizontally();ms.centerAlignContent();
     const mc=ms.addStack();mc.layoutVertically();
-    text(mc,`${Math.round(t.current)} cm`,24,C.t.fg,true);
+    text(mc,`${signedTide(t.current)} cm`,24,C.t.fg,true);
     const mdown=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",mup=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
     const mdr=mdown?"↘ 下げ":mup?"↗ 上げ":"→ 転流",mph=t.phaseProgress==null?"":`${Math.round(t.phaseProgress*100)}%`,mtr=tideRead(t);
     const stateLine=text(mc,`${mdr}${mph?" "+mph:""}・${mtr.stage}｜${mtr.meaning}`,8,C.t.a,true);
@@ -633,7 +634,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
 
   const st=w.addStack();st.layoutHorizontally();st.centerAlignContent();
   const cur=st.addStack();cur.layoutVertically();
-  text(cur,`${Math.round(t.current)} cm`,large?34:24,C.t.fg,true);
+  text(cur,`${signedTide(t.current)} cm`,large?34:24,C.t.fg,true);
   const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
   const dr=down?"↘ 下げ":up?"↗ 上げ":"→ 転流付近",ph=t.phaseProgress==null?"":` ${Math.round(t.phaseProgress*100)}%`;
   const tr=tideRead(t);
