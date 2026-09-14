@@ -1,0 +1,34 @@
+name: Patch TIDE DASH v0.11.9b candidate
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-candidate-v0119b.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch candidate
+        run: python3 .github/scripts/patch_v0119.py
+      - name: Syntax and release guard
+        run: |
+          node --check app-candidate.js
+          grep -q 'TIDE DASH v0.11.9' app-candidate.js
+          grep -q 'muted:"#85A7BA"' app-candidate.js
+          grep -q 'text(cur,"推算潮位"' app-candidate.js
+          grep -q 'signedTide(e.level)' app-candidate.js
+          grep -q 'AUTO · ⚠' app-candidate.js
+          grep -q 'candidateVersion":"0.11.9' manifest.json
+          grep -q 'candidateEnabled":true' manifest.json
+      - name: Commit candidate
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app-candidate.js manifest.json
+          git commit -m 'TIDE DASH v0.11.9: visual ergonomics pass'
+          git push
