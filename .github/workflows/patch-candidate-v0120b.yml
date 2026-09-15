@@ -1,0 +1,34 @@
+name: Patch TIDE DASH v0.12.0 candidate
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-candidate-v0120b.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build candidate
+        run: python3 scripts/patch_v0120.py
+      - name: Syntax and release guard
+        run: |
+          node --check app-candidate.js
+          grep -q 'TIDE DASH v0.12.0' app-candidate.js
+          grep -q 'function tideCycle' app-candidate.js
+          grep -q '大潮' app-candidate.js
+          grep -q '長潮' app-candidate.js
+          grep -q '若潮' app-candidate.js
+          grep -q 'candidateVersion":"0.12.0' manifest.json
+          grep -q 'candidateEnabled":true' manifest.json
+      - name: Commit candidate
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app-candidate.js manifest.json
+          git commit -m 'TIDE DASH v0.12.0: add tide-cycle labels'
+          git push
