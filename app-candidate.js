@@ -1,4 +1,4 @@
-// TIDE DASH v0.11.9 — Visual Ergonomics: hierarchy / contrast / signed datum consistency
+// TIDE DASH v0.12.0 — Tide Cycle: 大潮/中潮/小潮/長潮/若潮
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -34,6 +34,41 @@ const dir8=d=>{if(d==null||Number.isNaN(d))return"--";return["北","北東","東
 const weatherIcon=c=>c==null?"·":c===0?"☀︎":[1,2].includes(c)?"🌤":c===3?"☁︎":[45,48].includes(c)?"霧":[51,53,55,56,57,61,63,65,66,67,80,81,82].includes(c)?"☂︎":[71,73,75,77,85,86].includes(c)?"雪":[95,96,99].includes(c)?"雷":"·";
 const f1=(v,s="")=>v==null?"--":`${Number(v).toFixed(1)}${s}`;
 const signedTide=v=>{const n=Math.round(Number(v));return !Number.isFinite(n)?"--":n>0?`+${n}`:n<0?`−${Math.abs(n)}`:"0"};
+const sinD=d=>Math.sin((((d%360)+360)%360)*Math.PI/180);
+function newMoonJDE(k){
+  const T=k/1236.85,T2=T*T,T3=T2*T,T4=T3*T,E=1-.002516*T-.0000074*T2;
+  const M=2.5534+29.10535670*k-.0000014*T2-.00000011*T3;
+  const Mp=201.5643+385.81693528*k+.0107582*T2+.00001238*T3-.000000058*T4;
+  const F=160.7108+390.67050284*k-.0016118*T2-.00000227*T3+.000000011*T4;
+  const O=124.7746-1.56375588*k+.0020672*T2+.00000215*T3;
+  const c=-.40720*sinD(Mp)+.17241*E*sinD(M)+.01608*sinD(2*Mp)+.01039*sinD(2*F)
+    +.00739*E*sinD(Mp-M)-.00514*E*sinD(Mp+M)+.00208*E*E*sinD(2*M)
+    -.00111*sinD(Mp-2*F)-.00057*sinD(Mp+2*F)+.00056*E*sinD(2*Mp+M)
+    -.00042*sinD(3*Mp)+.00042*E*sinD(M+2*F)+.00038*E*sinD(M-2*F)
+    -.00024*E*sinD(2*Mp-M)-.00017*sinD(O)-.00007*sinD(Mp+2*M)
+    +.00004*sinD(2*Mp-2*F)+.00004*sinD(3*M)+.00003*sinD(Mp+M-2*F)
+    +.00003*sinD(2*Mp+2*F)-.00003*sinD(Mp+M+2*F)+.00003*sinD(Mp-M+2*F)
+    -.00002*sinD(Mp-M-2*F)-.00002*sinD(3*Mp+M)+.00002*sinD(4*Mp);
+  return 2451550.09765+29.530588853*k+.0001337*T2-.000000150*T3+.00000000073*T4+c;
+}
+const jstDayIndex=ms=>Math.floor((ms+9*3600000)/86400000);
+function tideCycle(date=new Date()){
+  const jd=date.getTime()/86400000+2440587.5,today=jstDayIndex(date.getTime());
+  const guess=Math.floor((jd-2451550.09765)/29.530588853);
+  let baseDay=null;
+  for(let k=guess-2;k<=guess+2;k++){
+    const ms=(newMoonJDE(k)-2440587.5)*86400000,di=jstDayIndex(ms);
+    if(di<=today&&(baseDay==null||di>baseDay))baseDay=di;
+  }
+  const lunarDay=Math.max(1,Math.min(30,baseDay==null?1:today-baseDay+1));
+  let name;
+  if([1,2,14,15,16,17,29,30].includes(lunarDay))name="大潮";
+  else if([3,4,5,6,12,13,18,19,20,21,27,28].includes(lunarDay))name="中潮";
+  else if([7,8,9,22,23,24].includes(lunarDay))name="小潮";
+  else if([10,25].includes(lunarDay))name="長潮";
+  else name="若潮";
+  return{name,lunarDay};
+}
 
 function scriptURL(action){
   try{
@@ -450,11 +485,12 @@ async function showTideHelp(){
   try{t=await tide(now,r.station)}catch(_){
     const a=new Alert();a.title="潮の見方";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
-  const tr=tideRead(t),pct=t.phaseProgress==null?"--":`${Math.round(t.phaseProgress*100)}%`;
+  const tr=tideRead(t),pct=t.phaseProgress==null?"--":`${Math.round(t.phaseProgress*100)}%`,tc=tideCycle(now);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)} / ${signedTide(t.nextEvent.level)}cm`:"--";
   const a=new Alert();
   a.title="🌊 潮の見方";
   a.message=[
+    `潮回り：${tc.name}`,
     `いま：${tr.direction}${tr.stage}（${pct}）`,
     `意味：${tr.target}。${tr.meaning}目安`,
     `次：${next}`,
@@ -465,6 +501,8 @@ async function showTideHelp(){
     "▲＝満潮　▼＝干潮　NOW＝現在",
     "",
     "％は『前の満干潮から次の満干潮まで、時間がどこまで進んだか』です。流速そのものではありません。",
+    "",
+    "潮回りは新月日を1日目とする一般的な旧暦基準の区分です。地域により呼び方が異なる場合があります。",
     "",
     "この表示は潮位の変化を読んだ目安です。潮位と実際の潮流（流れの速さ・向き）は同じではなく、地形・風・河川・海峡などで変わります。"
   ].join("\n");
@@ -579,7 +617,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     if(settingsURL)ml.url=settingsURL;
     mh.addSpacer();
     const md=mh.addStack();md.layoutVertically();
-    const nd=new Date();text(md,`${nd.getMonth()+1}/${nd.getDate()}`,10,C.t.fg,true);
+    const nd=new Date(),mtc=tideCycle(nd);text(md,`${nd.getMonth()+1}/${nd.getDate()}・${mtc.name}`,10,C.t.fg,true);
     mh.addSpacer(7);
     const mrf=mh.addStack();mrf.layoutVertically();mrf.backgroundColor=new Color(C.t.panel,.55);mrf.cornerRadius=9;mrf.setPadding(3,6,3,6);
     text(mrf,"↻",14,C.t.sub,true);if(refreshURL)mrf.url=refreshURL;
@@ -629,7 +667,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   hd.addSpacer();
 
   const info=hd.addStack();info.layoutVertically();
-  const d=new Date();text(info,`${d.getMonth()+1}/${d.getDate()}`,large?15:12,C.t.fg,true);
+  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,large?15:12,C.t.fg,true);
   text(info,we?`☀︎${we.sunrise}  ☾${we.sunset}`:"JMA",large?10:8,C.t.sub);
   hd.addSpacer(8);
 
