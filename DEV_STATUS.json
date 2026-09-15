@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "phase": "中核部分の試作",
+  "checks": {
+    "boot": "warn",
+    "test": "none",
+    "device": "warn",
+    "save": "na",
+    "analytics": "na",
+    "performance": "none",
+    "release": "warn"
+  },
+  "next": "タイドグラフの主要表示を実機で確認する",
+  "note": "最近立ち上げた案件として中核部分の試作段階で管理。保存・分析計測は現時点では対象外。",
+  "updated_at": "2026-09-15"
+}
