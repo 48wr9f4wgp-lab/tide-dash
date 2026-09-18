@@ -1,4 +1,4 @@
-// TIDE DASH v0.12.2 — Small Widget polish: compact AUTO distance
+// TIDE DASH v0.12.3 — Small Widget hardening: rollover / alerts / tap targets
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -652,7 +652,8 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     const sd=new Date(),stc=tideCycle(sd),sr=sh.addStack();sr.layoutVertically();
     text(sr,`${sd.getMonth()+1}/${sd.getDate()}・${stc.name}`,8,C.t.fg,true);
     const rr=sr.addStack();rr.layoutHorizontally();rr.addSpacer();
-    const rtxt=text(rr,"↻",11,C.t.sub,true);if(refreshURL)rtxt.url=refreshURL;
+    const rTap=rr.addStack();rTap.setPadding(2,5,2,5);
+    text(rTap,"↻",11,C.t.sub,true);if(refreshURL)rTap.url=refreshURL;
 
     w.addSpacer(4);
     const main=w.addStack();main.layoutHorizontally();main.centerAlignContent();
@@ -668,7 +669,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     main.addSpacer();
     if(t.nextEvent){
       const e=t.nextEvent,sn=main.addStack();sn.layoutVertically();sn.backgroundColor=new Color(C.t.panel,.45);sn.cornerRadius=9;sn.setPadding(4,6,4,6);
-      text(sn,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventClock(e)}`,9,C.t.fg,true);
+      text(sn,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventDayWord(e)}${eventClock(e)}`,9,C.t.fg,true);
       text(sn,leftText(e.absoluteMinute-t.nowMin),7,C.t.sub);
       text(sn,`${signedTide(e.level)}cm`,7,C.t.sub);
     }
@@ -678,17 +679,20 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     w.addSpacer(3);
 
     const sf=w.addStack();sf.layoutHorizontally();sf.centerAlignContent();
-    if(we&&(we.wind??0)>=8){
+    const stale=!!err;
+    const highWind=we&&(we.wind??0)>=8,highWave=we&&(we.wave??0)>=1.5;
+    if(stale){
+      text(sf,"⚠ データ古い",8,C.t.warn,true);
+    }else if(highWind){
       text(sf,`⚠ 風 ${Number(we.wind).toFixed(1)}m/s`,8,C.t.warn,true);
-    }else if(we&&(we.wave??0)>=1.5){
+    }else if(highWave){
       text(sf,`⚠ 波 ${Number(we.wave).toFixed(1)}m`,8,C.t.warn,true);
     }else{
-      const fish=text(sf,`🎣 ${fg.stars}`,8,C.t.fg,true);if(guideURL)fish.url=guideURL;
+      const fishTap=sf.addStack();fishTap.setPadding(2,4,2,4);
+      text(fishTap,`🎣 ${fg.stars}`,8,C.t.fg,true);if(guideURL)fishTap.url=guideURL;
     }
     sf.addSpacer();
-    if(we)text(sf,`波 ${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}`,7,C.t.muted);
-
-    if(err){w.addSpacer(2);text(w,err,7,C.t.warn)}
+    if(we&&!stale&&!highWave)text(sf,`波 ${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}`,7,C.t.muted);
     w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
     return w;
   }
