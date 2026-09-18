@@ -1,4 +1,4 @@
-// TIDE DASH v0.12.0 — Tide Cycle: 大潮/中潮/小潮/長潮/若潮
+// TIDE DASH v0.12.1 — Small Widget A: tide-first compact glance
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -586,6 +586,36 @@ function graph(t,width=650,height=220){
   return c.getImage();
 }
 
+function miniGraph(t,width=420,height=118){
+  const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
+  const L=4,R=4,T=6,B=5,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
+  let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
+  if(Math.abs(mx-mn)<10){mx+=5;mn-=5}
+  const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
+  const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W,Y=l=>T+(1-(l-mn)/(mx-mn))*H;
+
+  const area=new Path();area.move(new Point(X(s[0].minute),T+H));
+  for(const p of s)area.addLine(new Point(X(p.minute),Y(p.level)));
+  area.addLine(new Point(X(s[s.length-1].minute),T+H));area.closeSubpath();
+  c.addPath(area);c.setFillColor(new Color(C.t.a,.10));c.fillPath();
+
+  const path=new Path();
+  s.forEach((q,i)=>{const pt=new Point(X(q.minute),Y(q.level));i?path.addLine(pt):path.move(pt)});
+  c.addPath(path);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(5);c.strokePath();
+
+  for(const e of t.futureEvents){
+    if(e.absoluteMinute>t.graphEnd)continue;
+    c.setFillColor(new Color(e.type==="high"?C.t.a:C.t.b));
+    c.fillEllipse(new Rect(X(e.absoluteMinute)-5,Y(e.level)-5,10,10));
+  }
+
+  const x=X(t.nowMin),y=Y(t.current),nl=new Path();nl.move(new Point(x,T));nl.addLine(new Point(x,T+H));c.addPath(nl);
+  c.setStrokeColor(new Color(C.t.fg,.75));c.setLineWidth(2);c.strokePath();
+  c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-8,y-8,16,16));
+  c.setFillColor(new Color(C.t.b));c.fillEllipse(new Rect(x-4,y-4,8,8));
+  return c.getImage();
+}
+
 function text(st,s,z,col,b=false){
   const t=st.addText(s);t.font=b?Font.boldSystemFont(z):Font.systemFont(z);t.textColor=new Color(col);t.lineLimit=1;t.minimumScaleFactor=.72;return t;
 }
@@ -601,11 +631,66 @@ function badgeLine(st,badge,z,col){
 }
 
 function widget(t,wp,S,badge,badgeColor,err=null){
-  const w=new ListWidget(),large=(config.widgetFamily||"large")==="large";
+  const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
+  const w=new ListWidget();
   w.setPadding(large?16:12,14,large?14:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
   const fg=fishingGuide(t,we,new Date());
+
+  // Dedicated small layout A: tide-first hierarchy for quick glances.
+  if(small){
+    w.setPadding(9,10,9,10);
+
+    const sh=w.addStack();sh.layoutHorizontally();sh.centerAlignContent();
+    const sl=sh.addStack();sl.layoutVertically();
+    text(sl,S.name,14,C.t.fg,true);
+    badgeLine(sl,`${badge}  ▾`,7,badgeColor||C.t.muted);
+    if(settingsURL)sl.url=settingsURL;
+    sh.addSpacer();
+    const sd=new Date(),stc=tideCycle(sd),sr=sh.addStack();sr.layoutVertically();
+    text(sr,`${sd.getMonth()+1}/${sd.getDate()}・${stc.name}`,8,C.t.fg,true);
+    const rr=sr.addStack();rr.layoutHorizontally();rr.addSpacer();
+    const rtxt=text(rr,"↻",11,C.t.sub,true);if(refreshURL)rtxt.url=refreshURL;
+
+    w.addSpacer(4);
+    const main=w.addStack();main.layoutHorizontally();main.centerAlignContent();
+    const sc=main.addStack();sc.layoutVertically();
+    text(sc,"推算潮位",7,C.t.sub,true);
+    const cv=sc.addStack();cv.layoutHorizontally();cv.centerAlignContent();
+    text(cv,signedTide(t.current),27,C.t.fg,true);cv.addSpacer(2);text(cv,"cm",12,C.t.fg,true);
+    const sdown=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",sup=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
+    const sdir=sdown?"↘ 下げ":sup?"↗ 上げ":"→ 転流",spct=t.phaseProgress==null?"":`${Math.round(t.phaseProgress*100)}%`,str=tideRead(t);
+    text(sc,`${sdir}${spct?" "+spct:""}・${str.stage}`,8,C.t.a,true);
+    if(tideHelpURL)sc.url=tideHelpURL;
+
+    main.addSpacer();
+    if(t.nextEvent){
+      const e=t.nextEvent,sn=main.addStack();sn.layoutVertically();sn.backgroundColor=new Color(C.t.panel,.45);sn.cornerRadius=9;sn.setPadding(4,6,4,6);
+      text(sn,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventClock(e)}`,9,C.t.fg,true);
+      text(sn,leftText(e.absoluteMinute-t.nowMin),7,C.t.sub);
+      text(sn,`${signedTide(e.level)}cm`,7,C.t.sub);
+    }
+
+    w.addSpacer(4);
+    const simg=w.addImage(miniGraph(t));simg.imageSize=new Size(138,43);simg.applyFittingContentMode();
+    w.addSpacer(3);
+
+    const sf=w.addStack();sf.layoutHorizontally();sf.centerAlignContent();
+    if(we&&(we.wind??0)>=8){
+      text(sf,`⚠ 風 ${Number(we.wind).toFixed(1)}m/s`,8,C.t.warn,true);
+    }else if(we&&(we.wave??0)>=1.5){
+      text(sf,`⚠ 波 ${Number(we.wave).toFixed(1)}m`,8,C.t.warn,true);
+    }else{
+      const fish=text(sf,`🎣 ${fg.stars}`,8,C.t.fg,true);if(guideURL)fish.url=guideURL;
+    }
+    sf.addSpacer();
+    if(we)text(sf,`波 ${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}`,7,C.t.muted);
+
+    if(err){w.addSpacer(2);text(w,err,7,C.t.warn)}
+    w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
+    return w;
+  }
 
   // Dedicated medium layout. Keep tide-first hierarchy and preserve tap targets
   // without trying to squeeze the large widget into a shorter canvas.
@@ -750,7 +835,9 @@ async function buildCurrent(forceLocation=false){
 }
 async function present(w){
   const f=config.widgetFamily||"large";
-  if(f==="medium")await w.presentMedium();else await w.presentLarge();
+  if(f==="small")await w.presentSmall();
+  else if(f==="medium")await w.presentMedium();
+  else await w.presentLarge();
 }
 async function main(){
   const action=args.queryParameters?.action;
