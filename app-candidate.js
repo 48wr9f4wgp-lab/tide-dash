@@ -1,4 +1,4 @@
-// TIDE DASH v0.12.1 — Small Widget A: tide-first compact glance
+// TIDE DASH v0.12.2 — Small Widget polish: compact AUTO distance
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -645,7 +645,8 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     const sh=w.addStack();sh.layoutHorizontally();sh.centerAlignContent();
     const sl=sh.addStack();sl.layoutVertically();
     text(sl,S.name,14,C.t.fg,true);
-    badgeLine(sl,`${badge}  ▾`,7,badgeColor||C.t.muted);
+    const smallBadge=String(badge).replace(/AUTO\s*·\s*/,"AUTO ").replace(/\s+/g," ").trim();
+    badgeLine(sl,`${smallBadge}  ▾`,7,badgeColor||C.t.muted);
     if(settingsURL)sl.url=settingsURL;
     sh.addSpacer();
     const sd=new Date(),stc=tideCycle(sd),sr=sh.addStack();sr.layoutVertically();
