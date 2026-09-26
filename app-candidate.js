@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.0 — Fishing Context: SST / ocean-current model / next best window
+// TIDE DASH v0.13.1 — Timing Bands: current lull / fishing window overlays
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -405,7 +405,16 @@ async function weather(now,S){
     if(a<0)continue;
     slots.push({time:`${p2(d.getHours())}:00`,weatherCode:w.hourly.weather_code[a],temp:w.hourly.temperature_2m[a],precip:w.hourly.precipitation[a],wind:w.hourly.wind_speed_10m[a],wave:b>=0?m.hourly.wave_height[b]:null});
   }
-  return{current,slots};
+  const marineSeries=[];
+  const baseDay=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+  for(let i=0;i<(m?.hourly?.time?.length??0);i++){
+    const ts=m.hourly.time[i],ymd=ts?.slice(0,10)?.split("-").map(Number),hm=ts?.slice(11,16)?.split(":").map(Number);
+    if(!ymd||ymd.length!==3||!hm||hm.length!==2)continue;
+    const [y,mo,da]=ymd,[hh,mm]=hm,day=(Date.UTC(y,mo-1,da)-baseDay)/86400000;
+    const velocity=m.hourly?.ocean_current_velocity?.[i],direction=m.hourly?.ocean_current_direction?.[i];
+    if(Number.isFinite(velocity))marineSeries.push({minute:day*1440+hh*60+mm,velocity,direction:Number.isFinite(direction)?direction:null});
+  }
+  return{current,slots,marineSeries};
 }
 
 
@@ -471,7 +480,7 @@ function lightFactorAt(m,we){
 function bestFishingWindow(t,we){
   const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
   let best=null;
-  for(let i=0;i<=24;i++){
+  for(let i=0;i<=44;i++){
     const minute=t.nowMin+i*30,tideMove=tideMoveAt(t,minute),magic=lightFactorAt(minute,we);
     const score=Math.round(100*(.70*tideMove+.20*magic+.10*range));
     if(!best||score>best.score)best={minute,score};
@@ -479,6 +488,33 @@ function bestFishingWindow(t,we){
   if(!best)return null;
   const delta=Math.max(0,best.minute-t.nowMin),day=Math.floor(best.minute/1440),clock=clockFromAbs(best.minute);
   return{...best,delta,display:delta<=30?"今":day===0?clock:day===1?`明日 ${clock}`:`明後日 ${clock}`};
+}
+function currentLullWindows(t,wp){
+  const pts=(wp?.marineSeries||[]).filter(p=>p.minute>=t.graphStart&&p.minute<=t.graphEnd&&Number.isFinite(p.velocity));
+  if(pts.length<2)return[];
+  const candidates=[];
+  for(let i=1;i<pts.length-1;i++){
+    if(pts[i].velocity<=pts[i-1].velocity&&pts[i].velocity<=pts[i+1].velocity)candidates.push(pts[i]);
+  }
+  if(!candidates.length)candidates.push(pts.reduce((a,b)=>a.velocity<=b.velocity?a:b));
+  candidates.sort((a,b)=>a.velocity-b.velocity);
+  const selected=[];
+  for(const p of candidates){
+    if(selected.every(x=>Math.abs(x.minute-p.minute)>=180)){selected.push(p);if(selected.length>=2)break}
+  }
+  return selected.sort((a,b)=>a.minute-b.minute).map(p=>({
+    kind:"lull",start:p.minute-45,end:p.minute+45,minute:p.minute,velocity:p.velocity,
+    label:"流れ緩む"
+  }));
+}
+function timingBands(t,wp,best){
+  const bands=currentLullWindows(t,wp);
+  if(best&&best.score>=45&&best.minute>=t.graphStart&&best.minute<=t.graphEnd){
+    const chance={kind:"chance",start:best.minute-60,end:best.minute+60,minute:best.minute,score:best.score,label:"狙い目"};
+    if(bands.some(b=>Math.max(b.start,chance.start)<Math.min(b.end,chance.end)))chance.label="条件重なり";
+    bands.push(chance);
+  }
+  return bands;
 }
 
 function eventDayIndex(e){
@@ -551,7 +587,7 @@ async function showGuide(){
     const a=new Alert();a.title="釣りチャンス";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
   try{wp=await weather(now,r.station)}catch(_){}
-  const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we);
+  const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we),lulls=currentLullWindows(t,wp);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
   const a=new Alert();
   a.title=`🎣 ${g.label}  ${g.stars}`;
@@ -562,6 +598,7 @@ async function showGuide(){
     `潮差要素：${Math.round(g.range*100)}%`,
     `次：${next}`,
     `次の狙い目：${best?.display??"--"}`,
+    `流れ緩む予測：${lulls[0]?clockFromAbs(lulls[0].minute)+"頃 / "+Number(lulls[0].velocity).toFixed(1)+"km/h":"--"}`,
     `状況：${g.condition}`,
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
@@ -576,7 +613,7 @@ async function showGuide(){
   await a.presentAlert();
 }
 
-function graph(t,width=650,height=220){
+function graph(t,width=650,height=220,bands=null){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
   const L=8,R=8,T=22,B=30,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
   let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
@@ -584,6 +621,20 @@ function graph(t,width=650,height=220){
   const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
   const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W,Y=l=>T+(1-(l-mn)/(mx-mn))*H;
 
+  if(Array.isArray(bands)){
+    for(const b of bands){
+      const bs=Math.max(t.graphStart,b.start),be=Math.min(t.graphEnd,b.end);
+      if(be<=bs)continue;
+      const x1=X(bs),x2=X(be),col=b.kind==="chance"?C.t.warn:C.t.muted;
+      c.setFillColor(new Color(col,b.kind==="chance"?.12:.09));
+      c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
+      const label=b.label||"";
+      if(label&&x2-x1>42){
+        c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(col,.95));
+        c.drawTextInRect(label,new Rect(x1+4,T+4,Math.max(36,x2-x1-8),16));
+      }
+    }
+  }
   const area=new Path();area.move(new Point(X(s[0].minute),T+H));
   for(const p of s)area.addLine(new Point(X(p.minute),Y(p.level)));
   area.addLine(new Point(X(s[s.length-1].minute),T+H));area.closeSubpath();
@@ -675,7 +726,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   w.setPadding(large?16:12,14,large?14:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
-  const fg=fishingGuide(t,we,new Date()),best=bestFishingWindow(t,we);
+  const fg=fishingGuide(t,we,new Date()),best=bestFishingWindow(t,we),bands=timingBands(t,wp,best);
 
   // Dedicated small layout A: tide-first hierarchy for quick glances.
   if(small){
@@ -826,7 +877,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   }
 
   w.addSpacer(large?8:3);
-  const im=w.addImage(graph(t));im.imageSize=new Size(large?325:310,large?128:88);im.applyFittingContentMode();
+  const im=w.addImage(graph(t,650,220,bands));im.imageSize=new Size(325,128);im.applyFittingContentMode();
   w.addSpacer(large?6:2);
 
   const ex=w.addStack();ex.layoutHorizontally();
@@ -849,7 +900,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     metric(ms,"天気",`${weatherIcon(we.weatherCode)} ${we.temp!=null?Math.round(we.temp)+"℃":"--"}`,`雨 ${we.precip!=null?Number(we.precip).toFixed(1):"--"}mm`);
     ms.addSpacer(5);metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`);
     const seaMain=`${f1(we.wave,"m")}${we.wavePeriod!=null?"・"+Number(we.wavePeriod).toFixed(0)+"s":""}`;
-    const seaDetail=[we.sst!=null?`水${Number(we.sst).toFixed(1)}℃`:null,we.currentVelocity!=null?`海流${Number(we.currentVelocity).toFixed(1)}`:null].filter(Boolean).join("・")||null;
+    const seaDetail=[we.sst!=null?`水${Number(we.sst).toFixed(1)}℃`:null,we.currentVelocity!=null?`海流${Number(we.currentVelocity).toFixed(1)}km/h`:null].filter(Boolean).join("・")||null;
     ms.addSpacer(5);metric(ms,"海況",seaMain,seaDetail);
     const chanceDetail=best?.display==="今"?"今が狙い目":best?.display?`次 ${best.display}`:fg.label;
     ms.addSpacer(5);const chance=metric(ms,"釣り目安 ›",fg.stars,chanceDetail);if(guideURL)chance.url=guideURL;
