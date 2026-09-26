@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.4 — Beginner UX: plain Japanese / mazume map / clear fishing judgment
+// TIDE DASH v0.13.5 — Fishing-first redesign: fewer metrics / clearer timing / tide-turn context
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -561,6 +561,22 @@ function windGuide(v){
   if(v<8)return "△ 風強め";
   return "⚠ 強風";
 }
+function waveGuide(v){
+  if(v==null||Number.isNaN(Number(v)))return "--";
+  v=Number(v);
+  if(v<.5)return "◎ 低い";
+  if(v<1)return "○ やや波";
+  if(v<1.5)return "△ 波高め";
+  return "⚠ 高波";
+}
+function rainGuide(v){
+  if(v==null||Number.isNaN(Number(v)))return "--";
+  v=Number(v);
+  if(v<=.05)return "◎ ほぼなし";
+  if(v<1)return "○ 小雨";
+  if(v<3)return "△ 雨";
+  return "⚠ 強め";
+}
 async function showTideHelp(){
   const r=await resolveStation(false),now=new Date();
   let t;
@@ -608,9 +624,12 @@ async function showGuide(){
     `潮位変化要素：${Math.round(g.tideMove*100)}%`,
     `マヅメ要素：${Math.round(g.magic*100)}%`,
     `潮差要素：${Math.round(g.range*100)}%`,
-    `次：${next}`,
+    `次の潮変わり：${next}`,
     `次の釣りチャンス：${best?.display??"--"}${best?.display&&best.display!=="今"?"頃":""}`,
-    `状況：${g.condition}`,
+    `風：${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s "+dir8(we.windDir)+" / "+windGuide(we.wind):"--"}`,
+    `波：${we?.wave!=null?Number(we.wave).toFixed(1)+"m / "+waveGuide(we.wave):"--"}`,
+    `雨：${we?.precip!=null?Number(we.precip).toFixed(1)+"mm / "+rainGuide(we.precip):"--"}`,
+    we?.wavePeriod!=null?`波周期：${Number(we.wavePeriod).toFixed(0)}秒`:"波周期：--",
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
@@ -624,9 +643,9 @@ async function showGuide(){
   await a.presentAlert();
 }
 
-function graph(t,width=650,height=220,bands=null){
+function graph(t,width=650,height=240,bands=null){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=22,B=30,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
+  const L=8,R=8,T=34,B=46,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
   let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
   if(Math.abs(mx-mn)<10){mx+=5;mn-=5}
   const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
@@ -640,62 +659,61 @@ function graph(t,width=650,height=220,bands=null){
       if(b.kind==="mazume"){
         c.setFillColor(new Color(C.t.warn,.055));
         c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
-        if(label&&x2-x1>50){
-          c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.90));
-          c.drawTextInRect(label,new Rect(x1+4,T+3,Math.max(42,x2-x1-8),16));
+        if(label&&x2-x1>48){
+          const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
+          c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.93));
+          c.drawTextInRect(label,new Rect(lx,2,labelW,18));
         }
       }else if(b.kind==="chance"){
-        const stripH=27,stripY=T+H-stripH;
-        c.setFillColor(new Color(C.t.warn,.17));
+        const stripH=25,stripY=T+H-stripH;
+        c.setFillColor(new Color(C.t.warn,.18));
         c.fillRect(new Rect(x1,stripY,Math.max(2,x2-x1),stripH));
-        if(label&&x2-x1>56){
+        if(label&&x2-x1>58){
           c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.warn,.98));
-          c.drawTextInRect(label,new Rect(x1+4,stripY+4,Math.max(48,x2-x1-8),18));
+          c.drawTextInRect(label,new Rect(x1+4,stripY+4,Math.max(50,x2-x1-8),17));
         }
       }
     }
   }
+
   const area=new Path();area.move(new Point(X(s[0].minute),T+H));
   for(const p of s)area.addLine(new Point(X(p.minute),Y(p.level)));
   area.addLine(new Point(X(s[s.length-1].minute),T+H));area.closeSubpath();
   c.addPath(area);c.setFillColor(new Color(C.t.a,.10));c.fillPath();
 
   c.setStrokeColor(new Color(C.t.grid,.42));c.setLineWidth(1);
-  const gridTimes=[];
-  const firstGrid=Math.ceil(t.graphStart/360)*360;
+  const gridTimes=[],firstGrid=Math.ceil(t.graphStart/360)*360;
   for(let m=firstGrid;m<=t.graphEnd;m+=360)gridTimes.push(m);
-  for(const m of gridTimes){
-    const p=new Path(),x=X(m);p.move(new Point(x,T));p.addLine(new Point(x,T+H));c.addPath(p);c.strokePath();
-  }
-  for(const ff of[.33,.66]){
-    const p=new Path(),y=T+H*ff;p.move(new Point(L,y));p.addLine(new Point(L+W,y));c.addPath(p);c.strokePath();
-  }
+  for(const m of gridTimes){const p=new Path(),x=X(m);p.move(new Point(x,T));p.addLine(new Point(x,T+H));c.addPath(p);c.strokePath()}
+  for(const ff of[.33,.66]){const p=new Path(),y=T+H*ff;p.move(new Point(L,y));p.addLine(new Point(L+W,y));c.addPath(p);c.strokePath()}
 
   const path=new Path();
   s.forEach((q,i)=>{const pt=new Point(X(q.minute),Y(q.level));i?path.addLine(pt):path.move(pt)});
   c.addPath(path);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(5);c.strokePath();
 
-  for(const e of t.futureEvents){
-    if(e.absoluteMinute>t.graphEnd)continue;
-    c.setFillColor(new Color(e.type==="high"?C.t.a:C.t.b));
-    c.fillEllipse(new Rect(X(e.absoluteMinute)-5,Y(e.level)-5,10,10));
+  const graphEvents=t.futureEvents.filter(e=>e.absoluteMinute<=t.graphEnd).slice(0,3);
+  c.setFont(Font.boldSystemFont(12));
+  for(const e of graphEvents){
+    const ex=X(e.absoluteMinute),ey=Y(e.level),col=e.type==="high"?C.t.a:C.t.b;
+    c.setFillColor(new Color(col));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
+    const lab=`${e.type==="high"?"満":"干"} ${eventClock(e)}`,lw=70,lx=Math.max(L,Math.min(L+W-lw,ex-lw/2));
+    c.setTextColor(new Color(col,.98));c.drawTextInRect(lab,new Rect(lx,T+H+3,lw,17));
   }
 
   const x=X(t.nowMin),y=Y(t.current),nl=new Path();nl.move(new Point(x,T));nl.addLine(new Point(x,T+H));c.addPath(nl);
   c.setStrokeColor(new Color(C.t.fg,.75));c.setLineWidth(2);c.strokePath();
   c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-9,y-9,18,18));
   c.setFillColor(new Color(C.t.b));c.fillEllipse(new Rect(x-5,y-5,10,10));
+  c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(C.t.fg,.88));
+  c.drawTextInRect("NOW",new Rect(Math.max(L,x-25),T+2,50,18));
 
-  c.setFont(Font.semiboldSystemFont(18));c.setTextColor(new Color(C.t.sub));
+  c.setFont(Font.semiboldSystemFont(16));c.setTextColor(new Color(C.t.sub));
   for(const m of gridTimes){
-    const label=clockFromAbs(m),xx=X(m),tw=56;
-    c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-25,tw,20));
+    const label=clockFromAbs(m),xx=X(m),tw=52;
+    c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-20,tw,18));
   }
-  c.setFont(Font.boldSystemFont(15));c.setTextColor(new Color(C.t.fg,.85));
-  c.drawTextInRect("NOW",new Rect(Math.max(0,x-25),2,50,18));
   return c.getImage();
 }
-
 function miniGraph(t,width=420,height=118){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
   const L=4,R=4,T=6,B=5,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
@@ -859,64 +877,49 @@ function widget(t,wp,S,badge,badgeColor,err=null){
 
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
-  text(pl,S.name,large?22:16,C.t.fg,true);
-  badgeLine(pl,`${badge}  ▾`,large?9:8,badgeColor||C.t.muted);
+  text(pl,S.name,22,C.t.fg,true);
+  badgeLine(pl,`${badge}  ▾`,9,badgeColor||C.t.muted);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
   const info=hd.addStack();info.layoutVertically();
-  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,large?15:12,C.t.fg,true);
-  text(info,we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",large?10:8,C.t.sub);
+  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,15,C.t.fg,true);
+  text(info,we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",10,C.t.sub);
   hd.addSpacer(8);
 
   const rf=hd.addStack();rf.layoutVertically();rf.backgroundColor=new Color(C.t.panel,.6);rf.cornerRadius=10;rf.setPadding(5,8,5,8);
-  text(rf,"↻",large?18:15,C.t.sub,true);if(refreshURL)rf.url=refreshURL;
+  text(rf,"↻",18,C.t.sub,true);if(refreshURL)rf.url=refreshURL;
 
-  w.addSpacer(large?9:5);
+  w.addSpacer(8);
 
-  const st=w.addStack();st.layoutHorizontally();st.centerAlignContent();
-  const cur=st.addStack();cur.layoutVertically();
-  text(cur,"推算潮位",9,C.t.sub,true);
-  text(cur,`${signedTide(t.current)} cm`,large?34:24,C.t.fg,true);
-  const tr=tideRead(t);
-  text(cur,tideStateText(t,tr),large?11:9,C.t.sub);
-  if(large){
-    text(cur,`潮読み  ${tideBrief(tr)}  ›`,10,C.t.a,true);
-    if(tideHelpURL)cur.url=tideHelpURL;
-  }
-
-  st.addSpacer();
-  const nx=st.addStack();nx.layoutVertically();nx.backgroundColor=new Color(C.t.panel,.48);nx.cornerRadius=12;nx.setPadding(large?7:5,large?9:7,large?7:5,large?9:7);
+  const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(7,9,7,9);
+  const nowBox=decision.addStack();nowBox.layoutVertically();
+  text(nowBox,"今の地合い",9,C.t.sub,true);
+  const nowLine=nowBox.addStack();nowLine.layoutHorizontally();nowLine.centerAlignContent();
+  text(nowLine,fg.stars,17,C.t.fg,true);nowLine.addSpacer(5);text(nowLine,fg.label,10,C.t.muted,true);
+  decision.addSpacer();
+  const future=decision.addStack();future.layoutVertically();
+  const chanceText=best?.display==="今"?"今":best?.display?`${best.display}頃`:"--";
+  text(future,"次の釣りチャンス",8,C.t.sub,true);
+  text(future,chanceText,12,C.t.warn,true);
   if(t.nextEvent){
-    const e=t.nextEvent;text(nx,`${e.type==="high"?"次の満潮":"次の干潮"} ${eventDayWord(e)}${eventClock(e)}`,large?17:13,C.t.fg,true);
-    text(nx,`${leftText(e.absoluteMinute-t.nowMin)} ${signedTide(e.level)}cm`,large?11:9,C.t.sub);
+    const e=t.nextEvent,day=eventDayWord(e).trim();
+    text(future,`潮変わり ${day?day+" ":""}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}頃`,7,C.t.muted);
   }
+  if(guideURL)decision.url=guideURL;
 
-  w.addSpacer(large?8:3);
-  const im=w.addImage(graph(t,650,220,bands));im.imageSize=new Size(325,128);im.applyFittingContentMode();
-  w.addSpacer(large?6:2);
+  w.addSpacer(7);
+  const im=w.addImage(graph(t,650,240,bands));im.imageSize=new Size(325,132);im.applyFittingContentMode();
 
-  const ex=w.addStack();ex.layoutHorizontally();ex.centerAlignContent();
-  const rest=t.futureEvents.slice(1,4);
-  rest.forEach((e,i)=>{
-    const box=ex.addStack();box.layoutVertically();
-    const day=eventDayWord(e).trim()||"今日",col=e.type==="high"?C.t.a:C.t.b;
-    text(box,`${day} ${e.type==="high"?"満潮":"干潮"}`,8,C.t.muted,true);
-    text(box,`${eventClock(e)} ${signedTide(e.level)}cm`,9,col,true);
-    if(i<rest.length-1)ex.addSpacer();
-  });
-  w.addSpacer(large?12:6);
+  w.addSpacer(7);
   if(we){
     const ms=w.addStack();ms.layoutHorizontally();
-    metric(ms,"天気",`${weatherIcon(we.weatherCode)} ${we.temp!=null?Math.round(we.temp)+"℃":"--"}`,`雨 ${we.precip!=null?Number(we.precip).toFixed(1):"--"}mm`);
-    ms.addSpacer(5);metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`,windGuide(we.wind));
-    const seaMain=`波 ${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}${we.wavePeriod!=null?"｜"+Number(we.wavePeriod).toFixed(0)+"秒":""}`;
-    const seaDetail=[we.sst!=null?`水温${Number(we.sst).toFixed(1)}℃`:null,we.currentVelocity!=null?`海流${Number(we.currentVelocity).toFixed(1)}km/h`:null].filter(Boolean).join("｜")||null;
-    ms.addSpacer(5);metric(ms,"波・水温",seaMain,seaDetail);
-    const nextChance=best?.display==="今"?"今が釣りチャンス":best?.display?`次のチャンス ${best.display}頃`:null;
-    ms.addSpacer(5);const chance=metric(ms,"今の釣り条件 ›",fg.stars,fg.label,nextChance);if(guideURL)chance.url=guideURL;
+    metric(ms,"風",`${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}`,windGuide(we.wind));
+    ms.addSpacer(6);
+    metric(ms,"波",`${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}`,waveGuide(we.wave));
+    ms.addSpacer(6);
+    metric(ms,"雨",`${we.precip!=null?Number(we.precip).toFixed(1)+"mm":"--"}`,rainGuide(we.precip));
   }
-
 
   if(err){w.addSpacer(4);text(w,err,8,C.t.warn)}
   w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
