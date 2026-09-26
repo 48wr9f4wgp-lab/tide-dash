@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.9 — Visual cleanup: lean labels / fishing-first small+medium
+// TIDE DASH v0.13.10 — Large visual lock pass: quieter peak band / clearer tide change
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -514,7 +514,7 @@ function mazumeWindows(t,we){
 function timingBands(t,we,best){
   const bands=mazumeWindows(t,we);
   if(best&&best.score>=45&&best.minute>=t.graphStart&&best.minute<=t.graphEnd){
-    bands.push({kind:"chance",start:best.windowStart??best.minute-30,end:best.windowEnd??best.minute+30,minute:best.minute,score:best.score,label:"ピーク"});
+    bands.push({kind:"chance",start:best.windowStart??best.minute-30,end:best.windowEnd??best.minute+30,minute:best.minute,score:best.score,label:""});
   }
   return bands;
 }
@@ -950,7 +950,8 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       text(future,chanceText,11,C.t.warn,true);
       if(t.nextEvent){
         const e=t.nextEvent,day=eventDayWord(e).trim();
-        text(future,`次の潮変わり ${day?day+" ":""}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}頃`,7,C.t.muted);
+        text(future,"次の潮変わり",8,C.t.sub,true);
+        text(future,`${day?day+" ":""}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,9,C.t.muted,true);
       }
       if(guideURL)decision.url=guideURL;
     }
