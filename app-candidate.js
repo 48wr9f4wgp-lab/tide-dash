@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.1 — Timing Bands: current lull / fishing window overlays
+// TIDE DASH v0.13.2 — Timing Bands polish: clearer lull / stronger chance label
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -502,9 +502,9 @@ function currentLullWindows(t,wp){
   for(const p of candidates){
     if(selected.every(x=>Math.abs(x.minute-p.minute)>=180)){selected.push(p);if(selected.length>=2)break}
   }
-  return selected.sort((a,b)=>a.minute-b.minute).map(p=>({
+  return selected.sort((a,b)=>a.minute-b.minute).map((p,i)=>({
     kind:"lull",start:p.minute-45,end:p.minute+45,minute:p.minute,velocity:p.velocity,
-    label:"流れ緩む"
+    label:i===0?"流れ緩む":""
   }));
 }
 function timingBands(t,wp,best){
@@ -626,12 +626,13 @@ function graph(t,width=650,height=220,bands=null){
       const bs=Math.max(t.graphStart,b.start),be=Math.min(t.graphEnd,b.end);
       if(be<=bs)continue;
       const x1=X(bs),x2=X(be),col=b.kind==="chance"?C.t.warn:C.t.muted;
-      c.setFillColor(new Color(col,b.kind==="chance"?.12:.09));
+      c.setFillColor(new Color(col,b.kind==="chance"?.12:.13));
       c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
       const label=b.label||"";
       if(label&&x2-x1>42){
-        c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(col,.95));
-        c.drawTextInRect(label,new Rect(x1+4,T+4,Math.max(36,x2-x1-8),16));
+        const labelSize=b.kind==="chance"?14:12,labelH=b.kind==="chance"?19:16;
+        c.setFont(Font.boldSystemFont(labelSize));c.setTextColor(new Color(col,.97));
+        c.drawTextInRect(label,new Rect(x1+4,T+3,Math.max(36,x2-x1-8),labelH));
       }
     }
   }
