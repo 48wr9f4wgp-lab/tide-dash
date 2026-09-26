@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.3 — Timing Bands final polish: always label first lull
+// TIDE DASH v0.13.4 — Beginner UX: plain Japanese / mazume map / clear fishing judgment
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -489,34 +489,28 @@ function bestFishingWindow(t,we){
   const delta=Math.max(0,best.minute-t.nowMin),day=Math.floor(best.minute/1440),clock=clockFromAbs(best.minute);
   return{...best,delta,display:delta<=30?"今":day===0?clock:day===1?`明日 ${clock}`:`明後日 ${clock}`};
 }
-function currentLullWindows(t,wp){
-  const pts=(wp?.marineSeries||[]).filter(p=>p.minute>=t.graphStart&&p.minute<=t.graphEnd&&Number.isFinite(p.velocity));
-  if(pts.length<2)return[];
-  const candidates=[];
-  for(let i=1;i<pts.length-1;i++){
-    if(pts[i].velocity<=pts[i-1].velocity&&pts[i].velocity<=pts[i+1].velocity)candidates.push(pts[i]);
-  }
-  if(!candidates.length)candidates.push(pts.reduce((a,b)=>a.velocity<=b.velocity?a:b));
-  candidates.sort((a,b)=>a.velocity-b.velocity);
-  const selected=[];
-  for(const p of candidates){
-    if(selected.every(x=>Math.abs(x.minute-p.minute)>=180)){selected.push(p);if(selected.length>=2)break}
-  }
-  return selected.sort((a,b)=>a.minute-b.minute).map((p,i)=>({
-    kind:"lull",start:p.minute-45,end:p.minute+45,minute:p.minute,velocity:p.velocity,
-    label:i===0?"流れ緩む":""
-  }));
+function mazumeWindows(t,we){
+  const out=[];
+  const add=(minute,label)=>{
+    if(minute==null)return;
+    const start=minute-60,end=minute+60;
+    if(end<t.graphStart||start>t.graphEnd)return;
+    out.push({kind:"mazume",start,end,minute,label});
+  };
+  add(hmMinute(we?.sunrise),"朝まずめ");
+  add(hmMinute(we?.sunset),"夕まずめ");
+  const sr2=hmMinute(we?.sunriseNext),ss2=hmMinute(we?.sunsetNext);
+  add(sr2==null?null:1440+sr2,"朝まずめ");
+  add(ss2==null?null:1440+ss2,"夕まずめ");
+  return out;
 }
-function timingBands(t,wp,best){
-  const bands=currentLullWindows(t,wp);
+function timingBands(t,we,best){
+  const bands=mazumeWindows(t,we);
   if(best&&best.score>=45&&best.minute>=t.graphStart&&best.minute<=t.graphEnd){
-    const chance={kind:"chance",start:best.minute-60,end:best.minute+60,minute:best.minute,score:best.score,label:"狙い目"};
-    if(bands.some(b=>Math.max(b.start,chance.start)<Math.min(b.end,chance.end)))chance.label="条件重なり";
-    bands.push(chance);
+    bands.push({kind:"chance",start:best.minute-60,end:best.minute+60,minute:best.minute,score:best.score,label:"釣りチャンス"});
   }
   return bands;
 }
-
 function eventDayIndex(e){
   const m=e?.absoluteMinute??e?.minute??0;
   return Math.floor(m/1440);
@@ -531,24 +525,42 @@ function tideRead(t){
   const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low";
   const up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
   const direction=down?"下げ":up?"上げ":"転流";
-  const target=down?"干潮へ":up?"満潮へ":"転流付近";
+  const target=down?"干潮":up?"満潮":"転流";
   let stage,meaning;
-  if(p<.12){stage="始まり";meaning="変化し始める"}
-  else if(p<.35){stage="前半";meaning="変化大きめへ"}
-  else if(p<.65){stage="中盤";meaning="変化大きめ"}
-  else if(p<.88){stage="後半";meaning="変化小さめへ"}
-  else{stage="終盤";meaning="満干潮が近い"}
-  return{p,direction,target,stage,meaning,summary:`${direction}${stage}｜${target}・${meaning}`};
+  if(p<.12){
+    stage="始め";
+    meaning=up?"満潮へ向けて上がり始め":down?"干潮へ向けて下がり始め":"潮が動き始め";
+  }else if(p<.35){
+    stage="前半";
+    meaning=up?"満潮へ向けて上昇中":down?"干潮へ向けて下降中":"潮が動いている";
+  }else if(p<.65){
+    stage="中盤";
+    meaning=up?"潮位が大きく上がる時間帯":down?"潮位が大きく下がる時間帯":"潮位変化が大きい時間帯";
+  }else if(p<.88){
+    stage="後半";
+    meaning=up?"満潮へ近づき上がり方が緩やか":down?"干潮へ近づき下がり方が緩やか":"潮位変化が緩やか";
+  }else{
+    stage="間近";
+    meaning=up?"満潮間近":down?"干潮間近":"潮止まり付近";
+  }
+  return{p,direction,target,stage,meaning,up,down};
 }
-function tideBrief(tr){
-  const target=tr.target==="干潮へ"?"干潮":tr.target==="満潮へ"?"満潮":"転流";
-  if(tr.p>=.88)return `${target}直前・変化かなり小さめ`;
-  if(tr.p>=.65)return `${target}近く・変化小さめ`;
-  if(tr.p>=.35)return "変化大きめ";
-  if(tr.p>=.12)return "変化が大きくなる";
-  return "変化し始め";
+function tideStateText(t,tr){
+  const pct=t.phaseProgress==null?"":`${Math.round(t.phaseProgress*100)}%`;
+  if(!tr.up&&!tr.down)return `→ 潮止まり付近${pct?" "+pct:""}`;
+  if(tr.p<.12)return `${tr.up?"↗":"↘"} ${tr.direction}始め${pct?" "+pct:""}`;
+  if(tr.p>=.88)return `${tr.up?"▲ 満潮":"▼ 干潮"}間近${pct?" "+pct:""}`;
+  return `${tr.up?"↗":"↘"} ${tr.direction}${tr.stage}${pct?" "+pct:""}`;
 }
-
+function tideBrief(tr){return tr.meaning}
+function windGuide(v){
+  if(v==null||Number.isNaN(Number(v)))return "--";
+  v=Number(v);
+  if(v<3)return "◎ 穏やか";
+  if(v<5)return "○ まずまず";
+  if(v<8)return "△ 風強め";
+  return "⚠ 強風";
+}
 async function showTideHelp(){
   const r=await resolveStation(false),now=new Date();
   let t;
@@ -561,8 +573,8 @@ async function showTideHelp(){
   a.title="🌊 潮の見方";
   a.message=[
     `潮回り：${tc.name}`,
-    `いま：${tr.direction}${tr.stage}（${pct}）`,
-    `意味：${tr.target}。${tr.meaning}目安`,
+    `いま：${tideStateText(t,tr)}`,
+    `意味：${tr.meaning}`,
     `次：${next}`,
     "",
     "グラフの基本",
@@ -587,7 +599,7 @@ async function showGuide(){
     const a=new Alert();a.title="釣りチャンス";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
   try{wp=await weather(now,r.station)}catch(_){}
-  const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we),lulls=currentLullWindows(t,wp);
+  const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
   const a=new Alert();
   a.title=`🎣 ${g.label}  ${g.stars}`;
@@ -597,8 +609,7 @@ async function showGuide(){
     `マヅメ要素：${Math.round(g.magic*100)}%`,
     `潮差要素：${Math.round(g.range*100)}%`,
     `次：${next}`,
-    `次の狙い目：${best?.display??"--"}`,
-    `流れ緩む予測：${lulls[0]?clockFromAbs(lulls[0].minute)+"頃 / "+Number(lulls[0].velocity).toFixed(1)+"km/h":"--"}`,
+    `次の釣りチャンス：${best?.display??"--"}${best?.display&&best.display!=="今"?"頃":""}`,
     `状況：${g.condition}`,
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
@@ -625,18 +636,21 @@ function graph(t,width=650,height=220,bands=null){
     for(const b of bands){
       const bs=Math.max(t.graphStart,b.start),be=Math.min(t.graphEnd,b.end);
       if(be<=bs)continue;
-      const x1=X(bs),x2=X(be),col=b.kind==="chance"?C.t.warn:C.t.muted;
-      c.setFillColor(new Color(col,b.kind==="chance"?.12:.13));
-      c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
-      const label=b.label||"";
-      if(label){
-        const labelSize=b.kind==="chance"?14:12,labelH=b.kind==="chance"?19:16;
-        c.setFont(Font.boldSystemFont(labelSize));c.setTextColor(new Color(col,.97));
-        if(b.kind==="lull"){
-          const labelW=82,cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
-          c.drawTextInRect(label,new Rect(lx,T+3,labelW,labelH));
-        }else if(x2-x1>42){
-          c.drawTextInRect(label,new Rect(x1+4,T+3,Math.max(36,x2-x1-8),labelH));
+      const x1=X(bs),x2=X(be),label=b.label||"";
+      if(b.kind==="mazume"){
+        c.setFillColor(new Color(C.t.warn,.055));
+        c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
+        if(label&&x2-x1>50){
+          c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.90));
+          c.drawTextInRect(label,new Rect(x1+4,T+3,Math.max(42,x2-x1-8),16));
+        }
+      }else if(b.kind==="chance"){
+        const stripH=27,stripY=T+H-stripH;
+        c.setFillColor(new Color(C.t.warn,.17));
+        c.fillRect(new Rect(x1,stripY,Math.max(2,x2-x1),stripH));
+        if(label&&x2-x1>56){
+          c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.warn,.98));
+          c.drawTextInRect(label,new Rect(x1+4,stripY+4,Math.max(48,x2-x1-8),18));
         }
       }
     }
@@ -715,9 +729,9 @@ function miniGraph(t,width=420,height=118){
 function text(st,s,z,col,b=false){
   const t=st.addText(s);t.font=b?Font.boldSystemFont(z):Font.systemFont(z);t.textColor=new Color(col);t.lineLimit=1;t.minimumScaleFactor=.72;return t;
 }
-function metric(p,l,v,d=null){
+function metric(p,l,v,d=null,d2=null){
   const b=p.addStack();b.layoutVertically();b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;b.setPadding(7,8,7,8);
-  text(b,l,9,C.t.sub);text(b,v,12,C.t.fg,true);if(d)text(b,d,9,C.t.muted);return b;
+  text(b,l,9,C.t.sub);text(b,v,12,C.t.fg,true);if(d)text(b,d,9,C.t.muted);if(d2)text(b,d2,7,C.t.warn,true);return b;
 }
 function badgeLine(st,badge,z,col){
   const m=String(badge).match(/^(.*?)(⚠.*)$/);
@@ -732,7 +746,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   w.setPadding(large?16:12,14,large?14:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
-  const fg=fishingGuide(t,we,new Date()),best=bestFishingWindow(t,we),bands=timingBands(t,wp,best);
+  const fg=fishingGuide(t,we,new Date()),best=bestFishingWindow(t,we),bands=timingBands(t,we,best);
 
   // Dedicated small layout A: tide-first hierarchy for quick glances.
   if(small){
@@ -757,9 +771,8 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     text(sc,"推算潮位",7,C.t.sub,true);
     const cv=sc.addStack();cv.layoutHorizontally();cv.centerAlignContent();
     text(cv,signedTide(t.current),27,C.t.fg,true);cv.addSpacer(2);text(cv,"cm",12,C.t.fg,true);
-    const sdown=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",sup=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
-    const sdir=sdown?"↘ 下げ":sup?"↗ 上げ":"→ 転流",spct=t.phaseProgress==null?"":`${Math.round(t.phaseProgress*100)}%`,str=tideRead(t);
-    text(sc,`${sdir}${spct?" "+spct:""}・${str.stage}`,8,C.t.a,true);
+    const str=tideRead(t);
+    text(sc,tideStateText(t,str),8,C.t.a,true);
     if(tideHelpURL)sc.url=tideHelpURL;
 
     main.addSpacer();
@@ -812,9 +825,8 @@ function widget(t,wp,S,badge,badgeColor,err=null){
     const ms=w.addStack();ms.layoutHorizontally();ms.centerAlignContent();
     const mc=ms.addStack();mc.layoutVertically();
     text(mc,`${signedTide(t.current)} cm`,24,C.t.fg,true);
-    const mdown=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",mup=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
-    const mdr=mdown?"↘ 下げ":mup?"↗ 上げ":"→ 転流",mph=t.phaseProgress==null?"":`${Math.round(t.phaseProgress*100)}%`,mtr=tideRead(t);
-    text(mc,`${mdr}${mph?" "+mph:""}・${mtr.stage}｜${mtr.meaning}`,8,C.t.a,true);
+    const mtr=tideRead(t);
+    text(mc,tideStateText(t,mtr),8,C.t.a,true);
     if(tideHelpURL)mc.url=tideHelpURL;
     ms.addSpacer();
     if(t.nextEvent){
@@ -854,7 +866,7 @@ function widget(t,wp,S,badge,badgeColor,err=null){
 
   const info=hd.addStack();info.layoutVertically();
   const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,large?15:12,C.t.fg,true);
-  text(info,we?`☀︎${we.sunrise}  ☾${we.sunset}`:"JMA",large?10:8,C.t.sub);
+  text(info,we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",large?10:8,C.t.sub);
   hd.addSpacer(8);
 
   const rf=hd.addStack();rf.layoutVertically();rf.backgroundColor=new Color(C.t.panel,.6);rf.cornerRadius=10;rf.setPadding(5,8,5,8);
@@ -866,10 +878,8 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const cur=st.addStack();cur.layoutVertically();
   text(cur,"推算潮位",9,C.t.sub,true);
   text(cur,`${signedTide(t.current)} cm`,large?34:24,C.t.fg,true);
-  const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low",up=t.previousEvent?.type==="low"&&t.nextEvent?.type==="high";
-  const dr=down?"↘ 下げ":up?"↗ 上げ":"→ 転流付近",ph=t.phaseProgress==null?"":` ${Math.round(t.phaseProgress*100)}%`;
   const tr=tideRead(t);
-  text(cur,`${dr}${ph} · ${tr.stage}`,large?11:9,C.t.sub);
+  text(cur,tideStateText(t,tr),large?11:9,C.t.sub);
   if(large){
     text(cur,`潮読み  ${tideBrief(tr)}  ›`,10,C.t.a,true);
     if(tideHelpURL)cur.url=tideHelpURL;
@@ -886,30 +896,25 @@ function widget(t,wp,S,badge,badgeColor,err=null){
   const im=w.addImage(graph(t,650,220,bands));im.imageSize=new Size(325,128);im.applyFittingContentMode();
   w.addSpacer(large?6:2);
 
-  const ex=w.addStack();ex.layoutHorizontally();
-  const rest=t.futureEvents.slice(1,large?4:3);
-  if(rest.length){
-    const firstDay=eventDayIndex(rest[0]);
-    const rowLabel=firstDay===1?"明日":firstDay===2?"明後日":"その後";
-    text(ex,rowLabel,large?8:7,C.t.muted,true);ex.addSpacer(6);
-    let prevDay=firstDay;
-    rest.forEach((e,i,a)=>{
-      const day=eventDayIndex(e),roll=i>0&&day!==prevDay?(day===1?"翌 ":day===2?"翌々 ":""):"";
-      text(ex,`${roll}${e.type==="high"?"▲":"▼"}${eventClock(e)} ${signedTide(e.level)}`,large?10:8,e.type==="high"?C.t.a:C.t.b,true);
-      prevDay=day;if(i<a.length-1)ex.addSpacer();
-    });
-  }
-
+  const ex=w.addStack();ex.layoutHorizontally();ex.centerAlignContent();
+  const rest=t.futureEvents.slice(1,4);
+  rest.forEach((e,i)=>{
+    const box=ex.addStack();box.layoutVertically();
+    const day=eventDayWord(e).trim()||"今日",col=e.type==="high"?C.t.a:C.t.b;
+    text(box,`${day} ${e.type==="high"?"満潮":"干潮"}`,8,C.t.muted,true);
+    text(box,`${eventClock(e)} ${signedTide(e.level)}cm`,9,col,true);
+    if(i<rest.length-1)ex.addSpacer();
+  });
   w.addSpacer(large?12:6);
   if(we){
     const ms=w.addStack();ms.layoutHorizontally();
     metric(ms,"天気",`${weatherIcon(we.weatherCode)} ${we.temp!=null?Math.round(we.temp)+"℃":"--"}`,`雨 ${we.precip!=null?Number(we.precip).toFixed(1):"--"}mm`);
-    ms.addSpacer(5);metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`);
-    const seaMain=`${f1(we.wave,"m")}${we.wavePeriod!=null?"・"+Number(we.wavePeriod).toFixed(0)+"s":""}`;
-    const seaDetail=[we.sst!=null?`水${Number(we.sst).toFixed(1)}℃`:null,we.currentVelocity!=null?`海流${Number(we.currentVelocity).toFixed(1)}km/h`:null].filter(Boolean).join("・")||null;
-    ms.addSpacer(5);metric(ms,"海況",seaMain,seaDetail);
-    const chanceDetail=best?.display==="今"?"今が狙い目":best?.display?`次 ${best.display}`:fg.label;
-    ms.addSpacer(5);const chance=metric(ms,"釣り目安 ›",fg.stars,chanceDetail);if(guideURL)chance.url=guideURL;
+    ms.addSpacer(5);metric(ms,"風",`${f1(we.wind,"m/s")} ${dir8(we.windDir)}`,windGuide(we.wind));
+    const seaMain=`波 ${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}${we.wavePeriod!=null?"｜"+Number(we.wavePeriod).toFixed(0)+"秒":""}`;
+    const seaDetail=[we.sst!=null?`水温${Number(we.sst).toFixed(1)}℃`:null,we.currentVelocity!=null?`海流${Number(we.currentVelocity).toFixed(1)}km/h`:null].filter(Boolean).join("｜")||null;
+    ms.addSpacer(5);metric(ms,"波・水温",seaMain,seaDetail);
+    const nextChance=best?.display==="今"?"今が釣りチャンス":best?.display?`次のチャンス ${best.display}頃`:null;
+    ms.addSpacer(5);const chance=metric(ms,"今の釣り条件 ›",fg.stars,fg.label,nextChance);if(guideURL)chance.url=guideURL;
   }
 
 
