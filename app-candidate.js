@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.10 — Large visual lock pass: quieter peak band / clearer tide change
+// TIDE DASH v0.13.11 — Remove redundant tide-change wording from glance UI
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -631,7 +631,7 @@ async function showGuide(){
     `潮位変化要素：${Math.round(g.tideMove*100)}%`,
     `マヅメ要素：${Math.round(g.magic*100)}%`,
     `潮差要素：${Math.round(g.range*100)}%`,
-    `次の潮変わり：${next}`,
+    `次の満干潮：${next}`,
     `次のピーク：${best?.display??"--"}`,
     `風：${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s "+dir8(we.windDir)+" / "+windGuide(we.wind):"--"}`,
     `波：${we?.wave!=null?Number(we.wave).toFixed(1)+"m / "+waveGuide(we.wave):"--"}`,
@@ -879,9 +879,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     const peakBox=ms.addStack();peakBox.layoutVertically();
     text(peakBox,"次のピーク",8,C.t.sub,true);
     text(peakBox,best?.display||"--",10,C.t.warn,true);
-    if(t.nextEvent){
-      const e=t.nextEvent;text(peakBox,`潮変わり ${e.type==="high"?"満":"干"} ${eventClock(e)}`,7,C.t.muted);
-    }
+
     if(guideURL)ms.url=guideURL;
 
     w.addSpacer(3);
@@ -930,7 +928,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(10);
     const note=w.addStack();note.layoutVertically();
     text(note,"地点設定後に表示",9,C.t.muted,true);
-    text(note,"潮グラフ・朝夕まずめ・潮変わり・釣りチャンス・風・波・雨",9,C.t.sub);
+    text(note,"潮グラフ・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(7,9,7,9);
     if(farAuto){
@@ -948,11 +946,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       const chanceText=best?.display||"--";
       text(future,"次のピーク",8,C.t.sub,true);
       text(future,chanceText,11,C.t.warn,true);
-      if(t.nextEvent){
-        const e=t.nextEvent,day=eventDayWord(e).trim();
-        text(future,"次の潮変わり",8,C.t.sub,true);
-        text(future,`${day?day+" ":""}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,9,C.t.muted,true);
-      }
+
       if(guideURL)decision.url=guideURL;
     }
   
