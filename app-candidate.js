@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.2 — Timing Bands polish: clearer lull / stronger chance label
+// TIDE DASH v0.13.3 — Timing Bands final polish: always label first lull
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -629,10 +629,15 @@ function graph(t,width=650,height=220,bands=null){
       c.setFillColor(new Color(col,b.kind==="chance"?.12:.13));
       c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
       const label=b.label||"";
-      if(label&&x2-x1>42){
+      if(label){
         const labelSize=b.kind==="chance"?14:12,labelH=b.kind==="chance"?19:16;
         c.setFont(Font.boldSystemFont(labelSize));c.setTextColor(new Color(col,.97));
-        c.drawTextInRect(label,new Rect(x1+4,T+3,Math.max(36,x2-x1-8),labelH));
+        if(b.kind==="lull"){
+          const labelW=82,cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
+          c.drawTextInRect(label,new Rect(lx,T+3,labelW,labelH));
+        }else if(x2-x1>42){
+          c.drawTextInRect(label,new Rect(x1+4,T+3,Math.max(36,x2-x1-8),labelH));
+        }
       }
     }
   }
