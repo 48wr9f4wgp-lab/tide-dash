@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.7 — Invalid-location state: hide misleading tide/weather until site selection
+// TIDE DASH v0.13.8 — Language alignment: current condition / next peak / next tide change
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -514,7 +514,7 @@ function mazumeWindows(t,we){
 function timingBands(t,we,best){
   const bands=mazumeWindows(t,we);
   if(best&&best.score>=45&&best.minute>=t.graphStart&&best.minute<=t.graphEnd){
-    bands.push({kind:"chance",start:best.windowStart??best.minute-30,end:best.windowEnd??best.minute+30,minute:best.minute,score:best.score,label:"釣りチャンス"});
+    bands.push({kind:"chance",start:best.windowStart??best.minute-30,end:best.windowEnd??best.minute+30,minute:best.minute,score:best.score,label:"ピーク"});
   }
   return bands;
 }
@@ -632,7 +632,7 @@ async function showGuide(){
     `マヅメ要素：${Math.round(g.magic*100)}%`,
     `潮差要素：${Math.round(g.range*100)}%`,
     `次の潮変わり：${next}`,
-    `次の釣りチャンス：${best?.display??"--"}`,
+    `次のピーク：${best?.display??"--"}`,
     `風：${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s "+dir8(we.windDir)+" / "+windGuide(we.wind):"--"}`,
     `波：${we?.wave!=null?Number(we.wave).toFixed(1)+"m / "+waveGuide(we.wave):"--"}`,
     `雨：${we?.precip!=null?Number(we.precip).toFixed(1)+"mm / "+rainGuide(we.precip):"--"}`,
@@ -969,11 +969,11 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       decision.addSpacer();
       const future=decision.addStack();future.layoutVertically();
       const chanceText=best?.display||"--";
-      text(future,"次の釣りチャンス",8,C.t.sub,true);
+      text(future,"次のピーク",8,C.t.sub,true);
       text(future,chanceText,11,C.t.warn,true);
       if(t.nextEvent){
         const e=t.nextEvent,day=eventDayWord(e).trim();
-        text(future,`潮変わり ${day?day+" ":""}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}頃`,7,C.t.muted);
+        text(future,`次の潮変わり ${day?day+" ":""}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}頃`,7,C.t.muted);
       }
       if(guideURL)decision.url=guideURL;
     }
