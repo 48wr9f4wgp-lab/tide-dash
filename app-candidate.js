@@ -1,4 +1,4 @@
-// TIDE DASH v0.16.1 — Small/Medium semantic alignment / tide-only fallback
+// TIDE DASH v0.16.2 — Trust states: block unverified AUTO data before network fetch
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -191,7 +191,7 @@ async function currentLocation(){Location.setAccuracyToKilometer();return await 
 async function resolveStation(force=false){
   const p=loadPrefs(),stations=await stationCatalog();
   if(p.mode==="fixed"){
-    return{station:p.fixedStation||p.favorites[0]||C.defaultFav,prefs:p,badge:"★ 固定",badgeColor:C.t.a,distanceKm:null};
+    return{station:p.fixedStation||p.favorites[0]||C.defaultFav,prefs:p,badge:"★ 固定",badgeColor:C.t.a,distanceKm:null,locationState:"fixed"};
   }
   let loc=null;
   try{
@@ -211,12 +211,12 @@ async function resolveStation(force=false){
       return{
         station:n,prefs:p,
         badge:d>=C.farKm?`AUTO · ⚠ ${d}km`:`AUTO · ${d}km`,
-        badgeColor:C.t.muted,distanceKm:d
+        badgeColor:C.t.muted,distanceKm:d,locationState:d>=C.farKm?"far":"current"
       };
     }
   }
-  if(p.lastStation)return{station:p.lastStation,prefs:p,badge:"AUTO · 前回地点",badgeColor:C.t.muted,distanceKm:Number.isFinite(p.lastStation?.distanceKm)?Math.round(p.lastStation.distanceKm):null};
-  return{station:p.favorites[0]||C.defaultFav,prefs:p,badge:"⚠ 位置情報なし",badgeColor:C.t.warn,distanceKm:null};
+  if(p.lastStation)return{station:p.lastStation,prefs:p,badge:"AUTO · 前回地点",badgeColor:C.t.muted,distanceKm:Number.isFinite(p.lastStation?.distanceKm)?Math.round(p.lastStation.distanceKm):null,locationState:"previous"};
+  return{station:p.favorites[0]||C.defaultFav,prefs:p,badge:"⚠ 位置情報なし",badgeColor:C.t.warn,distanceKm:null,locationState:"missing"};
 }
 
 async function searchAndFix(p){
@@ -904,15 +904,23 @@ function badgeLine(st,badge,z,col){
   text(r,m[1],z,col,true);text(r,m[2],z,C.t.warn,true);return r;
 }
 
-function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
+function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="current"){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
   const w=new ListWidget();
   w.setPadding(large?4:12,14,large?4:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
-  const farAuto=Number.isFinite(distanceKm)&&distanceKm>=C.farKm&&String(badge).includes("AUTO");
-  const fg=fishingGuide(t,we,new Date()),best=farAuto?null:bestFishingWindow(t,we),bands=farAuto?[]:timingBands(t,we,best);
-  const idxTitle=indexTitle(we),peakUI=peakSummary(best);
+  const farAuto=locationState==="far";
+  const locationBlocked=farAuto||locationState==="previous"||locationState==="missing";
+  const fg=locationBlocked?null:fishingGuide(t,we,new Date()),best=locationBlocked?null:bestFishingWindow(t,we),bands=locationBlocked?[]:timingBands(t,we,best);
+  const idxTitle=locationBlocked?"潮・まずめ":indexTitle(we),peakUI=peakSummary(best);
+  const blockTitle=farAuto?"⚠ 釣り地点を選択":"⚠ 現在地を確認できません";
+  const blockShort=farAuto
+    ?`最寄り潮位地点まで ${Math.round(distanceKm)}km`
+    :locationState==="previous"?"現在地を取得できず前回地点を使用中":"現在地を取得できません";
+  const blockDetail=farAuto
+    ?"この距離では潮・まずめ指数や風・波を釣行判断に使えないため非表示にしています。"
+    :"現在地を確認できないため、潮・まずめ指数や風・波を非表示にしています。";
 
   // Dedicated small layout: fishing-first glance.
   if(small){
@@ -931,11 +939,11 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     const rTap=rr.addStack();rTap.setPadding(2,5,2,5);
     text(rTap,"↻",11,C.t.sub,true);if(refreshURL)rTap.url=refreshURL;
 
-    if(farAuto){
+    if(locationBlocked){
       w.addSpacer(8);
       const fw=w.addStack();fw.layoutVertically();fw.backgroundColor=new Color(C.t.panel,.48);fw.cornerRadius=10;fw.setPadding(7,8,7,8);
-      text(fw,"⚠ 釣り地点を選択",10,C.t.warn,true);
-      text(fw,`最寄り潮位地点まで ${Math.round(distanceKm)}km`,7,C.t.muted);
+      text(fw,blockTitle,10,C.t.warn,true);
+      text(fw,blockShort,7,C.t.muted);
       text(fw,"地点設定後に潮・まずめ・風・波を表示",7,C.t.sub);
       if(settingsURL)fw.url=settingsURL;
       w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
@@ -988,11 +996,11 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     const mrf=mh.addStack();mrf.layoutVertically();mrf.backgroundColor=new Color(C.t.panel,.55);mrf.cornerRadius=9;mrf.setPadding(3,6,3,6);
     text(mrf,"↻",14,C.t.sub,true);if(refreshURL)mrf.url=refreshURL;
 
-    if(farAuto){
+    if(locationBlocked){
       w.addSpacer(7);
       const fw=w.addStack();fw.layoutVertically();fw.backgroundColor=new Color(C.t.panel,.48);fw.cornerRadius=10;fw.setPadding(7,9,7,9);
-      text(fw,"⚠ 釣り地点を選択",12,C.t.warn,true);
-      text(fw,`最寄り潮位地点まで ${Math.round(distanceKm)}km`,8,C.t.muted);
+      text(fw,blockTitle,12,C.t.warn,true);
+      text(fw,blockShort,8,C.t.muted);
       text(fw,"地点設定後に 潮・まずめ・風・波 を表示",8,C.t.sub);
       if(settingsURL)fw.url=settingsURL;
       w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
@@ -1034,14 +1042,14 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
   }
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
-  text(pl,farAuto?`${S.name}（参考）`:S.name,27,C.t.fg,true);
+  text(pl,locationBlocked?`${S.name}（参考）`:S.name,27,C.t.fg,true);
   badgeLine(pl,`${badge}  ▾`,10,badgeColor||C.t.muted);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
   const info=hd.addStack();info.layoutVertically();
   const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,18,C.t.fg,true);
-  text(info,farAuto?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",11,farAuto?C.t.warn:C.t.sub);
+  text(info,locationBlocked?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",11,locationBlocked?C.t.warn:C.t.sub);
   hd.addSpacer(8);
 
   const rf=hd.addStack();rf.layoutVertically();rf.backgroundColor=new Color(C.t.panel,.6);rf.cornerRadius=10;rf.setPadding(5,8,5,8);
@@ -1049,12 +1057,12 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
 
   w.addSpacer(4);
 
-  if(farAuto){
+  if(locationBlocked){
     const gate=w.addStack();gate.layoutVertically();gate.backgroundColor=new Color(C.t.panel,.48);gate.cornerRadius=14;gate.setPadding(14,14,14,14);
-    text(gate,"⚠ 釣り地点を選択",17,C.t.warn,true);
+    text(gate,blockTitle,17,C.t.warn,true);
     gate.addSpacer(4);
-    text(gate,`現在のAUTO基準点は ${S.name}・約${Math.round(distanceKm)}km先`,10,C.t.fg,true);
-    text(gate,"この距離では潮・まずめ指数や風・波を釣行判断に使えないため非表示にしています。",9,C.t.sub);
+    text(gate,blockShort,10,C.t.fg,true);
+    text(gate,blockDetail,9,C.t.sub);
     gate.addSpacer(10);
     const cta=gate.addStack();cta.layoutHorizontally();cta.backgroundColor=new Color(C.t.bg2,.95);cta.cornerRadius=10;cta.setPadding(8,10,8,10);
     text(cta,"釣り地点を選ぶ  ›",12,C.t.fg,true);cta.addSpacer();
@@ -1093,7 +1101,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     }
   }
 
-  if(err&&!farAuto){w.addSpacer(4);text(w,err,8,C.t.warn)}
+  if(err&&!locationBlocked){w.addSpacer(4);text(w,err,8,C.t.warn)}
   w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
   return w;
 }
@@ -1101,6 +1109,10 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
 async function buildCurrent(forceLocation=false){
   NET.fallbacks.length=0;
   const r=await resolveStation(forceLocation),now=new Date();
+  const locationBlocked=["far","previous","missing"].includes(r.locationState);
+  if(locationBlocked){
+    return widget(null,null,r.station,r.badge,r.badgeColor,null,r.distanceKm,r.locationState);
+  }
   let t,wp=null,err=null;
   try{t=await tide(now,r.station)}
   catch(e){
@@ -1115,7 +1127,7 @@ async function buildCurrent(forceLocation=false){
     else if(age<60)err=`⚠ 天気/波 ${age}分前のデータ`;
     else err=`⚠ 天気/波 ${Math.floor(age/60)}時間前のデータ`;
   }
-  return widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm);
+  return widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm,r.locationState);
 }
 async function present(w){
   const f=config.widgetFamily||"large";
