@@ -1,0 +1,818 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-27",
+  "note": "代表座標は天気・波の参照用。立入可否・釣り可否は現地ルールを確認してください。",
+  "sources": [
+    "茨城県・静岡県・千葉県・新潟県などの公開港湾情報",
+    "JMA潮位基準点カタログ"
+  ],
+  "count": 60,
+  "spots": [
+    {
+      "id": "ibaraki-hirakata",
+      "name": "平潟周辺",
+      "area": "茨城・北茨城",
+      "type": "港・海岸",
+      "lat": 36.856,
+      "lon": 140.8,
+      "code": "ON",
+      "tideName": "小名浜",
+      "keywords": [
+        "平潟港",
+        "北茨城"
+      ]
+    },
+    {
+      "id": "ibaraki-otsu",
+      "name": "大津周辺",
+      "area": "茨城・北茨城",
+      "type": "港・海岸",
+      "lat": 36.829,
+      "lon": 140.789,
+      "code": "ON",
+      "tideName": "小名浜",
+      "keywords": [
+        "大津港",
+        "北茨城"
+      ]
+    },
+    {
+      "id": "ibaraki-kuji",
+      "name": "久慈周辺",
+      "area": "茨城・日立",
+      "type": "港・海岸",
+      "lat": 36.474,
+      "lon": 140.621,
+      "code": "D1",
+      "tideName": "日立",
+      "keywords": [
+        "久慈港",
+        "日立"
+      ]
+    },
+    {
+      "id": "ibaraki-hitachi",
+      "name": "日立周辺",
+      "area": "茨城・日立",
+      "type": "港・海岸",
+      "lat": 36.5,
+      "lon": 140.633,
+      "code": "D1",
+      "tideName": "日立",
+      "keywords": [
+        "日立港"
+      ]
+    },
+    {
+      "id": "ibaraki-nakaminato",
+      "name": "那珂湊周辺",
+      "area": "茨城・ひたちなか",
+      "type": "港・海岸",
+      "lat": 36.343,
+      "lon": 140.586,
+      "code": "D3",
+      "tideName": "大洗",
+      "keywords": [
+        "那珂湊港",
+        "ひたちなか"
+      ]
+    },
+    {
+      "id": "ibaraki-oarai",
+      "name": "大洗周辺",
+      "area": "茨城・大洗",
+      "type": "港・海岸",
+      "lat": 36.313,
+      "lon": 140.575,
+      "code": "D3",
+      "tideName": "大洗",
+      "keywords": [
+        "大洗港",
+        "大洗サンビーチ"
+      ]
+    },
+    {
+      "id": "ibaraki-kashima",
+      "name": "鹿島周辺",
+      "area": "茨城・鹿嶋",
+      "type": "港・海岸",
+      "lat": 35.956,
+      "lon": 140.69,
+      "code": "D2",
+      "tideName": "鹿島",
+      "keywords": [
+        "鹿島港",
+        "鹿嶋"
+      ]
+    },
+    {
+      "id": "ibaraki-hasaki",
+      "name": "波崎周辺",
+      "area": "茨城・神栖",
+      "type": "港・海岸",
+      "lat": 35.75,
+      "lon": 140.84,
+      "code": "CS",
+      "tideName": "銚子漁港",
+      "keywords": [
+        "波崎港",
+        "神栖"
+      ]
+    },
+    {
+      "id": "chiba-choshi",
+      "name": "銚子周辺",
+      "area": "千葉・銚子",
+      "type": "港・海岸",
+      "lat": 35.74,
+      "lon": 140.86,
+      "code": "CS",
+      "tideName": "銚子漁港",
+      "keywords": [
+        "銚子港",
+        "銚子漁港"
+      ]
+    },
+    {
+      "id": "chiba-tokawa",
+      "name": "外川周辺",
+      "area": "千葉・銚子",
+      "type": "港・磯",
+      "lat": 35.7,
+      "lon": 140.85,
+      "code": "CS",
+      "tideName": "銚子漁港",
+      "keywords": [
+        "外川港"
+      ]
+    },
+    {
+      "id": "chiba-iioka",
+      "name": "飯岡周辺",
+      "area": "千葉・旭",
+      "type": "港・海岸",
+      "lat": 35.7,
+      "lon": 140.71,
+      "code": "CS",
+      "tideName": "銚子漁港",
+      "keywords": [
+        "飯岡港",
+        "旭"
+      ]
+    },
+    {
+      "id": "chiba-katakai",
+      "name": "片貝周辺",
+      "area": "千葉・九十九里",
+      "type": "港・海岸",
+      "lat": 35.535,
+      "lon": 140.465,
+      "code": "CB",
+      "tideName": "千葉港",
+      "keywords": [
+        "片貝港",
+        "九十九里"
+      ]
+    },
+    {
+      "id": "chiba-katsuura",
+      "name": "勝浦周辺",
+      "area": "千葉・勝浦",
+      "type": "港・磯",
+      "lat": 35.15,
+      "lon": 140.315,
+      "code": "ZF",
+      "tideName": "勝浦",
+      "keywords": [
+        "勝浦港"
+      ]
+    },
+    {
+      "id": "chiba-okitsu",
+      "name": "興津周辺",
+      "area": "千葉・勝浦",
+      "type": "港・海岸",
+      "lat": 35.13,
+      "lon": 140.25,
+      "code": "ZF",
+      "tideName": "勝浦",
+      "keywords": [
+        "興津港"
+      ]
+    },
+    {
+      "id": "chiba-kamogawa",
+      "name": "鴨川周辺",
+      "area": "千葉・鴨川",
+      "type": "港・海岸",
+      "lat": 35.11,
+      "lon": 140.1,
+      "code": "ZF",
+      "tideName": "勝浦",
+      "keywords": [
+        "鴨川港"
+      ]
+    },
+    {
+      "id": "chiba-chikura",
+      "name": "千倉周辺",
+      "area": "千葉・南房総",
+      "type": "港・磯",
+      "lat": 34.95,
+      "lon": 139.96,
+      "code": "TT",
+      "tideName": "館山",
+      "keywords": [
+        "千倉港",
+        "南房総"
+      ]
+    },
+    {
+      "id": "chiba-shirahama",
+      "name": "白浜周辺",
+      "area": "千葉・南房総",
+      "type": "磯・海岸",
+      "lat": 34.9,
+      "lon": 139.9,
+      "code": "MR",
+      "tideName": "布良",
+      "keywords": [
+        "白浜",
+        "野島崎"
+      ]
+    },
+    {
+      "id": "chiba-tateyama",
+      "name": "館山周辺",
+      "area": "千葉・館山",
+      "type": "港・海岸",
+      "lat": 34.99,
+      "lon": 139.85,
+      "code": "TT",
+      "tideName": "館山",
+      "keywords": [
+        "館山港"
+      ]
+    },
+    {
+      "id": "chiba-hamakanaya",
+      "name": "浜金谷周辺",
+      "area": "千葉・富津",
+      "type": "港・磯",
+      "lat": 35.17,
+      "lon": 139.82,
+      "code": "KZ",
+      "tideName": "木更津",
+      "keywords": [
+        "浜金谷港",
+        "金谷"
+      ]
+    },
+    {
+      "id": "chiba-futtsu",
+      "name": "富津周辺",
+      "area": "千葉・富津",
+      "type": "海岸・護岸",
+      "lat": 35.31,
+      "lon": 139.81,
+      "code": "KZ",
+      "tideName": "木更津",
+      "keywords": [
+        "富津岬",
+        "富津"
+      ]
+    },
+    {
+      "id": "chiba-kisarazu",
+      "name": "木更津周辺",
+      "area": "千葉・木更津",
+      "type": "港・護岸",
+      "lat": 35.37,
+      "lon": 139.92,
+      "code": "KZ",
+      "tideName": "木更津",
+      "keywords": [
+        "木更津港"
+      ]
+    },
+    {
+      "id": "kanagawa-honmoku",
+      "name": "本牧周辺",
+      "area": "神奈川・横浜",
+      "type": "港湾・護岸",
+      "lat": 35.43,
+      "lon": 139.67,
+      "code": "HM",
+      "tideName": "本牧",
+      "keywords": [
+        "本牧海づり施設",
+        "横浜"
+      ]
+    },
+    {
+      "id": "kanagawa-yokohama",
+      "name": "横浜港周辺",
+      "area": "神奈川・横浜",
+      "type": "港湾",
+      "lat": 35.45,
+      "lon": 139.65,
+      "code": "QS",
+      "tideName": "横浜",
+      "keywords": [
+        "横浜港"
+      ]
+    },
+    {
+      "id": "kanagawa-yokosuka",
+      "name": "横須賀周辺",
+      "area": "神奈川・横須賀",
+      "type": "港・海岸",
+      "lat": 35.28,
+      "lon": 139.67,
+      "code": "QN",
+      "tideName": "横須賀",
+      "keywords": [
+        "横須賀港"
+      ]
+    },
+    {
+      "id": "kanagawa-kurihama",
+      "name": "久里浜周辺",
+      "area": "神奈川・横須賀",
+      "type": "港・海岸",
+      "lat": 35.22,
+      "lon": 139.72,
+      "code": "QN",
+      "tideName": "横須賀",
+      "keywords": [
+        "久里浜港"
+      ]
+    },
+    {
+      "id": "kanagawa-miura",
+      "name": "三浦・三崎周辺",
+      "area": "神奈川・三浦",
+      "type": "港・磯",
+      "lat": 35.14,
+      "lon": 139.62,
+      "code": "Z1",
+      "tideName": "油壺",
+      "keywords": [
+        "三崎港",
+        "三浦"
+      ]
+    },
+    {
+      "id": "kanagawa-jogashima",
+      "name": "城ヶ島周辺",
+      "area": "神奈川・三浦",
+      "type": "磯・海岸",
+      "lat": 35.13,
+      "lon": 139.61,
+      "code": "Z1",
+      "tideName": "油壺",
+      "keywords": [
+        "城ヶ島"
+      ]
+    },
+    {
+      "id": "kanagawa-enoshima",
+      "name": "江の島周辺",
+      "area": "神奈川・湘南",
+      "type": "港・磯",
+      "lat": 35.3,
+      "lon": 139.48,
+      "code": "D8",
+      "tideName": "湘南港",
+      "keywords": [
+        "江ノ島",
+        "湘南港"
+      ]
+    },
+    {
+      "id": "kanagawa-odawara",
+      "name": "小田原周辺",
+      "area": "神奈川・小田原",
+      "type": "港・海岸",
+      "lat": 35.24,
+      "lon": 139.15,
+      "code": "OD",
+      "tideName": "小田原",
+      "keywords": [
+        "小田原漁港",
+        "早川港"
+      ]
+    },
+    {
+      "id": "kanagawa-manazuru",
+      "name": "真鶴周辺",
+      "area": "神奈川・真鶴",
+      "type": "港・磯",
+      "lat": 35.16,
+      "lon": 139.14,
+      "code": "OD",
+      "tideName": "小田原",
+      "keywords": [
+        "真鶴港"
+      ]
+    },
+    {
+      "id": "shizuoka-atami",
+      "name": "熱海周辺",
+      "area": "静岡・東伊豆",
+      "type": "港・海岸",
+      "lat": 35.1,
+      "lon": 139.07,
+      "code": "Z3",
+      "tideName": "伊東",
+      "keywords": [
+        "熱海港"
+      ]
+    },
+    {
+      "id": "shizuoka-ito",
+      "name": "伊東周辺",
+      "area": "静岡・東伊豆",
+      "type": "港・磯",
+      "lat": 34.97,
+      "lon": 139.1,
+      "code": "Z3",
+      "tideName": "伊東",
+      "keywords": [
+        "伊東港"
+      ]
+    },
+    {
+      "id": "shizuoka-kawana",
+      "name": "川奈周辺",
+      "area": "静岡・東伊豆",
+      "type": "港・磯",
+      "lat": 34.95,
+      "lon": 139.14,
+      "code": "Z3",
+      "tideName": "伊東",
+      "keywords": [
+        "川奈港"
+      ]
+    },
+    {
+      "id": "shizuoka-futo",
+      "name": "富戸周辺",
+      "area": "静岡・東伊豆",
+      "type": "港・磯",
+      "lat": 34.9,
+      "lon": 139.13,
+      "code": "Z3",
+      "tideName": "伊東",
+      "keywords": [
+        "富戸港"
+      ]
+    },
+    {
+      "id": "shizuoka-inatori",
+      "name": "稲取周辺",
+      "area": "静岡・東伊豆",
+      "type": "港・磯",
+      "lat": 34.77,
+      "lon": 139.04,
+      "code": "D6",
+      "tideName": "下田",
+      "keywords": [
+        "稲取港"
+      ]
+    },
+    {
+      "id": "shizuoka-shimoda",
+      "name": "下田周辺",
+      "area": "静岡・南伊豆",
+      "type": "港・磯",
+      "lat": 34.68,
+      "lon": 138.97,
+      "code": "D6",
+      "tideName": "下田",
+      "keywords": [
+        "下田港"
+      ]
+    },
+    {
+      "id": "shizuoka-suzaki",
+      "name": "須崎周辺",
+      "area": "静岡・南伊豆",
+      "type": "港・磯",
+      "lat": 34.66,
+      "lon": 138.99,
+      "code": "D6",
+      "tideName": "下田",
+      "keywords": [
+        "須崎港"
+      ]
+    },
+    {
+      "id": "shizuoka-yumigahama",
+      "name": "弓ヶ浜・南伊豆",
+      "area": "静岡・南伊豆",
+      "type": "海岸・磯",
+      "lat": 34.64,
+      "lon": 138.89,
+      "code": "QK",
+      "tideName": "南伊豆",
+      "keywords": [
+        "弓ヶ浜",
+        "南伊豆"
+      ]
+    },
+    {
+      "id": "shizuoka-irozaki",
+      "name": "石廊崎周辺",
+      "area": "静岡・南伊豆",
+      "type": "磯",
+      "lat": 34.61,
+      "lon": 138.85,
+      "code": "G9",
+      "tideName": "石廊崎",
+      "keywords": [
+        "石廊崎"
+      ]
+    },
+    {
+      "id": "shizuoka-matsuzaki",
+      "name": "松崎周辺",
+      "area": "静岡・西伊豆",
+      "type": "港・海岸",
+      "lat": 34.75,
+      "lon": 138.78,
+      "code": "Z4",
+      "tideName": "田子",
+      "keywords": [
+        "松崎港"
+      ]
+    },
+    {
+      "id": "shizuoka-tago",
+      "name": "田子周辺",
+      "area": "静岡・西伊豆",
+      "type": "港・磯",
+      "lat": 34.8,
+      "lon": 138.77,
+      "code": "Z4",
+      "tideName": "田子",
+      "keywords": [
+        "田子港"
+      ]
+    },
+    {
+      "id": "shizuoka-toi",
+      "name": "土肥周辺",
+      "area": "静岡・西伊豆",
+      "type": "港・海岸",
+      "lat": 34.91,
+      "lon": 138.79,
+      "code": "Z4",
+      "tideName": "田子",
+      "keywords": [
+        "土肥港"
+      ]
+    },
+    {
+      "id": "shizuoka-heda",
+      "name": "戸田周辺",
+      "area": "静岡・沼津",
+      "type": "港・磯",
+      "lat": 34.97,
+      "lon": 138.78,
+      "code": "UC",
+      "tideName": "内浦",
+      "keywords": [
+        "戸田港"
+      ]
+    },
+    {
+      "id": "shizuoka-uchiura",
+      "name": "内浦周辺",
+      "area": "静岡・沼津",
+      "type": "港・堤防",
+      "lat": 35.02,
+      "lon": 138.88,
+      "code": "UC",
+      "tideName": "内浦",
+      "keywords": [
+        "内浦"
+      ]
+    },
+    {
+      "id": "shizuoka-numazu",
+      "name": "沼津周辺",
+      "area": "静岡・沼津",
+      "type": "港・海岸",
+      "lat": 35.09,
+      "lon": 138.86,
+      "code": "UC",
+      "tideName": "内浦",
+      "keywords": [
+        "沼津港"
+      ]
+    },
+    {
+      "id": "shizuoka-shizura",
+      "name": "静浦周辺",
+      "area": "静岡・沼津",
+      "type": "港・堤防",
+      "lat": 35.05,
+      "lon": 138.9,
+      "code": "UC",
+      "tideName": "内浦",
+      "keywords": [
+        "静浦港"
+      ]
+    },
+    {
+      "id": "shizuoka-shimizu",
+      "name": "清水周辺",
+      "area": "静岡・静岡",
+      "type": "港湾・海岸",
+      "lat": 35.02,
+      "lon": 138.52,
+      "code": "SM",
+      "tideName": "清水港",
+      "keywords": [
+        "清水港"
+      ]
+    },
+    {
+      "id": "shizuoka-yaizu",
+      "name": "焼津周辺",
+      "area": "静岡・焼津",
+      "type": "港・海岸",
+      "lat": 34.87,
+      "lon": 138.33,
+      "code": "Z5",
+      "tideName": "焼津",
+      "keywords": [
+        "焼津港"
+      ]
+    },
+    {
+      "id": "shizuoka-omaezaki",
+      "name": "御前崎周辺",
+      "area": "静岡・御前崎",
+      "type": "港・磯",
+      "lat": 34.62,
+      "lon": 138.22,
+      "code": "OM",
+      "tideName": "御前崎",
+      "keywords": [
+        "御前崎港"
+      ]
+    },
+    {
+      "id": "niigata-iwafune",
+      "name": "岩船周辺",
+      "area": "新潟・村上",
+      "type": "港・海岸",
+      "lat": 38.18,
+      "lon": 139.44,
+      "code": "I5",
+      "tideName": "新潟東港",
+      "keywords": [
+        "岩船港",
+        "村上"
+      ]
+    },
+    {
+      "id": "niigata-east",
+      "name": "新潟東港周辺",
+      "area": "新潟・聖籠/新潟",
+      "type": "港湾・海岸",
+      "lat": 37.98,
+      "lon": 139.22,
+      "code": "I5",
+      "tideName": "新潟東港",
+      "keywords": [
+        "新潟東港"
+      ]
+    },
+    {
+      "id": "niigata-west",
+      "name": "新潟西港周辺",
+      "area": "新潟・新潟市",
+      "type": "港湾・海岸",
+      "lat": 37.93,
+      "lon": 139.07,
+      "code": "S6",
+      "tideName": "新潟西港",
+      "keywords": [
+        "新潟西港"
+      ]
+    },
+    {
+      "id": "niigata-mase",
+      "name": "間瀬周辺",
+      "area": "新潟・新潟市西蒲",
+      "type": "港・海岸",
+      "lat": 37.72,
+      "lon": 138.8,
+      "code": "S6",
+      "tideName": "新潟西港",
+      "keywords": [
+        "間瀬漁港",
+        "西蒲"
+      ]
+    },
+    {
+      "id": "niigata-teradomari",
+      "name": "寺泊周辺",
+      "area": "新潟・長岡",
+      "type": "港・海岸",
+      "lat": 37.64,
+      "lon": 138.77,
+      "code": "ZC",
+      "tideName": "柏崎",
+      "keywords": [
+        "寺泊港",
+        "寺泊"
+      ]
+    },
+    {
+      "id": "niigata-kashiwazaki",
+      "name": "柏崎周辺",
+      "area": "新潟・柏崎",
+      "type": "港・海岸",
+      "lat": 37.36,
+      "lon": 138.52,
+      "code": "ZC",
+      "tideName": "柏崎",
+      "keywords": [
+        "柏崎港"
+      ]
+    },
+    {
+      "id": "niigata-naoetsu",
+      "name": "直江津周辺",
+      "area": "新潟・上越",
+      "type": "港・海岸",
+      "lat": 37.18,
+      "lon": 138.25,
+      "code": "T3",
+      "tideName": "直江津",
+      "keywords": [
+        "直江津港"
+      ]
+    },
+    {
+      "id": "niigata-nou",
+      "name": "能生周辺",
+      "area": "新潟・糸魚川",
+      "type": "港・海岸",
+      "lat": 37.1,
+      "lon": 137.99,
+      "code": "T3",
+      "tideName": "直江津",
+      "keywords": [
+        "能生漁港",
+        "糸魚川"
+      ]
+    },
+    {
+      "id": "niigata-himekawa",
+      "name": "姫川周辺",
+      "area": "新潟・糸魚川",
+      "type": "港・海岸",
+      "lat": 37.04,
+      "lon": 137.85,
+      "code": "T3",
+      "tideName": "直江津",
+      "keywords": [
+        "姫川港",
+        "糸魚川"
+      ]
+    },
+    {
+      "id": "niigata-ryotsu",
+      "name": "両津周辺",
+      "area": "新潟・佐渡",
+      "type": "港・海岸",
+      "lat": 38.08,
+      "lon": 138.43,
+      "code": "RZ",
+      "tideName": "両津",
+      "keywords": [
+        "両津港",
+        "佐渡"
+      ]
+    },
+    {
+      "id": "niigata-ogi",
+      "name": "小木周辺",
+      "area": "新潟・佐渡",
+      "type": "港・磯",
+      "lat": 37.82,
+      "lon": 138.28,
+      "code": "ZN",
+      "tideName": "小木",
+      "keywords": [
+        "小木港",
+        "佐渡"
+      ]
+    }
+  ]
+}
