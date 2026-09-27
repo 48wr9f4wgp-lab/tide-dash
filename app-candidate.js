@@ -1,4 +1,4 @@
-// TIDE DASH v0.19.2 — Tide-reference wording polish for Large/Medium/Small
+// TIDE DASH v0.19.3 — Temporary abnormal-state visual QA menu
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -448,6 +448,59 @@ async function addCurrentFavorite(p){
     return false;
   }
 }
+function tideFailureWidget(detail="QA: 潮位データなし"){
+  const w=new ListWidget();w.backgroundColor=new Color(C.t.bg1);w.setPadding(14,14,14,14);
+  text(w,"TIDE DASH",18,C.t.fg,true);w.addSpacer(8);
+  text(w,"潮位データを取得できません",13,C.t.warn,true);w.addSpacer(4);
+  text(w,detail,9,C.t.sub);w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
+  return w;
+}
+async function qaPreviewMenu(){
+  const a=new Alert();
+  a.title="🧪 異常表示QA";
+  a.message="実データは変更せず、表示だけ異常状態を再現します。";
+  const labels=["波だけ取得失敗","古い天気/波データ","天気/波すべて取得失敗","潮位取得失敗"];
+  labels.forEach(x=>a.addAction(x));a.addCancelAction("キャンセル");
+  const i=await a.presentSheet();if(i<0)return false;
+
+  if(i===3){
+    await present(tideFailureWidget());
+    return true;
+  }
+
+  NET.fallbacks.length=0;
+  const r=await resolveStation(false);
+  if(locationBlockedResult(r)){
+    const z=new Alert();z.title="QAできません";z.message="固定地点を選んでから実行してください。";z.addAction("OK");await z.presentAlert();
+    return true;
+  }
+
+  const now=new Date();
+  let t;
+  try{t=await tide(now,r.station)}catch(_){
+    await present(tideFailureWidget("実データの潮位取得にも失敗しました"));
+    return true;
+  }
+
+  let wp=null;
+  try{wp=await weather(now,r.station)}catch(_){}
+  let err=null;
+
+  if(i===0){
+    if(!wp)wp={current:{},slots:[],marineSeries:[],issues:[]};
+    wp={...wp,current:{...(wp.current||{}),wave:null,waveDir:null,wavePeriod:null,sst:null,currentVelocity:null,currentDir:null}};
+    err="⚠ 波を取得できません";
+  }else if(i===1){
+    err="⚠ 天気/波 120分前のデータ";
+  }else if(i===2){
+    wp=null;
+    err="⚠ 天気/波を取得できません";
+  }
+
+  await present(widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm,r.locationState,r.tideRef));
+  return true;
+}
+
 async function settings(){
   const p=loadPrefs(),a=new Alert();
   a.title="TIDE DASH 地点";
@@ -457,6 +510,7 @@ async function settings(){
   favs.forEach(s=>a.addAction(`★ ${s.name}`));
   a.addAction("🔎 釣り地点を探す");
   a.addAction("＋ 現在の最寄りをお気に入り");
+  a.addAction("🧪 異常表示QA");
   a.addCancelAction("閉じる");
   const i=await a.presentSheet();
   if(i<0)return;
@@ -467,7 +521,8 @@ async function settings(){
     const s=favs[i-1];p.mode="fixed";p.fixedStation=s;savePrefs(p);return;
   }
   if(i===1+favs.length){await searchAndFix(p);return}
-  if(i===2+favs.length){await addCurrentFavorite(p)}
+  if(i===2+favs.length){await addCurrentFavorite(p);return}
+  if(i===3+favs.length){await qaPreviewMenu();return "qa"}
 }
 
 function cacheAgeMin(path){
@@ -1399,10 +1454,7 @@ async function buildCurrent(forceLocation=false){
   }
   let t,wp=null,err=null;
   try{t=await tide(now,r.station)}
-  catch(e){
-    const w=new ListWidget();w.backgroundColor=new Color(C.t.bg1);w.setPadding(14,14,14,14);
-    text(w,"TIDE DASH",18,C.t.fg,true);w.addSpacer(8);text(w,"潮位データを取得できません",13,C.t.warn,true);w.addSpacer(4);text(w,String(e),9,C.t.sub);return w;
-  }
+  catch(e){return tideFailureWidget(String(e))}
   try{wp=await weather(now,r.station)}catch(_){err="⚠ 天気/波を取得できません"}
   if(!err&&wp?.issues?.length)err=`⚠ ${wp.issues.join(" / ")}`;
   if(NET.fallbacks.length){
@@ -1425,7 +1477,9 @@ async function main(){
   if(config.runsInApp&&action==="tidehelp"){await showTideHelp();return null;}
   if(config.runsInApp&&action==="guide"){await showGuide();return null;}
   if(config.runsInApp&&action==="settings"){
-    await settings();const w=await buildCurrent(true);await present(w);return null;
+    const result=await settings();
+    if(result==="qa")return null;
+    const w=await buildCurrent(true);await present(w);return null;
   }
   if(config.runsInApp&&action==="refresh"){
     const p=loadPrefs();
