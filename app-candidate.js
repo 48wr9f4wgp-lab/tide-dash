@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.4 — Full 24h tide+mazume histogram / remove redundant graph label
+// TIDE DASH v0.15.5 — 30-minute tide+mazume histogram: 48 bars across 24h
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -742,22 +742,21 @@ function graph(t,width=650,height=348,bands=null,we=null){
     c.drawTextInRect(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,new Rect(lx,eventY,lw,16));
   });
 
-  // 24 one-hour bars. One bar per hour across the rolling 24h horizon.
-  // The upper card already names this metric "潮・まずめ", so no duplicate label is drawn here.
+  // 48 half-hour bars. One bar per 30 minutes across the rolling 24h horizon.
+  // This matches the scoring/peak engine's 30-minute cadence and makes high/low + mazume timing easier to read.
   if(we){
     c.setFillColor(new Color(C.t.grid,.30));c.fillRect(new Rect(L,barY+barH-1,W,1));
-    const n=24,gap=3,bw=(W-gap*(n-1))/n;
+    const n=48,gap=1.5,bw=(W-gap*(n-1))/n;
     const next=bestFishingWindow(t,we);
     const nextIndex=next&&next.minute>=t.graphStart&&next.minute<=t.graphEnd
-      ?Math.max(0,Math.min(n-1,Math.floor((next.minute-t.graphStart)/60)))
+      ?Math.max(0,Math.min(n-1,Math.floor((next.minute-t.graphStart)/30)))
       :null;
-    const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/60)));
+    const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/30)));
 
     for(let i=0;i<n;i++){
-      const slotStart=t.graphStart+i*60;
-      // Two half-hour samples prevent narrow high/low or mazume windows from disappearing inside a 1h bar.
-      const a=fishingScoreAt(t,we,slotStart+15),b=fishingScoreAt(t,we,slotStart+45);
-      const score=Math.max(a.score,b.score);
+      const slotStart=t.graphStart+i*30;
+      // Score at the center of each 30-minute slot.
+      const score=fishingScoreAt(t,we,slotStart+15).score;
 
       // Four visual bands, still one amber hue:
       // Quiet <45       = tiny / almost transparent
@@ -777,7 +776,7 @@ function graph(t,width=650,height=348,bands=null,we=null){
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
-      // NOW gets a white outline so the current hour can be found instantly.
+      // NOW gets a white outline so the current 30-minute slot can be found instantly.
       if(i===nowIndex){
         const outline=new Path();
         outline.addRect(new Rect(bx-1,Math.max(barY,by-1),Math.max(3,bw+2),Math.min(barH,barY+barH-Math.max(barY,by-1))));
