@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.3 — Integrated fishing-score lane: 24h bars inside tide graph
+// TIDE DASH v0.14.4 — Score-bar contrast: stronger visual range / current-hour marker
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -738,10 +738,21 @@ function graph(t,width=650,height=240,bands=null,we=null){
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
     for(let i=0;i<n;i++){
       const minute=t.graphStart+i*60+30,calc=fishingScoreAt(t,we,minute);
-      const score=Math.max(0,Math.min(100,calc.score)),bh=Math.max(2,barH*score/100);
-      const bx=L+i*(bw+gap),by=barY+barH-bh,alpha=.24+.56*(score/100);
+      const score=Math.max(0,Math.min(100,calc.score));
+      // Visual-only remap: spread the common 30–75 score range so peaks read clearly on iPhone.
+      const shown=score<=25?.08:score>=80?1:Math.pow((score-25)/55,.82);
+      const bh=Math.max(2,barH*Math.max(.08,shown));
+      const bx=L+i*(bw+gap),by=barY+barH-bh,alpha=.18+.68*Math.max(.08,shown);
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
+
+      // Mark the bar containing NOW without changing the score color semantics.
+      const slotStart=t.graphStart+i*60,slotEnd=slotStart+60;
+      if(t.nowMin>=slotStart&&t.nowMin<slotEnd){
+        const outline=new Path();
+        outline.addRect(new Rect(bx-1,Math.max(barY,by-1),Math.max(3,bw+2),Math.min(barH,barY+barH-Math.max(barY,by-1))));
+        c.addPath(outline);c.setStrokeColor(new Color(C.t.fg,.9));c.setLineWidth(1.4);c.strokePath();
+      }
     }
   }
 
