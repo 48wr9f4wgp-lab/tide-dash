@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.9 — Mazume plateau ±30m / peak-in-progress requires good score
+// TIDE DASH v0.16.0 — Timing consistency pass: aligned 30m bins / exact NOW / unified mazume / no fake peaks
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -7,6 +7,8 @@ const C={
   stationCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/stations.json",
   farKm:50,
   maxFavorites:5,
+  mazumeCoreMin:30,
+  mazumeFadeMin:90,
   defaultFav:{code:"UC",name:"内浦",lat:35.0167,lon:138.8833,area:"沼津"},
   t:{
     bg1:"#061824",bg2:"#0A3147",panel:"#0E3A50",
@@ -366,7 +368,7 @@ async function tide(now,S){
   if(pe&&ne&&ne.absoluteMinute>pe.absoluteMinute)progress=Math.max(0,Math.min(1,(nm-pe.absoluteMinute)/(ne.absoluteMinute-pe.absoluteMinute)));
   const ext=today.events.map(e=>e.level),range=ext.length?Math.max(...ext)-Math.min(...ext):Math.max(...today.hourly)-Math.min(...today.hourly);
 
-  const graphStart=nm-120,graphEnd=nm+1320;
+  const graphStart=Math.floor((nm-120)/30)*30,graphEnd=graphStart+1440;
   const graphSeries=[];
   for(let m=graphStart;m<=graphEnd;m+=15)graphSeries.push({minute:m,level:interpolateHourly(hourly,m)});
   return{today,hourly,current,nowMin:nm,events,previousEvent:pe,nextEvent:ne,futureEvents,phaseProgress:progress,dailyRange:range,graphStart,graphEnd,graphSeries};
@@ -505,9 +507,9 @@ function lightFactorAt(m,we){
   if(sr2!=null)pts.push(1440+sr2);if(ss2!=null)pts.push(1440+ss2);
   if(!pts.length)return 0;
   const d=Math.min(...pts.map(x=>Math.abs(m-x)));
-  if(d<=30)return 1;
-  if(d>=90)return 0;
-  return Math.max(0,Math.min(1,(90-d)/60));
+  if(d<=C.mazumeCoreMin)return 1;
+  if(d>=C.mazumeFadeMin)return 0;
+  return Math.max(0,Math.min(1,(C.mazumeFadeMin-d)/(C.mazumeFadeMin-C.mazumeCoreMin)));
 }
 function fishingWindowLabel(start,end){
   const ds=Math.floor(start/1440),de=Math.floor(end/1440);
@@ -531,31 +533,41 @@ function fishingPeaks(t,we,start,end){
 }
 function bestFishingWindow(t,we){
   const start=t.nowMin-60,end=t.nowMin+1320,peaks=fishingPeaks(t,we,start,end);
-  const currentGood=peaks.find(p=>Math.abs(p.minute-t.nowMin)<=30&&p.score>=62);
-  const nextGood=peaks.find(p=>p.minute>t.nowMin+30&&p.score>=62);
-  const nextCandidate=peaks.find(p=>p.minute>t.nowMin+30&&p.score>=45);
-  let peak=currentGood||nextGood||nextCandidate;
+  const currentCalc=fishingScoreAt(t,we,t.nowMin);
+  const currentPeak=currentCalc.score>=62
+    ?peaks.find(p=>Math.abs(p.minute-t.nowMin)<=30&&p.score>=62)
+    :null;
+  const nextGood=peaks.find(p=>p.minute>t.nowMin&&p.score>=62);
+  const nextCandidate=peaks.find(p=>p.minute>t.nowMin&&p.score>=45);
+  let peak=currentPeak||nextGood||nextCandidate;
 
   if(!peak){
+    let fallback=null;
     const from=Math.ceil(t.nowMin/30)*30;
     for(let minute=from;minute<=end;minute+=30){
       const calc=fishingScoreAt(t,we,minute);
-      if(!peak||calc.score>peak.score)peak={minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic};
+      if(!fallback||calc.score>fallback.score)fallback={minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic};
     }
+    if(fallback?.score>=45)peak=fallback;
   }
   if(!peak)return null;
-  const inPeak=Math.abs(peak.minute-t.nowMin)<=30&&peak.score>=62;
+
+  const inPeak=!!currentPeak&&currentCalc.score>=62;
   const delta=Math.max(0,peak.minute-t.nowMin),windowStart=peak.minute-30,windowEnd=peak.minute+30;
-  return{...peak,delta,windowStart,windowEnd,display:inPeak?"今":fishingWindowLabel(windowStart,windowEnd)};
+  return{...peak,currentScore:currentCalc.score,delta,windowStart,windowEnd,display:inPeak?"今":fishingWindowLabel(windowStart,windowEnd)};
 }
 
 function mazumeWindows(t,we){
   const out=[];
   const add=(minute,label)=>{
     if(minute==null)return;
-    const start=minute-60,end=minute+60;
+    const start=minute-C.mazumeFadeMin,end=minute+C.mazumeFadeMin;
     if(end<t.graphStart||start>t.graphEnd)return;
-    out.push({kind:"mazume",start,end,minute,label});
+    out.push({
+      kind:"mazume",start,end,minute,label,
+      coreStart:minute-C.mazumeCoreMin,
+      coreEnd:minute+C.mazumeCoreMin
+    });
   };
   add(hmMinute(we?.sunrise),"朝まずめ");
   add(hmMinute(we?.sunset),"夕まずめ");
@@ -684,7 +696,7 @@ async function showGuide(){
     `まずめモード：${Math.round(g.mazumeMode*100)}%`,
     `潮差：${Math.round(g.range*100)}%`,
     `次の満干潮：${next}`,
-    `次のピーク：${best?.display??"--"}`,
+    `次のピーク：${best?.display??"候補なし"}`,
     `風：${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s "+dir8(we.windDir)+" / "+windGuide(we.wind):"--"}`,
     `波：${we?.wave!=null?Number(we.wave).toFixed(1)+"m / "+waveGuide(we.wave):"--"}`,
     `雨：${we?.precip!=null?Number(we.precip).toFixed(1)+"mm / "+rainGuide(we.precip):"--"}`,
@@ -692,7 +704,7 @@ async function showGuide(){
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
-    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめは日の出・日の入り±30分を中心帯として最大評価し、その外側は90分まで徐々に弱めます。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
+    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめは日の出・日の入り±30分を中心帯、±90分を評価範囲として、グラフ表示と計算で同じ範囲を使います。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
@@ -719,10 +731,17 @@ function graph(t,width=650,height=348,bands=null,we=null){
       const bs=Math.max(t.graphStart,b.start),be=Math.min(t.graphEnd,b.end);
       if(be<=bs)continue;
       const x1=X(bs),x2=X(be),label=b.label||"";
-      c.setFillColor(new Color(C.t.warn,.055));
+      c.setFillColor(new Color(C.t.warn,.025));
       c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),tideH));
+
+      const cs=Math.max(t.graphStart,b.coreStart),ce=Math.min(t.graphEnd,b.coreEnd);
+      if(ce>cs){
+        c.setFillColor(new Color(C.t.warn,.075));
+        c.fillRect(new Rect(X(cs),T,Math.max(2,X(ce)-X(cs)),tideH));
+      }
+
       if(label&&x2-x1>48){
-        const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
+        const labelW=Math.max(52,Math.min(90,x2-x1)),cx=X(b.minute),lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
         c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(C.t.warn,.93));
         c.drawTextInRect(label,new Rect(lx,2,labelW,18));
       }
@@ -777,8 +796,11 @@ function graph(t,width=650,height=348,bands=null,we=null){
 
     for(let i=0;i<n;i++){
       const slotStart=t.graphStart+i*30;
-      // Score at the center of each 30-minute slot.
-      const score=fishingScoreAt(t,we,slotStart+15).score;
+      // Use the slot center normally; NOW uses the exact current score so the white-outlined bar
+      // always agrees with the upper current-score card.
+      const score=i===nowIndex
+        ?fishingScoreAt(t,we,t.nowMin).score
+        :fishingScoreAt(t,we,slotStart+15).score;
 
       // Three visible levels, still one amber hue:
       // Weak <45        = hidden
@@ -918,7 +940,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     decision.addSpacer();
     const peakBox=decision.addStack();peakBox.layoutVertically();
     text(peakBox,"次のピーク",7,C.t.sub,true);
-    text(peakBox,best?.display||"--",8,C.t.warn,true);
+    text(peakBox,best?.display||"候補なし",8,C.t.warn,true);
     if(guideURL)decision.url=guideURL;
 
     w.addSpacer(4);
@@ -971,7 +993,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     ms.addSpacer();
     const peakBox=ms.addStack();peakBox.layoutVertically();
     text(peakBox,"次のピーク",8,C.t.sub,true);
-    text(peakBox,best?.display||"--",10,C.t.warn,true);
+    text(peakBox,best?.display||"候補なし",10,C.t.warn,true);
 
     if(guideURL)ms.url=guideURL;
 
@@ -1030,7 +1052,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     text(nowLine,fg.stars,20,C.t.fg,true);nowLine.addSpacer(6);text(nowLine,fg.label,11,C.t.muted,true);
     decision.addSpacer();
     const future=decision.addStack();future.layoutVertically();
-    const inPeak=best?.display==="今",chanceText=best?.display||"--";
+    const inPeak=best?.display==="今",chanceText=best?.display||"候補なし";
     if(inPeak){
       text(future,"ピーク中",14,C.t.warn,true);
     }else{
