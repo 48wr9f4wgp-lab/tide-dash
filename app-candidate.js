@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.3 — Peak-state cleanup / stronger opportunity-bar contrast
+// TIDE DASH v0.15.4 — Full 24h tide+mazume histogram / remove redundant graph label
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -742,105 +742,42 @@ function graph(t,width=650,height=348,bands=null,we=null){
     c.drawTextInRect(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,new Rect(lx,eventY,lw,16));
   });
 
-  // 24 one-hour bars. Height = final fishing score for the matching time slot.
+  // 24 one-hour bars. One bar per hour across the rolling 24h horizon.
+  // The upper card already names this metric "潮・まずめ", so no duplicate label is drawn here.
   if(we){
-    c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.sub,.92));
-    c.drawTextInRect("潮・まずめ",new Rect(L,barLabelY,52,14));
-    c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
+    c.setFillColor(new Color(C.t.grid,.30));c.fillRect(new Rect(L,barY+barH-1,W,1));
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
-    const samples=[];
+    const next=bestFishingWindow(t,we);
+    const nextIndex=next&&next.minute>=t.graphStart&&next.minute<=t.graphEnd
+      ?Math.max(0,Math.min(n-1,Math.floor((next.minute-t.graphStart)/60)))
+      :null;
+    const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/60)));
+
     for(let i=0;i<n;i++){
       const slotStart=t.graphStart+i*60;
+      // Two half-hour samples prevent narrow high/low or mazume windows from disappearing inside a 1h bar.
       const a=fishingScoreAt(t,we,slotStart+15),b=fishingScoreAt(t,we,slotStart+45);
-      samples.push({i,score:Math.max(a.score,b.score)});
-    }
+      const score=Math.max(a.score,b.score);
 
-    const allPeaks=fishingPeaks(t,we,t.graphStart,t.graphEnd);
-    const next=bestFishingWindow(t,we);
-    const visible=new Map();
-    const peakBin=p=>Math.max(0,Math.min(n-1,Math.floor((p.minute-t.graphStart)/60)));
-    const put=(i,score,weight,isNext=false,isExtrema=false)=>{
-      const old=visible.get(i);
-      if(!old||weight>old.weight||score>old.score){
-        visible.set(i,{score:Math.max(score,old?.score??0),weight:Math.max(weight,old?.weight??0),isNext:isNext||old?.isNext||false,isExtrema:isExtrema||old?.isExtrema||false});
-      }else{
-        old.isNext=old.isNext||isNext;
-        old.isExtrema=old.isExtrema||isExtrema;
-      }
-    };
+      // Four visual bands, still one amber hue:
+      // Quiet <45       = tiny / almost transparent
+      // Candidate 45-61 = low / faint
+      // Good 62-77      = medium / clear
+      // Strong >=78     = tall / solid
+      let heightRatio,alpha;
+      if(score>=78){heightRatio=1;alpha=1}
+      else if(score>=62){heightRatio=.66;alpha=.62}
+      else if(score>=45){heightRatio=.32;alpha=.28}
+      else{heightRatio=.12;alpha=.07}
 
-    // Every high/low within the graph horizon is always visible as a provisional fishing-window candidate.
-    // This prevents a future high/low from disappearing just because other peaks score higher.
-    const extrema=(t.events||[]).filter(e=>e.absoluteMinute>=t.graphStart&&e.absoluteMinute<=t.graphEnd);
-    for(const e of extrema){
-      const i=peakBin({minute:e.absoluteMinute});
-      const calc=fishingScoreAt(t,we,e.absoluteMinute);
-      put(i,calc.score,.68,!!next&&Math.abs(e.absoluteMinute-next.minute)<=30,true);
-      for(const j of [i-1,i+1]){
-        if(j<0||j>=n)continue;
-        const ns=samples[j].score;
-        if(ns>=35)put(j,ns,.30,false,true);
-      }
-    }
+      if(i===nextIndex)alpha=Math.min(1,alpha+.12);
 
-    // The next chronological peak is always emphasized, even when it is a moving-tide / mazume peak.
-    if(next&&next.minute>=t.graphStart&&next.minute<=t.graphEnd){
-      const i=peakBin(next);
-      put(i,next.score,1,true,false);
-      for(const j of [i-1,i+1]){
-        if(j<0||j>=n)continue;
-        const ns=samples[j].score;
-        if(ns>=35)put(j,ns,.48,false,false);
-      }
-    }
-
-    // Add at most two extra non-extrema peaks, separated from existing visible peaks.
-    const extras=allPeaks
-      .filter(p=>!next||Math.abs(p.minute-next.minute)>30)
-      .sort((a,b)=>b.score-a.score);
-    let added=0;
-    for(const p of extras){
-      const i=peakBin(p);
-      const tooClose=[...visible.keys()].some(j=>Math.abs(j-i)<2);
-      if(tooClose)continue;
-      put(i,p.score,.82,false,false);
-      for(const j of [i-1,i+1]){
-        if(j<0||j>=n)continue;
-        const ns=samples[j].score;
-        if(ns>=35)put(j,ns,.34,false,false);
-      }
-      if(++added>=2)break;
-    }
-
-    // NOW uses the exact same current score as the star card.
-    const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/60)));
-    const currentScore=fishingScoreAt(t,we,t.nowMin).score;
-    if(currentScore>=45)put(nowIndex,currentScore,.42,false,false);
-
-    for(let i=0;i<n;i++){
-      const v=visible.get(i);
-      if(!v)continue;
-      const score=Math.max(0,Math.min(100,v.score));
-
-      // Three explicit visual levels:
-      // 1 Candidate: >=45 or any mandatory high/low candidate
-      // 2 Good:      >=62
-      // 3 Strong:    >=78
-      // Neighbor/support bars stay Candidate so the actual peak is obvious.
-      let level=score>=78?3:score>=62?2:score>=45?1:0;
-      if(v.isExtrema&&level<1)level=1;
-      if(v.weight<.5&&level>1)level=1;
-      if(level===0)continue;
-
-      const heightRatio=level===3?1:level===2?.66:.22;
-      const alphaBase=level===3?1:level===2?.60:.13;
-      const weightScale=v.weight<.5?.72:1;
-      const bh=Math.max(3,barH*heightRatio*weightScale);
+      const bh=Math.max(2,barH*heightRatio);
       const bx=L+i*(bw+gap),by=barY+barH-bh;
-      const alpha=Math.min(1,alphaBase+(v.isNext?.10:0));
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
+      // NOW gets a white outline so the current hour can be found instantly.
       if(i===nowIndex){
         const outline=new Path();
         outline.addRect(new Rect(bx-1,Math.max(barY,by-1),Math.max(3,bw+2),Math.min(barH,barY+barH-Math.max(barY,by-1))));
