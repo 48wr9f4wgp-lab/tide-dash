@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.2 — Opportunity bars: discrete candidate / good / strong levels
+// TIDE DASH v0.15.3 — Peak-state cleanup / stronger opportunity-bar contrast
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -832,12 +832,12 @@ function graph(t,width=650,height=348,bands=null,we=null){
       if(v.weight<.5&&level>1)level=1;
       if(level===0)continue;
 
-      const heightRatio=level===3?1:level===2?.62:.28;
-      const alphaBase=level===3?.98:level===2?.62:.25;
-      const weightScale=v.weight<.5?.78:1;
+      const heightRatio=level===3?1:level===2?.66:.22;
+      const alphaBase=level===3?1:level===2?.60:.13;
+      const weightScale=v.weight<.5?.72:1;
       const bh=Math.max(3,barH*heightRatio*weightScale);
       const bx=L+i*(bw+gap),by=barY+barH-bh;
-      const alpha=Math.min(1,alphaBase+(v.isNext?.06:0));
+      const alpha=Math.min(1,alphaBase+(v.isNext?.10:0));
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
@@ -1071,9 +1071,13 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     text(nowLine,fg.stars,20,C.t.fg,true);nowLine.addSpacer(6);text(nowLine,fg.label,11,C.t.muted,true);
     decision.addSpacer();
     const future=decision.addStack();future.layoutVertically();
-    const inPeak=best?.display==="今",chanceText=inPeak?"ピーク中":best?.display||"--";
-    text(future,inPeak?"潮・まずめ":"次のピーク",9,C.t.sub,true);
-    text(future,chanceText,13,C.t.warn,true);
+    const inPeak=best?.display==="今",chanceText=best?.display||"--";
+    if(inPeak){
+      text(future,"ピーク中",14,C.t.warn,true);
+    }else{
+      text(future,"次のピーク",9,C.t.sub,true);
+      text(future,chanceText,13,C.t.warn,true);
+    }
     if(guideURL)decision.url=guideURL;
   
     w.addSpacer(2);
