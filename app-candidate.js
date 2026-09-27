@@ -1,10 +1,12 @@
-// TIDE DASH v0.17.1 — Payload completeness validation / precise stale-source warnings
+// TIDE DASH v0.18.0 — Fishing spot catalog: searchable ports/coasts mapped to JMA tide stations
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
   prefs:"TideDashPrefs.json",
   catalog:"TideDashStations.json",
+  spotCatalog:"TideDashSpots.json",
   stationCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/stations.json",
+  spotCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/spots.json",
   farKm:50,
   maxFavorites:5,
   mazumeCoreMin:30,
@@ -23,6 +25,7 @@ const cacheDir=fm.joinPath(fm.documentsDirectory(),C.cache);
 if(!fm.fileExists(cacheDir))fm.createDirectory(cacheDir,true);
 const prefPath=fm.joinPath(fm.documentsDirectory(),C.prefs);
 const catPath=fm.joinPath(fm.documentsDirectory(),C.catalog);
+const spotPath=fm.joinPath(fm.documentsDirectory(),C.spotCatalog);
 const NET={fallbacks:[]};
 
 const p2=n=>String(n).padStart(2,"0");
@@ -80,12 +83,13 @@ function scriptURL(action){
   }catch(_){return null}
 }
 
-function stationKey(s){return s?.code||""}
+function stationKey(s){return s?.id||s?.code||""}
 function uniqueStations(a){
   const seen=new Set(),out=[];
   for(const s of a||[]){
-    if(!s||!s.code||seen.has(s.code))continue;
-    seen.add(s.code);out.push(s);
+    const key=stationKey(s);
+    if(!s||!s.code||!key||seen.has(key))continue;
+    seen.add(key);out.push(s);
   }
   return out;
 }
@@ -174,6 +178,28 @@ async function stationCatalog(){
     {code:"SM",name:"清水港",lat:35.0167,lon:138.5167,area:"清水"}
   ];
 }
+async function fishingSpotCatalog(){
+  let local=null;
+  try{
+    if(fm.fileExists(spotPath)){
+      const o=JSON.parse(fm.readString(spotPath));
+      if(Array.isArray(o.spots)&&o.spots.length>=40)local=o;
+      if(local?.savedAt&&Date.now()-local.savedAt<7*86400000)return local.spots.map(x=>({...x,kind:"spot"}));
+    }
+  }catch(_){}
+  try{
+    const r=new Request(C.spotCatalogURL+(C.spotCatalogURL.includes("?")?"&":"?")+"t="+Date.now());
+    r.timeoutInterval=12;r.headers={"Cache-Control":"no-cache"};
+    const remote=JSON.parse(await r.loadString());
+    if(remote?.schemaVersion===1&&Array.isArray(remote.spots)&&remote.spots.length>=40){
+      const packed={...remote,savedAt:Date.now()};
+      fm.writeString(spotPath,JSON.stringify(packed));
+      return remote.spots.map(x=>({...x,kind:"spot"}));
+    }
+  }catch(_){}
+  if(local?.spots?.length>=40)return local.spots.map(x=>({...x,kind:"spot"}));
+  return [];
+}
 function km(a,b,c,d){
   const R=6371,to=x=>x*Math.PI/180,p1=to(a),p2v=to(c),dp=to(c-a),dl=to(d-b);
   const x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2v)*Math.sin(dl/2)**2;
@@ -232,23 +258,32 @@ async function guardLocationForDetail(r,title){
   return true;
 }
 async function searchAndFix(p){
-  const st=await stationCatalog(),a=new Alert();
-  a.title="地点を検索";
-  a.message="潮位基準点名で検索します";
-  a.addTextField("例：大洗 / 下田 / 東京","");
+  const [st,spots]=await Promise.all([stationCatalog(),fishingSpotCatalog()]),a=new Alert();
+  a.title="釣り地点を検索";
+  a.message="港・海岸・磯・地域名、または潮位基準点名で検索します。立入可否・釣り可否は現地ルールを確認してください。";
+  a.addTextField("例：大洗 / 伊豆 / 寺泊 / 城ヶ島","");
   a.addAction("検索");a.addCancelAction("キャンセル");
   if(await a.presentAlert()<0)return false;
-  const q=a.textFieldValue(0).trim();if(!q)return false;
-  const hits=st.filter(x=>x.name.includes(q)).slice(0,12);
+  const query=a.textFieldValue(0).trim();if(!query)return false;
+  const matchSpot=x=>[x.name,x.area,x.type,...(x.keywords||[])].some(v=>String(v||"").includes(query));
+  const spotHits=spots.filter(matchSpot).slice(0,12);
+  const stationHits=st.filter(x=>x.name.includes(query)).map(x=>({...x,kind:"station"})).slice(0,6);
+  const hits=[...spotHits,...stationHits].slice(0,15);
   if(!hits.length){
-    const z=new Alert();z.title="見つかりません";z.message="別の地点名で検索してください";z.addAction("OK");await z.presentAlert();
+    const z=new Alert();z.title="見つかりません";z.message="別の港・地域名で検索してください";z.addAction("OK");await z.presentAlert();
     return searchAndFix(p);
   }
   const b=new Alert();b.title="固定する地点";
-  hits.forEach(x=>b.addAction(x.name));b.addCancelAction("キャンセル");
+  hits.forEach(x=>{
+    const label=x.kind==="spot"
+      ?`🎣 ${x.name}｜${x.area}（潮:${x.tideName||x.code}）`
+      :`🌊 ${x.name}｜潮位基準点`;
+    b.addAction(label);
+  });
+  b.addCancelAction("キャンセル");
   const i=await b.presentSheet();if(i<0)return false;
-  const s=hits[i];
-  p.mode="fixed";p.fixedStation=s;p.favorites=uniqueStations([s,...p.favorites]);savePrefs(p);
+  const picked=hits[i];
+  p.mode="fixed";p.fixedStation=picked;p.favorites=uniqueStations([picked,...p.favorites]);savePrefs(p);
   return true;
 }
 async function addCurrentFavorite(p){
@@ -269,7 +304,7 @@ async function settings(){
   a.addAction("◎ AUTO　現在地から選ぶ");
   const favs=p.favorites.slice(0,C.maxFavorites);
   favs.forEach(s=>a.addAction(`★ ${s.name}`));
-  a.addAction("🔎 地点を検索");
+  a.addAction("🔎 釣りスポット・地点を検索");
   a.addAction("＋ 現在の最寄りをお気に入り");
   a.addCancelAction("閉じる");
   const i=await a.presentSheet();
@@ -774,6 +809,7 @@ async function showGuide(){
   const a=new Alert();
   a.title=`🌊 ${idxTitle} ${g.stars}`;
   a.message=[
+    r.station?.kind==="spot"?`スポット：${r.station.name} / 潮位基準点：${r.station.tideName||r.station.code}`:`地点：${r.station.name}`,
     `${idxTitle}指数：${g.score}/100`,
     `潮の動き：${Math.round(g.tideMove*100)}%`,
     `満干潮前後：${Math.round(g.tideTurn*100)}%`,
