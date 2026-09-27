@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.4 — Score-bar contrast: stronger visual range / current-hour marker
+// TIDE DASH v0.14.5 — Sparse fishing windows: show only meaningful opportunity clusters
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -736,19 +736,54 @@ function graph(t,width=650,height=240,bands=null,we=null){
     c.drawTextInRect("地合い",new Rect(L,barLabelY,52,14));
     c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
+    const samples=[];
     for(let i=0;i<n;i++){
-      const minute=t.graphStart+i*60+30,calc=fishingScoreAt(t,we,minute);
-      const score=Math.max(0,Math.min(100,calc.score));
-      // Visual-only remap: spread the common 30–75 score range so peaks read clearly on iPhone.
-      const shown=score<=25?.08:score>=80?1:Math.pow((score-25)/55,.82);
-      const bh=Math.max(2,barH*Math.max(.08,shown));
-      const bx=L+i*(bw+gap),by=barY+barH-bh,alpha=.18+.68*Math.max(.08,shown);
+      const slotStart=t.graphStart+i*60;
+      // Use the stronger of the two half-hour checks so a narrow peak is not missed by the 1h bars.
+      const a=fishingScoreAt(t,we,slotStart+15),b=fishingScoreAt(t,we,slotStart+45);
+      samples.push({i,score:Math.max(a.score,b.score)});
+    }
+
+    // Keep the strip sparse: select only meaningful local peaks, separated by at least 3 hours.
+    const peaks=samples.filter((x,i)=>{
+      const p=samples[i-1]?.score??-1,nx=samples[i+1]?.score??-1;
+      return x.score>=45&&x.score>=p&&x.score>=nx&&(x.score>p||x.score>nx);
+    }).sort((a,b)=>b.score-a.score);
+
+    const chosen=[];
+    for(const p of peaks){
+      if(chosen.every(q=>Math.abs(q.i-p.i)>=3)){chosen.push(p);if(chosen.length>=4)break}
+    }
+    chosen.sort((a,b)=>a.i-b.i);
+
+    const visible=new Map();
+    for(const p of chosen){
+      visible.set(p.i,{score:p.score,weight:1});
+      for(const j of [p.i-1,p.i+1]){
+        if(j<0||j>=n)continue;
+        const ns=samples[j].score;
+        if(ns>=35&&!visible.has(j))visible.set(j,{score:ns,weight:.48});
+      }
+    }
+
+    // If NOW itself is at least a real candidate, keep a subdued current bar even when it is not a selected peak.
+    const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/60)));
+    if(samples[nowIndex]?.score>=45&&!visible.has(nowIndex)){
+      visible.set(nowIndex,{score:samples[nowIndex].score,weight:.42});
+    }
+
+    for(let i=0;i<n;i++){
+      const v=visible.get(i);
+      if(!v)continue;
+      const score=Math.max(0,Math.min(100,v.score));
+      const shown=score>=80?1:Math.max(.18,Math.pow(Math.max(0,(score-35)/45),.78));
+      const bh=Math.max(3,barH*shown*v.weight);
+      const bx=L+i*(bw+gap),by=barY+barH-bh;
+      const alpha=(.34+.58*shown)*(.72+.28*v.weight);
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
-      // Mark the bar containing NOW without changing the score color semantics.
-      const slotStart=t.graphStart+i*60,slotEnd=slotStart+60;
-      if(t.nowMin>=slotStart&&t.nowMin<slotEnd){
+      if(i===nowIndex){
         const outline=new Path();
         outline.addRect(new Rect(bx-1,Math.max(barY,by-1),Math.max(3,bw+2),Math.min(barH,barY+barH-Math.max(barY,by-1))));
         c.addPath(outline);c.setStrokeColor(new Color(C.t.fg,.9));c.setLineWidth(1.4);c.strokePath();
