@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.0 — Validation pass: one scoring engine for stars / next peak / timeline
+// TIDE DASH v0.15.1 — Extrema visibility: always show high/low fishing-window candidates
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -674,7 +674,7 @@ async function showGuide(){
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
-    "潮要素は『潮が動く時間』と『満干潮前後の暫定地合い』の強い方を採用します。満干潮前後は実際の潮止まり時刻を示すものではなく、局地的な潮流は地形などでズレます。"
+    "潮要素は『潮が動く時間』と『満干潮前後の暫定候補』の強い方を採用します。グラフでは満潮・干潮前後を必ず候補として表示しますが、実際の潮止まり時刻を示すものではありません。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
@@ -757,38 +757,65 @@ function graph(t,width=650,height=348,bands=null,we=null){
 
     const allPeaks=fishingPeaks(t,we,t.graphStart,t.graphEnd);
     const next=bestFishingWindow(t,we);
-    const chosen=[];
-    if(next&&next.minute>=t.graphStart&&next.minute<=t.graphEnd)chosen.push(next);
-
-    // Keep at most three visible clusters. The next chronological peak is always first;
-    // additional peaks are the strongest distinct peaks at least 3h away.
-    const extras=allPeaks
-      .filter(p=>!next||Math.abs(p.minute-next.minute)>30)
-      .sort((a,b)=>b.score-a.score);
-    for(const p of extras){
-      if(chosen.every(q=>Math.abs(q.minute-p.minute)>=180)){chosen.push(p);if(chosen.length>=3)break}
-    }
-
     const visible=new Map();
     const peakBin=p=>Math.max(0,Math.min(n-1,Math.floor((p.minute-t.graphStart)/60)));
-    for(const p of chosen){
-      const i=peakBin(p),score=p.score;
-      visible.set(i,{score,weight:1,isNext:!!next&&Math.abs(p.minute-next.minute)<=30});
+    const put=(i,score,weight,isNext=false,isExtrema=false)=>{
+      const old=visible.get(i);
+      if(!old||weight>old.weight||score>old.score){
+        visible.set(i,{score:Math.max(score,old?.score??0),weight:Math.max(weight,old?.weight??0),isNext:isNext||old?.isNext||false,isExtrema:isExtrema||old?.isExtrema||false});
+      }else{
+        old.isNext=old.isNext||isNext;
+        old.isExtrema=old.isExtrema||isExtrema;
+      }
+    };
+
+    // Every high/low within the graph horizon is always visible as a provisional fishing-window candidate.
+    // This prevents a future high/low from disappearing just because other peaks score higher.
+    const extrema=(t.events||[]).filter(e=>e.absoluteMinute>=t.graphStart&&e.absoluteMinute<=t.graphEnd);
+    for(const e of extrema){
+      const i=peakBin({minute:e.absoluteMinute});
+      const calc=fishingScoreAt(t,we,e.absoluteMinute);
+      put(i,calc.score,.68,!!next&&Math.abs(e.absoluteMinute-next.minute)<=30,true);
       for(const j of [i-1,i+1]){
         if(j<0||j>=n)continue;
         const ns=samples[j].score;
-        if(ns>=35&&!visible.has(j))visible.set(j,{score:ns,weight:.48,isNext:false});
+        if(ns>=35)put(j,ns,.30,false,true);
       }
+    }
+
+    // The next chronological peak is always emphasized, even when it is a moving-tide / mazume peak.
+    if(next&&next.minute>=t.graphStart&&next.minute<=t.graphEnd){
+      const i=peakBin(next);
+      put(i,next.score,1,true,false);
+      for(const j of [i-1,i+1]){
+        if(j<0||j>=n)continue;
+        const ns=samples[j].score;
+        if(ns>=35)put(j,ns,.48,false,false);
+      }
+    }
+
+    // Add at most two extra non-extrema peaks, separated from existing visible peaks.
+    const extras=allPeaks
+      .filter(p=>!next||Math.abs(p.minute-next.minute)>30)
+      .sort((a,b)=>b.score-a.score);
+    let added=0;
+    for(const p of extras){
+      const i=peakBin(p);
+      const tooClose=[...visible.keys()].some(j=>Math.abs(j-i)<2);
+      if(tooClose)continue;
+      put(i,p.score,.82,false,false);
+      for(const j of [i-1,i+1]){
+        if(j<0||j>=n)continue;
+        const ns=samples[j].score;
+        if(ns>=35)put(j,ns,.34,false,false);
+      }
+      if(++added>=2)break;
     }
 
     // NOW uses the exact same current score as the star card.
     const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/60)));
     const currentScore=fishingScoreAt(t,we,t.nowMin).score;
-    if(currentScore>=45){
-      const existing=visible.get(nowIndex);
-      if(existing)existing.score=Math.max(existing.score,currentScore);
-      else visible.set(nowIndex,{score:currentScore,weight:.42,isNext:false});
-    }
+    if(currentScore>=45)put(nowIndex,currentScore,.42,false,false);
 
     for(let i=0;i<n;i++){
       const v=visible.get(i);
@@ -797,7 +824,7 @@ function graph(t,width=650,height=348,bands=null,we=null){
       const shown=score>=80?1:Math.max(.18,Math.pow(Math.max(0,(score-35)/45),.78));
       const bh=Math.max(3,barH*shown*v.weight);
       const bx=L+i*(bw+gap),by=barY+barH-bh;
-      const alpha=Math.min(1,(.34+.58*shown)*(.72+.28*v.weight)+(v.isNext?.10:0));
+      const alpha=Math.min(1,(.34+.58*shown)*(.72+.28*v.weight)+(v.isNext?.10:0)+(v.isExtrema?.04:0));
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
