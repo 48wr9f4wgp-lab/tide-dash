@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.5 — 30-minute tide+mazume histogram: 48 bars across 24h
+// TIDE DASH v0.15.6 — Hide weak bars / plain-language stale data warning
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -758,16 +758,17 @@ function graph(t,width=650,height=348,bands=null,we=null){
       // Score at the center of each 30-minute slot.
       const score=fishingScoreAt(t,we,slotStart+15).score;
 
-      // Four visual bands, still one amber hue:
-      // Quiet <45       = tiny / almost transparent
+      // Three visible levels, still one amber hue:
+      // Weak <45        = hidden
       // Candidate 45-61 = low / faint
       // Good 62-77      = medium / clear
       // Strong >=78     = tall / solid
+      if(score<45)continue;
+
       let heightRatio,alpha;
       if(score>=78){heightRatio=1;alpha=1}
       else if(score>=62){heightRatio=.66;alpha=.62}
-      else if(score>=45){heightRatio=.32;alpha=.28}
-      else{heightRatio=.12;alpha=.07}
+      else{heightRatio=.32;alpha=.28}
 
       if(i===nextIndex)alpha=Math.min(1,alpha+.12);
 
@@ -776,7 +777,7 @@ function graph(t,width=650,height=348,bands=null,we=null){
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
-      // NOW gets a white outline so the current 30-minute slot can be found instantly.
+      // NOW gets a white outline only when the current 30-minute slot is a visible candidate.
       if(i===nowIndex){
         const outline=new Path();
         outline.addRect(new Rect(bx-1,Math.max(barY,by-1),Math.max(3,bw+2),Math.min(barH,barY+barH-Math.max(barY,by-1))));
@@ -1048,9 +1049,9 @@ async function buildCurrent(forceLocation=false){
   if(!err&&NET.fallbacks.length){
     const ages=NET.fallbacks.map(x=>x.ageMin).filter(x=>x!=null);
     const age=ages.length?Math.max(...ages):null;
-    if(age==null)err="⚠ 天気/波はキャッシュ表示";
-    else if(age<60)err=`⚠ 天気/波 キャッシュ ${age}分前`;
-    else err=`⚠ 天気/波 キャッシュ ${Math.floor(age/60)}時間前`;
+    if(age==null)err="⚠ 天気/波 過去のデータ";
+    else if(age<60)err=`⚠ 天気/波 ${age}分前のデータ`;
+    else err=`⚠ 天気/波 ${Math.floor(age/60)}時間前のデータ`;
   }
   return widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm);
 }
