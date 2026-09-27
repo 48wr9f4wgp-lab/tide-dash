@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.5 — Sparse fishing windows: show only meaningful opportunity clusters
+// TIDE DASH v0.14.6 — Large layout density pass: use top/bottom space and enlarge core data
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -668,11 +668,11 @@ async function showGuide(){
   await a.presentAlert();
 }
 
-function graph(t,width=650,height=240,bands=null,we=null){
+function graph(t,width=650,height=320,bands=null,we=null){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=34,W=width-L-R,s=t.graphSeries.filter(p=>p.level!=null);
-  const tideH=112,eventY=T+tideH+4,barLabelY=eventY+18,barY=barLabelY+15,barH=24;
-  const timeY=height-31,dateY=height-14;
+  const L=8,R=8,T=38,W=width-L-R,s=t.graphSeries.filter(p=>p.level!=null);
+  const tideH=154,eventY=T+tideH+5,barLabelY=eventY+20,barY=barLabelY+17,barH=31;
+  const timeY=height-34,dateY=height-15;
   let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
   if(Math.abs(mx-mn)<10){mx+=5;mn-=5}
   const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
@@ -689,7 +689,7 @@ function graph(t,width=650,height=240,bands=null,we=null){
       c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),tideH));
       if(label&&x2-x1>48){
         const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
-        c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.93));
+        c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.warn,.93));
         c.drawTextInRect(label,new Rect(lx,2,labelW,18));
       }
     }
@@ -726,13 +726,13 @@ function graph(t,width=650,height=240,bands=null,we=null){
     const ex=X(e.absoluteMinute),ey=Y(e.level),col=e.type==="high"?C.t.a:C.t.b;
     c.setFillColor(new Color(col));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
     const lw=70,lx=Math.max(L,Math.min(L+W-lw,ex-lw/2));
-    c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(col,.98));
+    c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(col,.98));
     c.drawTextInRect(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,new Rect(lx,eventY,lw,16));
   });
 
   // 24 one-hour bars. Height = final fishing score for the matching time slot.
   if(we){
-    c.setFont(Font.boldSystemFont(11));c.setTextColor(new Color(C.t.sub,.92));
+    c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.sub,.92));
     c.drawTextInRect("地合い",new Rect(L,barLabelY,52,14));
     c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
@@ -844,8 +844,9 @@ function text(st,s,z,col,b=false){
   const t=st.addText(s);t.font=b?Font.boldSystemFont(z):Font.systemFont(z);t.textColor=new Color(col);t.lineLimit=1;t.minimumScaleFactor=.72;return t;
 }
 function metric(p,l,v,d=null,d2=null,width=null){
-  const b=p.addStack();b.layoutVertically();if(width)b.size=new Size(width,0);b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;b.setPadding(7,8,7,8);
-  text(b,l,9,C.t.sub);text(b,v,12,C.t.fg,true);if(d)text(b,d,10,C.t.muted);if(d2)text(b,d2,7,C.t.warn,true);return b;
+  const b=p.addStack();b.layoutVertically();if(width)b.size=new Size(width,0);b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;
+  const py=width?9:7;b.setPadding(py,8,py,8);
+  text(b,l,width?10:9,C.t.sub);text(b,v,width?13:12,C.t.fg,true);if(d)text(b,d,width?10:10,C.t.muted);if(d2)text(b,d2,7,C.t.warn,true);return b;
 }
 function badgeLine(st,badge,z,col){
   const m=String(badge).match(/^(.*?)(⚠.*)$/);
@@ -857,7 +858,7 @@ function badgeLine(st,badge,z,col){
 function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
   const w=new ListWidget();
-  w.setPadding(large?16:12,14,large?14:10,14);
+  w.setPadding(large?7:12,14,large?7:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
   const farAuto=Number.isFinite(distanceKm)&&distanceKm>=C.farKm&&String(badge).includes("AUTO");
@@ -975,13 +976,13 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
   }
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
-  text(pl,farAuto?`${S.name}（参考）`:S.name,22,C.t.fg,true);
+  text(pl,farAuto?`${S.name}（参考）`:S.name,24,C.t.fg,true);
   badgeLine(pl,`${badge}  ▾`,9,badgeColor||C.t.muted);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
   const info=hd.addStack();info.layoutVertically();
-  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,15,C.t.fg,true);
+  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,16,C.t.fg,true);
   text(info,farAuto?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",10,farAuto?C.t.warn:C.t.sub);
   hd.addSpacer(8);
 
@@ -1005,7 +1006,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     text(note,"地点設定後に表示",9,C.t.muted,true);
     text(note,"潮グラフ・地合い推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
-    const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(7,9,7,9);
+    const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(8,9,8,9);
     if(farAuto){
       const warn=decision.addStack();warn.layoutVertically();
       text(warn,"⚠ 釣り地点を選択",11,C.t.warn,true);
@@ -1025,10 +1026,10 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       if(guideURL)decision.url=guideURL;
     }
   
-    w.addSpacer(6);
-    const im=w.addImage(graph(t,650,240,bands,we));im.imageSize=new Size(325,132);im.applyFittingContentMode();
+    w.addSpacer(4);
+    const im=w.addImage(graph(t,650,320,bands,we));im.imageSize=new Size(325,160);im.applyFittingContentMode();
   
-    w.addSpacer(5);
+    w.addSpacer(3);
     if(we){
       const ms=w.addStack();ms.layoutHorizontally();
       metric(ms,"風",`${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}`,windGuide(we.wind),null,101);
