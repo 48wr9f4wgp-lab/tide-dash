@@ -1,0 +1,53 @@
+name: Build fishing port catalog
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build-ports.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install parser
+        run: python -m pip install --disable-pip-version-check pyshp
+
+      - name: Build ports.json from MLIT C09
+        run: python scripts/build_ports.py
+
+      - name: Validate catalog
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open("ports.json",encoding="utf-8"))
+          assert p["schemaVersion"] == 1
+          assert p["dataYear"] == 2006
+          assert p["count"] == len(p["ports"])
+          assert p["count"] >= 2000, p["count"]
+          assert all(x.get("name") and x.get("code") and x.get("lat") and x.get("lon") for x in p["ports"])
+          print("validated",p["count"],"ports")
+          PY
+
+      - name: Commit generated catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ports.json
+          if git diff --cached --quiet; then
+            echo "No catalog changes"
+            exit 0
+          fi
+          git commit -m "data: refresh nationwide fishing port catalog"
+          git push
