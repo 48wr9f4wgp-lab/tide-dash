@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "stableVersion": "0.12.0",
+  "stableURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/app-stable.js",
+  "candidateVersion": "0.19.4",
+  "candidateURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/3646502533374c12fd73893d4af9c81ce2af3dba/app-candidate.js",
+  "candidateEnabled": true,
+  "rollbackNote": "Recovery template only. Not automatically consumed. Copy to manifest.json to restore the previous candidate after confirming current state. This restores the old display and its known limitations, not the evidence-first fixes."
+}
