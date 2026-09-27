@@ -1,16 +1,26 @@
 {
   "schema": 1,
-  "phase": "中核部分の試作",
+  "phase": "根拠表示修正版の配信・実機確認待ち",
   "checks": {
     "boot": "warn",
-    "test": "none",
+    "test": "pass",
     "device": "warn",
-    "save": "na",
+    "save": "warn",
     "analytics": "na",
     "performance": "none",
     "release": "warn"
   },
-  "next": "タイドグラフの主要表示を実機で確認する",
-  "note": "最近立ち上げた案件として中核部分の試作段階で管理。保存・分析計測は現時点では対象外。",
-  "updated_at": "2026-09-15"
+  "next": "既存ウィジェットの更新後、0.20.0-dev.1の表示・実データ取得・復帰を確認する。別ファイルの取り込みは通常手順にしない。",
+  "note": "既存loaderとmanifest経由で候補版を配信。自動試験と配信状態は実機合格ではない。78項目を3タイムゾーンで再実行し全件PASS、既存bootstrap経路の追加模擬試験6件PASS。Stable 0.12.0と旧版復旧経路を維持。",
+  "updated_at": "2026-09-28",
+  "candidate_version": "0.20.0-dev.1",
+  "candidate_source_commit": "3403e50d35211ceb296129aca4d7a20fd30cf558",
+  "candidate_git_blob": "a18937d05d5edf87ef74365ad8409ac21b294602",
+  "candidate_sha256": "4f9f45942bcb72a1e031939f55ce123fde8a45a5c81b7a62dcf11c85ecb13379",
+  "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
+  "release_approval_scope": "User-authorized existing-widget delivery of the previously supplied evidence-first fixes only",
+  "previous_device_baseline_record": "0.19.4",
+  "new_device_baseline": null,
+  "stable_recovery_version": "0.12.0",
+  "evidence": "deployments/v0.20.0-dev.1.md"
 }
