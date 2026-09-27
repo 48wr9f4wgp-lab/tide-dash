@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.0 — Fishing-window engine: moving tide + provisional high/low window
+// TIDE DASH v0.14.1 — Fishing-window calibration: distinct tide modes / chronological next peak
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -432,21 +432,26 @@ function tideTurnAt(t,m){
   const ev=t.events||[];
   if(!ev.length)return 0;
   const d=Math.min(...ev.map(e=>Math.abs(e.absoluteMinute-m)));
-  if(d<=45)return 1;
-  if(d>=120)return 0;
-  return Math.max(0,Math.min(1,(120-d)/75));
+  if(d<=30)return 1;
+  if(d>=90)return 0;
+  return Math.max(0,Math.min(1,(90-d)/60));
 }
 function tideOpportunityAt(t,m){
   const move=tideMoveAt(t,m),turn=tideTurnAt(t,m);
-  return{move,turn,core:Math.max(move,turn)};
+  // Moving-tide and high/low windows are two separate opportunity modes.
+  // Cap either mode below 1.0 so a single tide signal cannot create a 5-star verdict by itself.
+  const moveMode=.85*move,turnMode=.85*turn;
+  return{move,turn,moveMode,turnMode,core:Math.max(moveMode,turnMode)};
+}
+function fishingScoreAt(t,we,m){
+  const tide=tideOpportunityAt(t,m);
+  const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
+  const magic=lightFactorAt(m,we);
+  const score=Math.round(100*(.70*tide.core+.20*magic+.10*range));
+  return{score,tide,magic,range};
 }
 function fishingGuide(t,we,now=new Date()){
-  const nm=minDay(now),tide=tideOpportunityAt(t,nm);
-  const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
-  const sunrise=hmMinute(we?.sunrise),sunset=hmMinute(we?.sunset);
-  const lightDist=Math.min(cyclicMinuteDistance(nm,sunrise),cyclicMinuteDistance(nm,sunset));
-  const magic=Number.isFinite(lightDist)?Math.max(0,1-lightDist/90):0;
-  const score=Math.round(100*(.70*tide.core+.20*magic+.10*range));
+  const nm=minDay(now),calc=fishingScoreAt(t,we,nm),tide=calc.tide,range=calc.range,magic=calc.magic,score=calc.score;
   let label,stars;
   if(score>=78){label="かなり狙い目";stars="★★★★★"}
   else if(score>=62){label="狙い目";stars="★★★★☆"}
@@ -494,17 +499,23 @@ function fishingWindowLabel(start,end){
   return `${prefix(ds)}${clockFromAbs(start)}〜${prefix(de)}${clockFromAbs(end)}`;
 }
 function bestFishingWindow(t,we){
-  const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
-  const start=Math.ceil(t.nowMin/30)*30;
-  let best=null;
+  const start=Math.ceil(t.nowMin/30)*30,samples=[];
   for(let i=0;i<=44;i++){
-    const minute=start+i*30,tide=tideOpportunityAt(t,minute),magic=lightFactorAt(minute,we);
-    const score=Math.round(100*(.70*tide.core+.20*magic+.10*range));
-    if(!best||score>best.score)best={minute,score,tideMove:tide.move,tideTurn:tide.turn,tideCore:tide.core,magic};
+    const minute=start+i*30,calc=fishingScoreAt(t,we,minute);
+    samples.push({minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic});
   }
-  if(!best)return null;
-  const delta=Math.max(0,best.minute-t.nowMin),windowStart=best.minute-30,windowEnd=best.minute+30;
-  return{...best,delta,windowStart,windowEnd,display:delta<=30?"今":fishingWindowLabel(windowStart,windowEnd)};
+  let peak=null;
+  for(let i=1;i<samples.length-1;i++){
+    const a=samples[i-1],b=samples[i],c=samples[i+1];
+    const localMax=b.score>=a.score&&b.score>=c.score&&(b.score>a.score||b.score>c.score);
+    if(localMax&&b.score>=45){peak=b;break}
+  }
+  if(!peak){
+    peak=samples.filter(x=>x.minute>=t.nowMin).reduce((a,b)=>!a||b.score>a.score?b:a,null);
+  }
+  if(!peak)return null;
+  const delta=Math.max(0,peak.minute-t.nowMin),windowStart=peak.minute-30,windowEnd=peak.minute+30;
+  return{...peak,delta,windowStart,windowEnd,display:delta<=30?"今":fishingWindowLabel(windowStart,windowEnd)};
 }
 function mazumeWindows(t,we){
   const out=[];
@@ -655,7 +666,7 @@ async function showGuide(){
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
-    "満潮・干潮前後は暫定的な地合い候補として加点していますが、実際の潮止まり時刻を示すものではありません。局地的な潮流は地形などでズレます。"
+    "潮要素は『潮が動く時間』と『満干潮前後の暫定地合い』の強い方を採用します。満干潮前後は実際の潮止まり時刻を示すものではなく、局地的な潮流は地形などでズレます。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
