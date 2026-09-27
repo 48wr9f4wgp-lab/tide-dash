@@ -1,4 +1,4 @@
-// TIDE DASH v0.19.3 — Temporary abnormal-state visual QA menu
+// TIDE DASH v0.19.4 — Post-QA cleanup / production failure copy / verified baseline candidate
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -448,57 +448,12 @@ async function addCurrentFavorite(p){
     return false;
   }
 }
-function tideFailureWidget(detail="QA: 潮位データなし"){
+function tideFailureWidget(detail="通信状況を確認して再読み込みしてください"){
   const w=new ListWidget();w.backgroundColor=new Color(C.t.bg1);w.setPadding(14,14,14,14);
   text(w,"TIDE DASH",18,C.t.fg,true);w.addSpacer(8);
   text(w,"潮位データを取得できません",13,C.t.warn,true);w.addSpacer(4);
   text(w,detail,9,C.t.sub);w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
   return w;
-}
-async function qaPreviewMenu(){
-  const a=new Alert();
-  a.title="🧪 異常表示QA";
-  a.message="実データは変更せず、表示だけ異常状態を再現します。";
-  const labels=["波だけ取得失敗","古い天気/波データ","天気/波すべて取得失敗","潮位取得失敗"];
-  labels.forEach(x=>a.addAction(x));a.addCancelAction("キャンセル");
-  const i=await a.presentSheet();if(i<0)return false;
-
-  if(i===3){
-    await present(tideFailureWidget());
-    return true;
-  }
-
-  NET.fallbacks.length=0;
-  const r=await resolveStation(false);
-  if(locationBlockedResult(r)){
-    const z=new Alert();z.title="QAできません";z.message="固定地点を選んでから実行してください。";z.addAction("OK");await z.presentAlert();
-    return true;
-  }
-
-  const now=new Date();
-  let t;
-  try{t=await tide(now,r.station)}catch(_){
-    await present(tideFailureWidget("実データの潮位取得にも失敗しました"));
-    return true;
-  }
-
-  let wp=null;
-  try{wp=await weather(now,r.station)}catch(_){}
-  let err=null;
-
-  if(i===0){
-    if(!wp)wp={current:{},slots:[],marineSeries:[],issues:[]};
-    wp={...wp,current:{...(wp.current||{}),wave:null,waveDir:null,wavePeriod:null,sst:null,currentVelocity:null,currentDir:null}};
-    err="⚠ 波を取得できません";
-  }else if(i===1){
-    err="⚠ 天気/波 120分前のデータ";
-  }else if(i===2){
-    wp=null;
-    err="⚠ 天気/波を取得できません";
-  }
-
-  await present(widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm,r.locationState,r.tideRef));
-  return true;
 }
 
 async function settings(){
@@ -510,7 +465,6 @@ async function settings(){
   favs.forEach(s=>a.addAction(`★ ${s.name}`));
   a.addAction("🔎 釣り地点を探す");
   a.addAction("＋ 現在の最寄りをお気に入り");
-  a.addAction("🧪 異常表示QA");
   a.addCancelAction("閉じる");
   const i=await a.presentSheet();
   if(i<0)return;
@@ -522,7 +476,6 @@ async function settings(){
   }
   if(i===1+favs.length){await searchAndFix(p);return}
   if(i===2+favs.length){await addCurrentFavorite(p);return}
-  if(i===3+favs.length){await qaPreviewMenu();return "qa"}
 }
 
 function cacheAgeMin(path){
@@ -1388,7 +1341,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
 
   const info=hd.addStack();info.layoutVertically();
   const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,18,C.t.fg,true);
-  text(info,locationBlocked?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",11,locationBlocked?C.t.warn:C.t.sub);
+  text(info,locationBlocked?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"天気データなし",11,locationBlocked?C.t.warn:(we?C.t.sub:C.t.warn));
   hd.addSpacer(8);
 
   const rf=hd.addStack();rf.layoutVertically();rf.backgroundColor=new Color(C.t.panel,.6);rf.cornerRadius=10;rf.setPadding(5,8,5,8);
@@ -1454,7 +1407,7 @@ async function buildCurrent(forceLocation=false){
   }
   let t,wp=null,err=null;
   try{t=await tide(now,r.station)}
-  catch(e){return tideFailureWidget(String(e))}
+  catch(_){return tideFailureWidget()}
   try{wp=await weather(now,r.station)}catch(_){err="⚠ 天気/波を取得できません"}
   if(!err&&wp?.issues?.length)err=`⚠ ${wp.issues.join(" / ")}`;
   if(NET.fallbacks.length){
@@ -1477,9 +1430,7 @@ async function main(){
   if(config.runsInApp&&action==="tidehelp"){await showTideHelp();return null;}
   if(config.runsInApp&&action==="guide"){await showGuide();return null;}
   if(config.runsInApp&&action==="settings"){
-    const result=await settings();
-    if(result==="qa")return null;
-    const w=await buildCurrent(true);await present(w);return null;
+    await settings();const w=await buildCurrent(true);await present(w);return null;
   }
   if(config.runsInApp&&action==="refresh"){
     const p=loadPrefs();
