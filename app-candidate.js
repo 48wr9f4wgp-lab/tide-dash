@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.1 — Fishing-window calibration: distinct tide modes / chronological next peak
+// TIDE DASH v0.14.2 — Fishing score histogram: replace peak stripe with 24h bars
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -533,11 +533,24 @@ function mazumeWindows(t,we){
   return out;
 }
 function timingBands(t,we,best){
-  const bands=mazumeWindows(t,we);
-  if(best&&best.score>=45&&best.minute>=t.graphStart&&best.minute<=t.graphEnd){
-    bands.push({kind:"chance",start:best.windowStart??best.minute-30,end:best.windowEnd??best.minute+30,minute:best.minute,score:best.score,label:""});
+  return mazumeWindows(t,we);
+}
+function fishingBarsImage(t,we,width=650,height=54){
+  const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
+  const L=8,R=8,T=18,B=3,W=width-L-R,H=height-T-B,n=24,gap=3;
+  c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(C.t.sub,.92));
+  c.drawTextInRect("地合い",new Rect(L,0,72,16));
+  const bw=(W-gap*(n-1))/n;
+  c.setFillColor(new Color(C.t.grid,.38));
+  c.fillRect(new Rect(L,T+H-1,W,1));
+  for(let i=0;i<n;i++){
+    const minute=t.graphStart+i*60+30,calc=fishingScoreAt(t,we,minute);
+    const score=Math.max(0,Math.min(100,calc.score)),bh=Math.max(3,H*score/100);
+    const x=L+i*(bw+gap),y=T+H-bh,alpha=.24+.56*(score/100);
+    c.setFillColor(new Color(C.t.warn,alpha));
+    c.fillRect(new Rect(x,y,Math.max(2,bw),bh));
   }
-  return bands;
+  return c.getImage();
 }
 function eventDayIndex(e){
   const m=e?.absoluteMinute??e?.minute??0;
@@ -692,15 +705,6 @@ function graph(t,width=650,height=240,bands=null){
           const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
           c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.93));
           c.drawTextInRect(label,new Rect(lx,2,labelW,18));
-        }
-      }else if(b.kind==="chance"){
-        const stripH=25,stripY=T+H-stripH;
-        c.setFillColor(new Color(C.t.warn,.18));
-        c.fillRect(new Rect(x1,stripY,Math.max(2,x2-x1),stripH));
-        if(label){
-          const labelW=92,cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
-          c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.98));
-          c.drawTextInRect(label,new Rect(lx,stripY+4,labelW,17));
         }
       }
     }
@@ -953,7 +957,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(10);
     const note=w.addStack();note.layoutVertically();
     text(note,"地点設定後に表示",9,C.t.muted,true);
-    text(note,"潮グラフ・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
+    text(note,"潮グラフ・地合い推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(7,9,7,9);
     if(farAuto){
@@ -975,10 +979,14 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       if(guideURL)decision.url=guideURL;
     }
   
-    w.addSpacer(7);
-    const im=w.addImage(graph(t,650,240,bands));im.imageSize=new Size(325,132);im.applyFittingContentMode();
+    w.addSpacer(6);
+    const im=w.addImage(graph(t,650,240,bands));im.imageSize=new Size(325,126);im.applyFittingContentMode();
+    w.addSpacer(2);
+    if(we){
+      const bi=w.addImage(fishingBarsImage(t,we));bi.imageSize=new Size(325,27);bi.applyFittingContentMode();
+    }
   
-    w.addSpacer(7);
+    w.addSpacer(4);
     if(we){
       const ms=w.addStack();ms.layoutHorizontally();
       metric(ms,"風",`${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}`,windGuide(we.wind),null,101);
