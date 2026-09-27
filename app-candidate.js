@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.1 | Evidence-first development build
-const APP_VERSION="0.20.0-dev.1";
+// TIDE DASH v0.20.0-dev.2 | Tide intervals, visible scale, immutable display evidence
+const APP_VERSION="0.20.0-dev.2";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -536,7 +536,7 @@ function parseLine(line){
     }
     return out;
   };
-  return{key,code,hourly,events:[...ev(80,"high"),...ev(108,"low")].sort((a,b)=>a.minute-b.minute)};
+  return{key,code,rawLine:line.slice(0,136),hourly,events:[...ev(80,"high"),...ev(108,"low")].sort((a,b)=>a.minute-b.minute)};
 }
 function parseAnnual(s,expectedCode=null,expectedYear=null){
   const out=new Map(),duplicates=new Set();
@@ -610,6 +610,9 @@ function assembleTide(all,now){
   const referenceDate=dateKey(now);
   return{today,hourly,events,graphEvents,current,nowMin,nextEvent,graphStart,graphEnd,graphSeries,
     referenceDate,referenceAt:now.getTime(),hasGaps:graphSeries.some(p=>p.level==null),
+    evidence:{source:"JMA",format:"fixed_136",scope:"relevant_daily_records",
+      records:days.filter(d=>d.day).map(({day})=>({key:day.key,code:day.code,rawLine:day.rawLine||null,hourly:day.hourly,events:day.events})),
+      sourceURLs:[...new Set(days.filter(d=>d.day).map(({day})=>`https://www.data.jma.go.jp/gmd/kaiyou/data/db/tide/suisan/txt/${day.key.slice(0,4)}/${day.code}.txt`))]},
     source:"JMA",kind:"astronomical_prediction",unit:"cm",method:"hourly_linear_interpolation"};
 }
 async function tide(now,S){
@@ -625,8 +628,19 @@ function tideRead(t){
   const from=Math.floor(t.nowMin/60)*60,to=from+60;
   const a=interpolateHourly(t.hourly,from),b=interpolateHourly(t.hourly,to);
   if(a==null||b==null||!continuousTide(t.hourly,from,to))return unknown;
-  const deltaCm=b-a,label=deltaCm>0?"上げ":deltaCm<0?"下げ":"毎時値同じ";
-  return{label,deltaCm,from,to,meaning:`${clockFromAbs(from)}→${clockFromAbs(to)} の予測潮位差 ${signedTide(deltaCm)}cm。潮流速度ではありません。`};
+  const deltaCm=b-a;
+  // An hourly average trend cannot describe the instant of an extremum within that hour.
+  // Include both boundaries conservatively, including an event exactly on the next hour.
+  const turns=(t.events||[]).filter(e=>Number.isFinite(e.absoluteMinute)&&
+    e.absoluteMinute>=from&&e.absoluteMinute<=to&&["high","low"].includes(e.type));
+  if(turns.length){
+    const kinds=[...new Set(turns.map(e=>e.type))];
+    const name=kinds.length>1?"満干潮":kinds[0]==="high"?"満潮":"干潮";
+    return{label:`${name}を含む時間`,compactLabel:`${name}の時間帯`,kind:"turning",deltaCm,from,to,turns,
+      meaning:`${clockFromAbs(from)}〜${clockFromAbs(to)} は ${turns.map(e=>`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`).join(" / ")} を含む時間です。毎時値の差だけで瞬間の上げ・下げを判定しません。潮止まりや流速の判定ではありません。`};
+  }
+  const label=deltaCm>0?"上げ":deltaCm<0?"下げ":"毎時値同じ";
+  return{label,kind:"hourly",deltaCm,from,to,turns:[],meaning:`${clockFromAbs(from)}→${clockFromAbs(to)} の予測潮位差 ${signedTide(deltaCm)}cm。潮流速度ではありません。`};
 }
 function tideEventSummary(t){
   const e=t?.nextEvent;
@@ -681,7 +695,7 @@ function forecastEnvelopeValid(envelope,req,now){
   const age=Date.now()-envelope.fetchedAt;
   return age>=0&&age<=C.weatherFallbackMaxMin*60000&&validForecast(envelope.payload,req,now);
 }
-async function forecastCached(req,now){
+async function forecastCached(req,now,force=false){
   // Alternating slots preserve the last valid response if a cache write is interrupted.
   const paths=["a","b"].map(slot=>fm.joinPath(cacheDir,`${req.key}_${slot}.json`));
   const existing=[];
@@ -701,7 +715,7 @@ async function forecastCached(req,now){
     fetchedAt:e.fetchedAt,cacheState,cacheWriteFailed,validTime:hourKey(now),
     modelRunAt:null,source:"Open-Meteo",model:"best_match",units:req.units
   });
-  if(last&&Date.now()-last.envelope.fetchedAt<25*60000)return packet(last.envelope,"cached");
+  if(!force&&last&&Date.now()-last.envelope.fetchedAt<25*60000)return packet(last.envelope,"cached");
   let envelope;
   try{
     const r=new Request(req.url);r.timeoutInterval=15;r.headers={"Cache-Control":"no-cache"};
@@ -739,8 +753,8 @@ function forecastSummaryIssues(w,m,current){
   }
   return issues;
 }
-async function weather(now,S){
-  const [w,m]=await Promise.all(["weather","marine"].map(kind=>forecastCached(forecastRequest(kind,S),now).catch(()=>null)));
+async function weather(now,S,force=false){
+  const [w,m]=await Promise.all(["weather","marine"].map(kind=>forecastCached(forecastRequest(kind,S),now,force).catch(()=>null)));
   const key=hourKey(now),todayKey=dateKey(now),nextKey=dateKey(addDay(now,1));
   const wp=w?.payload,mp=m?.payload,wi=wp?.hourly?.time?.indexOf(key)??-1,mi=mp?.hourly?.time?.indexOf(key)??-1;
   const val=(p,i,n,u)=>forecastValue(p,n,i,u);
@@ -754,6 +768,8 @@ async function weather(now,S){
     sunriseNext:dailySolar(wp,nextKey,"sunrise"),sunsetNext:dailySolar(wp,nextKey,"sunset")
   };
   return{current,weatherMeta:w?{...w,payload:undefined}:null,marineMeta:m?{...m,payload:undefined}:null,
+    evidence:{weather:w?{request:forecastRequest("weather",S),payload:wp}:null,
+      marine:m?{request:forecastRequest("marine",S),payload:mp}:null},
     issues:forecastSummaryIssues(w,m,current),request:{lat:S.lat,lon:S.lon},referenceAt:now.getTime()};
 }
 function solarEvents(t,wp){
@@ -774,6 +790,61 @@ function rainInterval(stamp){
   if(!validJSTStamp(stamp))return "対象時刻不明";
   const end=new Date(`${stamp}:00+09:00`),start=new Date(end.getTime()-3600000);
   return `${stampJST(start)}〜${clockJST(end)} JST`;
+}
+
+// Display evidence is local only. IDs in deep links contain no station or coordinates.
+const SNAPSHOT={schema:1,days:7,maxRecords:128,maxChars:300000};
+const validSnapshotID=id=>typeof id==="string"&&/^[a-z0-9-]{12,80}$/.test(id);
+function snapshotDir(){return fm.joinPath(cacheDir,"display_snapshots_v1")}
+function snapshotFile(id){return validSnapshotID(id)?fm.joinPath(snapshotDir(),`${id}.json`):null}
+function pruneSnapshots(keepID){
+  try{
+    const dir=snapshotDir(),cutoff=Date.now()-SNAPSHOT.days*86400000;
+    const rows=fm.listContents(dir).filter(name=>name.endsWith(".json")&&validSnapshotID(name.slice(0,-5)))
+      .map(name=>({name,at:fm.modificationDate(fm.joinPath(dir,name))?.getTime()??0}))
+      .sort((a,b)=>b.at-a.at);
+    let retained=1;
+    for(const row of rows){
+      if(row.name===`${keepID}.json`)continue;
+      if(row.at<cutoff||retained>=SNAPSHOT.maxRecords){fm.remove(fm.joinPath(dir,row.name));}
+      else retained++;
+    }
+  }catch(_){} // Cleanup must not prevent displaying a validated forecast.
+}
+function saveDisplaySnapshot(t,r,wp,family){
+  try{
+    const id=typeof UUID!=="undefined"?UUID.string().toLowerCase():
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    if(!validSnapshotID(id))throw Error("invalid snapshot ID");
+    const data={schema:1,id,version:APP_VERSION,createdAt:Date.now(),family,t,r,wp,
+      detail:tideDetail(t,r,wp)};
+    const payload=JSON.stringify(data);
+    if(payload.length>SNAPSHOT.maxChars)throw Error("snapshot too large");
+    const raw=JSON.stringify({schema:1,id,checksum:shortHash(payload),payload});
+    const dir=snapshotDir();if(!fm.fileExists(dir))fm.createDirectory(dir,true);
+    const file=snapshotFile(id);
+    if(fm.fileExists(file))throw Error("snapshot collision");
+    fm.writeString(file,raw);
+    if(fm.readString(file)!==raw)throw Error("snapshot readback mismatch");
+    pruneSnapshots(id);
+    return{id,saved:true};
+  }catch(_){return{id:null,saved:false};}
+}
+function readDisplaySnapshot(id){
+  try{
+    const file=snapshotFile(id);if(!file||!fm.fileExists(file))return null;
+    const raw=fm.readString(file);if(raw.length>SNAPSHOT.maxChars*2)return null;
+    const e=JSON.parse(raw);
+    if(e?.schema!==1||e.id!==id||typeof e.payload!=="string"||e.checksum!==shortHash(e.payload))return null;
+    const data=JSON.parse(e.payload),age=Date.now()-data.createdAt;
+    if(data.schema!==1||data.id!==id||!Number.isFinite(data.createdAt)||age<0||age>SNAPSHOT.days*86400000)return null;
+    if(typeof data.detail!=="string"||!Number.isFinite(data.t?.referenceAt)||!data.r?.station)return null;
+    return data;
+  }catch(_){return null;}
+}
+function snapshotGuideURL(id){
+  const base=scriptURL("guide");
+  return base&&id?`${base}&snapshot=${encodeURIComponent(id)}`:base;
 }
 
 function text(st,s,z,col,b=false){
@@ -803,7 +874,9 @@ function tideDetail(t,r,wp){
     `${event.title}: ${event.value}`,
     ...t.graphEvents.map(e=>`${e.type==="high"?"満潮":"干潮"} ${eventDayWord(e)}${eventClock(e)} / ${signedTide(e.level)}cm (JMA原表)`),
     "高さは当該地点の潮位表基準面から。海底までの水深ではありません。",
-    "曲線は毎時値の補間、下段の満干潮時刻は原表から。欠測は接続しません。",
+    "曲線は毎時値の線形補間です。灰色の破線・下段の満干潮時刻は原表から。欠測は接続しません。",
+    "縦軸はcmで自動拡大しています。原表の満干潮時刻と毎時曲線の山谷は一致しない場合があります。",
+    (()=>{const scale=tideScale(t.graphSeries);return scale?`グラフ表示範囲の補間値: ${scale.dataMin.toFixed(1)}〜${scale.dataMax.toFixed(1)}cm (日全体の満干潮差ではありません)`:"潮位の表示範囲: データなし";})(),
     "潮位の上下と、流れの速さ・向きは別の情報です。",
     t.hasGaps?"注意: グラフの一部に潮位データ不足があります。":"表示範囲の毎時潮位データに欠測はありません。",
     "",
@@ -839,26 +912,43 @@ function tideDetail(t,r,wp){
   return lines.filter(s=>s!==null).join("\n");
 }
 async function showGuide(){
-  const r=await resolveStation(false),now=new Date();
-  if(await guardLocationForDetail(r,"予測データの根拠"))return;
-  let t;
-  try{t=await tide(now,r.station)}catch(_){
-    const a=new Alert();a.title="潮位予測";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
-  }
-  const wp=await weather(now,r.station).catch(()=>null),a=new Alert();
-  a.title="潮位・予報の根拠";a.message=tideDetail(t,r,wp);a.addAction("閉じる");await a.presentAlert();
+  const saved=readDisplaySnapshot(args.queryParameters?.snapshot),a=new Alert();
+  a.title=saved?"表示した潮位・予報の根拠":"表示記録を確認できません";
+  a.message=saved?saved.detail+
+    `\n\n表示作成: ${stampJST(new Date(saved.createdAt))} JST / ${saved.version}\nこの記録は端末内の保存データです。タップ時の新しい予報へ置き換えていません。`:
+    "この画面に対応する保存記録がありません。旧版の表示、保存失敗、保存期限（7日・最大128件）切れなどが考えられます。別の地点・時刻のデータで代用しません。";
+  a.addAction("最新に更新");a.addCancelAction("閉じる");
+  const choice=await a.presentAlert();
+  if(choice===0){const w=await buildCurrent(true);await present(w);}
 }
 async function showTideHelp(){return await showGuide()}
 function sunSummary(t,wp){
   const items=solarEvents(t,wp).filter(e=>e.minute>=t.nowMin).slice(0,2);
-  return items.length?items.map(e=>`${eventDayWord({minute:e.minute})}${e.label} ${clockFromAbs(e.minute)}`).join(" / "):"日の出入り 未取得";
+  return items.length?items.map(e=>`${eventDayWord({minute:e.minute}).replace("明日","翌日")}${e.label==="日の入り"?"日没":e.label} ${clockFromAbs(e.minute)}`).join(" / "):"日の出入り 未取得";
+}
+function tideScale(series){
+  const values=(series||[]).map(p=>p.level).filter(Number.isFinite);
+  if(!values.length)return null;
+  const dataMin=Math.min(...values),dataMax=Math.max(...values),range=Math.max(2,dataMax-dataMin);
+  const raw=range/3,power=10**Math.floor(Math.log10(raw));
+  const step=([1,2,5,10].find(n=>n*power>=raw)||10)*power;
+  let min=Math.floor(dataMin/step)*step,max=Math.ceil(dataMax/step)*step;
+  if(min===max){min-=step;max+=step;}
+  const ticks=[];for(let n=0;n<=6;n++){const v=min+n*step;if(v>max+step*.01)break;ticks.push(Math.round(v*1000)/1000);}
+  return{min,max,ticks,dataMin,dataMax};
+}
+function graphLayout(width,height,compact){
+  const small=width<=420;
+  const L=small?52:50,R=14,T=compact?26:50,B=compact?44:78;
+  return{L,R,T,B,W:width-L-R,H:height-T-B,small};
 }
 function graph(t,width=650,height=348,wp=null,compact=false){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=compact?18:40,B=compact?24:82,W=width-L-R,H=height-T-B;
+  const {L,R,T,B,W,H,small}=graphLayout(width,height,compact);
   const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W;
-  const segments=splitTideSeries(t.graphSeries),s=segments.flat(),eventY=T+H+8;
-  const drawLabel=(label,x,y,w=88,size=compact?15:18,col=C.t.sub)=>{
+  const segments=splitTideSeries(t.graphSeries),s=segments.flat(),eventY=T+H+6;
+  const font=compact?(small?20:16):18;
+  const drawLabel=(label,x,y,w=88,size=font,col=C.t.sub)=>{
     c.setFont(Font.systemFont(size));c.setTextColor(new Color(col));
     c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-w,x-w/2)),y,w,size+3));
   };
@@ -866,21 +956,27 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     const path=new Path();path.move(new Point(x1,y1));path.addLine(new Point(x2,y2));
     c.addPath(path);c.setStrokeColor(new Color(col,alpha));c.setLineWidth(lineWidth);c.strokePath();
   };
-  // Keep the vertical time axis even when the current tide value is missing.
   const gridTimes=[];
   for(let minute=Math.ceil(t.graphStart/360)*360;minute<=t.graphEnd;minute+=360){
     gridTimes.push(minute);const x=X(minute);
     drawLine(x,T,x,T+H,C.t.grid,.42);
-    const dayLabel=minute%1440===0?dateKey(addDay(new Date(t.referenceAt),Math.floor(minute/1440))).slice(5).replace("-","/"):clockFromAbs(minute);
-    drawLabel(dayLabel,x,height-(compact?19:24),compact?60:78,compact?15:17);
+    // A date is an additional label; it never replaces midnight's time.
+    if(!small||minute%720===0)drawLabel(clockFromAbs(minute),Math.max(L+(small?34:38),x),height-(small?47:44),small?68:76,font);
+    if(minute%1440===0){
+      const date=dateKey(addDay(new Date(t.referenceAt),Math.floor(minute/1440))).slice(5).replace("-","/");
+      drawLabel(date,Math.max(L+(small?33:35),x),height-22,small?66:70,small?18:font-1);
+    }
   }
-  if(!s.length){drawLabel("潮位データなし",width/2,T+H/2,220,compact?18:24,C.t.warn);return c.getImage();}
-  let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
-  if(mx-mn<10){mx+=5;mn-=5}
-  const pad=Math.max(5,(mx-mn)*.08);mn-=pad;mx+=pad;
-  const Y=v=>T+(1-(v-mn)/(mx-mn))*H;
-  for(const f of [.33,.66])drawLine(L,T+H*f,L+W,T+H*f,C.t.grid,.42);
-  // Stroke AND fill independently. No connection across a missing sample or a day gap.
+  if(!s.length){drawLabel("潮位データなし",width/2,T+H/2-10,220,font+1,C.t.warn);return c.getImage();}
+  const scale=tideScale(s),Y=v=>T+(1-(v-scale.min)/(scale.max-scale.min))*H;
+  const ticks=compact?[scale.ticks[0],scale.ticks[scale.ticks.length-1]]:scale.ticks;
+  drawLabel("cm",L/2,compact?1:26,L-4,font,C.t.fg);
+  for(const value of ticks){
+    const y=Y(value);drawLine(L,y,L+W,y,C.t.grid,.5);
+    const label=String(value).replace("-","−");
+    drawLabel(label,L/2,Math.max(T,y-font/2),L-4,font,C.t.fg);
+  }
+  // Missing segments are never connected, including the filled area below each curve.
   for(const segment of segments){
     if(segment.length<2)continue;
     const area=new Path();area.move(new Point(X(segment[0].minute),T+H));
@@ -890,36 +986,55 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     const line=new Path();segment.forEach((p,i)=>i?line.addLine(new Point(X(p.minute),Y(p.level))):line.move(new Point(X(p.minute),Y(p.level))));
     c.addPath(line);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(compact?4:5);c.strokePath();
   }
+  // Gray dashed markers carry official event TIMES, not an invented hourly curve extremum.
+  for(const e of t.graphEvents||[]){
+    const x=X(e.absoluteMinute);
+    for(let y=T;y<T+H;y+=10)drawLine(x,y,x,Math.min(y+4,T+H),C.t.sub,.5,1.3);
+  }
   const solar=solarEvents(t,wp).filter(e=>e.minute>=t.graphStart&&e.minute<=t.graphEnd);
+  const usedSolar=[[],[]];
   for(const e of solar){
     const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,.45);
-    drawLabel(`${e.label==="日の出"?"出":"入"} ${clockFromAbs(e.minute)}`,x,1,compact?85:105,compact?15:18,C.t.warn);
-  }
-  // Official extrema are time marks on a separate rail, not points implying the hourly
-  // interpolation passes through the official event height.
-  if(!compact){
-    for(const e of t.graphEvents){
-      const x=X(e.absoluteMinute);drawLine(x,T+H+2,x,T+H+7,C.t.sub,.9,2);
-      drawLabel(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,x,eventY,94,17);
+    // Small charts use the readable text summary below the chart instead of tiny overlays.
+    if(small)continue;
+    const day=Math.floor(e.minute/1440),prefix=day===1?"翌日 ":day===-1?"前日 ":day===0?"":`${day}日後 `;
+    const label=`${prefix}${e.label==="日の入り"?"日没":"日の出"} ${clockFromAbs(e.minute)}`;
+    const lw=prefix?205:155,lx=Math.max(L,Math.min(width-lw,x-lw/2));
+    const lanes=compact?1:2;
+    for(let lane=0;lane<lanes;lane++){
+      if(usedSolar[lane].some(b=>lx<b[1]+8&&lx+lw>b[0]-8))continue;
+      drawLabel(label,lx+lw/2,1+lane*22,lw,font,C.t.warn);usedSolar[lane].push([lx,lx+lw]);break;
     }
-    drawLabel("曲線: 毎時潮位の補間 / 下段: 満干潮予測時刻",width/2,height-49,510,15);
   }
-  const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.8,2);
+  if(!compact){
+    const accepted=[];
+    // Prioritize the next event when labels would overlap. All markers and detail rows remain.
+    const events=[...(t.graphEvents||[])].sort((a,b)=>(a===t.nextEvent?-1:b===t.nextEvent?1:a.absoluteMinute-b.absoluteMinute));
+    for(const e of events){
+      const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2));
+      if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
+      drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,lx+lw/2,eventY,lw,18);
+      accepted.push([lx,lx+lw]);
+    }
+  }
+  const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.85,2);
   if(Number.isFinite(t.current)){
-    const y=Y(t.current);c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-6,y-6,12,12));
+    const y=Y(t.current);c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-5,y-5,10,10));
   }
-  if(!compact)drawLabel(`基準 ${clockFromAbs(t.nowMin)}`,Math.max(65,x),T+3,130,16,C.t.fg);
-  if(t.hasGaps)drawLabel("欠測あり",width-64,T+H-22,118,compact?15:18,C.t.warn);
+  if(t.hasGaps)drawLabel("欠測あり",width-62,T+H-25,110,font,C.t.warn);
   return c.getImage();
 }
-function miniGraph(t,width=620,height=120,wp=null){return graph(t,width,height,wp,true)}
+function miniGraph(t,width=620,height=132,wp=null){return graph(t,width,height,wp,true)}
+
 function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="current",tideRef=null){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
   const w=new ListWidget(),now=new Date(),reference=t?new Date(t.referenceAt):now;
   w.setPadding(small?8:7,small?10:14,small?8:6,small?10:14);
   const background=new LinearGradient();background.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];background.locations=[0,1];w.backgroundGradient=background;
-  const settingsURL=scriptURL("settings"),guideURL=scriptURL("guide"),refreshURL=scriptURL("refresh");
+  const settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh");
   const blocked=["far","previous","missing"].includes(locationState);
+  const snapshot=blocked?null:saveDisplaySnapshot(t,{station:S,tideRef,locationState,distanceKm},wp,family);
+  const guideURL=snapshotGuideURL(snapshot?.id);
   w.url=blocked?settingsURL:guideURL;w.refreshAfterDate=new Date(now.getTime()+C.refresh*60000);
   const header=w.addStack();header.layoutHorizontally();header.centerAlignContent();
   const location=header.addStack();location.layoutVertically();
@@ -944,16 +1059,16 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   w.addSpacer(3);
   const summary=w.addStack();summary.layoutHorizontally();summary.centerAlignContent();
   const tideBox=summary.addStack();tideBox.layoutVertically();
-  text(tideBox,"毎時潮位予測の傾向",small?7:large?10:8,C.t.sub);
-  text(tideBox,state.label,small?12:large?20:14,state.deltaCm==null?C.t.warn:C.t.fg,true);
+  text(tideBox,Number.isFinite(state.from)?`${clockFromAbs(state.from)}〜${clockFromAbs(state.to)}の予測`:"毎時潮位予測の傾向",small?7:large?10:8,C.t.sub);
+  text(tideBox,small?(state.compactLabel||state.label):state.label,small?12:large?(state.kind==="turning"?17:20):12,state.deltaCm==null?C.t.warn:C.t.fg,true);
   summary.addSpacer();
   const eventBox=summary.addStack();eventBox.layoutVertically();
   text(eventBox,next.title,small?7:large?10:8,C.t.sub);text(eventBox,next.value,small?9:large?17:12,C.t.fg,true);
   if(guideURL)summary.url=guideURL;
   w.addSpacer(2);
-  const img=w.addImage(large?graph(t,650,348,wp):miniGraph(t,small?420:620,120,wp));
-  img.imageSize=large?new Size(325,160):small?new Size(138,30):new Size(310,43);img.applyFittingContentMode();
-  if(large||small){w.addSpacer(2);text(w,sunSummary(t,wp),small?7:10,C.t.sub);}
+  const img=w.addImage(large?graph(t,650,348,wp):miniGraph(t,small?420:620,small?132:112,wp));
+  img.imageSize=large?new Size(325,174):small?new Size(138,43):new Size(310,56);img.applyFittingContentMode();
+  if(small){w.addSpacer(2);text(w,sunSummary(t,wp),7,C.t.sub);}
   w.addSpacer(2);
   const forecast=w.addStack();forecast.layoutHorizontally();forecast.centerAlignContent();
   const forecastAt=forecastClock(wp);
@@ -974,16 +1089,15 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   }
   const issues=[...(wp?.issues||[])];
   if(t.hasGaps)issues.push("潮位に欠測");
+  if(snapshot&&!snapshot.saved)issues.push("表示根拠の保存不可");
   if(Number.isFinite(tideRef?.distanceKm)&&tideRef.distanceKm>=C.tideRefCautionKm)issues.push("潮位は離れた基準点の参考値");
   if(err)issues.push(err);
   w.addSpacer(2);
   if(issues.length){
     const notice=text(w,`⚠ ${[...new Set(issues)].join(" / ")}`,small?7:large?9:7,C.t.warn);notice.lineLimit=large?2:1;
   }
-  const acquired=p=>p?clockJST(new Date(p.fetchedAt)):"--";
-  const foot=small?`${APP_VERSION} 作成${clockJST(now)}`:`取得 天${acquired(wp?.weatherMeta)} 海${acquired(wp?.marineMeta)} / ${APP_VERSION}`;
-  text(w,foot,small?6.5:large?8:7,C.t.muted);
-  if(large)text(w,`作成 ${stampJST(now)} JST / 予報の根拠・注意はタップ`,8,C.t.muted);
+  text(w,`JMA / Open-Meteo · ${APP_VERSION}`,small?6.5:large?9:7,C.t.muted);
+  if(large)text(w,"根拠・取得時刻はタップ / 破線＝満干潮の予測時刻",9,C.t.sub);
   return w;
 }
 async function buildCurrent(forceLocation=false){
@@ -991,7 +1105,7 @@ async function buildCurrent(forceLocation=false){
   if(locationBlockedResult(r))return widget(null,null,r.station,r.badge,r.badgeColor,null,r.distanceKm,r.locationState,r.tideRef);
   let t;
   try{t=await tide(now,r.station)}catch(_){return tideFailureWidget()}
-  const wp=await weather(now,r.station).catch(()=>null);
+  const wp=await weather(now,r.station,forceLocation).catch(()=>null);
   return widget(t,wp,r.station,r.badge,r.badgeColor,wp?null:"天気・海況取得不可",r.distanceKm,r.locationState,r.tideRef);
 }
 
