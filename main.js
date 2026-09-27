@@ -1,10 +1,12 @@
-// TIDE DASH v0.10 Runtime Bootstrap
+// TIDE DASH v0.11 Runtime Bootstrap
 // Stable/Candidate failover layer. Keep this file small and rarely changed.
 
 const RUNTIME={
   manifestURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/manifest.json",
   stableCache:"TIDE_DASH_APP_STABLE.js",
   stableMeta:"TIDE_DASH_APP_STABLE_META.json",
+  lastGoodCache:"TIDE_DASH_APP_LAST_GOOD.js",
+  lastGoodMeta:"TIDE_DASH_APP_LAST_GOOD_META.json",
   timeoutSec:12,
   fallbackStableURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/app-stable.js"
 };
@@ -13,6 +15,8 @@ const fm=FileManager.local();
 const docs=fm.documentsDirectory();
 const stablePath=fm.joinPath(docs,RUNTIME.stableCache);
 const metaPath=fm.joinPath(docs,RUNTIME.stableMeta);
+const lastGoodPath=fm.joinPath(docs,RUNTIME.lastGoodCache);
+const lastGoodMetaPath=fm.joinPath(docs,RUNTIME.lastGoodMeta);
 
 function readJSON(path){
   try{return fm.fileExists(path)?JSON.parse(fm.readString(path)):null}catch(_){return null}
@@ -44,9 +48,27 @@ async function fetchAndRun(url){
   await execute(code);
   return code;
 }
+function saveLastGood(code,meta){
+  try{
+    if(!validCode(code))return;
+    fm.writeString(lastGoodPath,code);
+    writeJSON(lastGoodMetaPath,{...meta,savedAt:new Date().toISOString()});
+  }catch(_){}
+}
+async function runLastGood(){
+  if(!fm.fileExists(lastGoodPath))return false;
+  try{
+    await execute(fm.readString(lastGoodPath));
+    return true;
+  }catch(_){return false}
+}
 async function runStable(manifest,candidateError){
   const wanted=manifest?.stableVersion||"unknown";
   const meta=readJSON(metaPath);
+
+  // When the manifest itself is unavailable (typically offline), prefer the
+  // most recently executed good app over an older stable build.
+  if(!manifest&&await runLastGood())return;
 
   // Prefer the locally cached known-good stable build when versions match.
   if(fm.fileExists(stablePath)&&meta?.version===wanted){
@@ -63,12 +85,14 @@ async function runStable(manifest,candidateError){
     await execute(code);
     fm.writeString(stablePath,code);
     writeJSON(metaPath,{version:wanted,savedAt:new Date().toISOString(),source:stableURL});
+    saveLastGood(code,{kind:"stable",version:wanted,source:stableURL});
     return;
   }catch(stableError){
     // Last resort: any previously successful stable cache, even if version metadata is old.
     if(fm.fileExists(stablePath)){
       try{await execute(fm.readString(stablePath));return}catch(_){}
     }
+    if(await runLastGood())return;
     throw new Error(`candidate=${candidateError||"n/a"}; stable=${stableError}`);
   }
 }
@@ -94,7 +118,8 @@ try{
     try{
       // Candidate is never promoted to the stable cache here.
       // A bad candidate therefore cannot destroy the last known-good stable build.
-      await fetchAndRun(manifest.candidateURL);
+      const code=await fetchAndRun(manifest.candidateURL);
+      saveLastGood(code,{kind:"candidate",version:manifest.candidateVersion||"unknown",source:manifest.candidateURL});
     }catch(e){
       candidateError=String(e);
       await runStable(manifest,candidateError);
