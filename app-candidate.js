@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.7 — Rename heuristic as tide+mazume index and explain its drivers
+// TIDE DASH v0.14.8 — Large scale-up: tighter edges / larger typography / fuller vertical use
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -668,11 +668,11 @@ async function showGuide(){
   await a.presentAlert();
 }
 
-function graph(t,width=650,height=320,bands=null,we=null){
+function graph(t,width=650,height=348,bands=null,we=null){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=38,W=width-L-R,s=t.graphSeries.filter(p=>p.level!=null);
-  const tideH=154,eventY=T+tideH+5,barLabelY=eventY+20,barY=barLabelY+17,barH=31;
-  const timeY=height-34,dateY=height-15;
+  const L=8,R=8,T=40,W=width-L-R,s=t.graphSeries.filter(p=>p.level!=null);
+  const tideH=168,eventY=T+tideH+5,barLabelY=eventY+21,barY=barLabelY+18,barH=34;
+  const timeY=height-35,dateY=height-15;
   let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
   if(Math.abs(mx-mn)<10){mx+=5;mn-=5}
   const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
@@ -689,7 +689,7 @@ function graph(t,width=650,height=320,bands=null,we=null){
       c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),tideH));
       if(label&&x2-x1>48){
         const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
-        c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.warn,.93));
+        c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(C.t.warn,.93));
         c.drawTextInRect(label,new Rect(lx,2,labelW,18));
       }
     }
@@ -726,13 +726,13 @@ function graph(t,width=650,height=320,bands=null,we=null){
     const ex=X(e.absoluteMinute),ey=Y(e.level),col=e.type==="high"?C.t.a:C.t.b;
     c.setFillColor(new Color(col));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
     const lw=70,lx=Math.max(L,Math.min(L+W-lw,ex-lw/2));
-    c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(col,.98));
+    c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(col,.98));
     c.drawTextInRect(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,new Rect(lx,eventY,lw,16));
   });
 
   // 24 one-hour bars. Height = final fishing score for the matching time slot.
   if(we){
-    c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.sub,.92));
+    c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.sub,.92));
     c.drawTextInRect("潮チャンス",new Rect(L,barLabelY,52,14));
     c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
@@ -795,10 +795,10 @@ function graph(t,width=650,height=320,bands=null,we=null){
   c.setStrokeColor(new Color(C.t.fg,.75));c.setLineWidth(2);c.strokePath();
   c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-9,y-9,18,18));
   c.setFillColor(new Color(C.t.b));c.fillEllipse(new Rect(x-5,y-5,10,10));
-  c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(C.t.fg,.88));
+  c.setFont(Font.boldSystemFont(15));c.setTextColor(new Color(C.t.fg,.88));
   c.drawTextInRect("NOW",new Rect(Math.max(L,x-25),T+2,50,18));
 
-  c.setFont(Font.semiboldSystemFont(16));c.setTextColor(new Color(C.t.sub));
+  c.setFont(Font.semiboldSystemFont(17));c.setTextColor(new Color(C.t.sub));
   for(const m of gridTimes){
     const label=clockFromAbs(m),xx=X(m),tw=52;
     c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),timeY,tw,18));
@@ -845,8 +845,8 @@ function text(st,s,z,col,b=false){
 }
 function metric(p,l,v,d=null,d2=null,width=null){
   const b=p.addStack();b.layoutVertically();if(width)b.size=new Size(width,0);b.backgroundColor=new Color(C.t.panel,.55);b.cornerRadius=10;
-  const py=width?9:7;b.setPadding(py,8,py,8);
-  text(b,l,width?10:9,C.t.sub);text(b,v,width?13:12,C.t.fg,true);if(d)text(b,d,width?10:10,C.t.muted);if(d2)text(b,d2,7,C.t.warn,true);return b;
+  const py=width?11:7;b.setPadding(py,8,py,8);
+  text(b,l,width?11:9,C.t.sub);text(b,v,width?15:12,C.t.fg,true);if(d)text(b,d,width?11:10,C.t.muted);if(d2)text(b,d2,7,C.t.warn,true);return b;
 }
 function badgeLine(st,badge,z,col){
   const m=String(badge).match(/^(.*?)(⚠.*)$/);
@@ -858,7 +858,7 @@ function badgeLine(st,badge,z,col){
 function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
   const w=new ListWidget();
-  w.setPadding(large?7:12,14,large?7:10,14);
+  w.setPadding(large?4:12,14,large?4:10,14);
   const g=new LinearGradient();g.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];g.locations=[0,1];w.backgroundGradient=g;
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
   const farAuto=Number.isFinite(distanceKm)&&distanceKm>=C.farKm&&String(badge).includes("AUTO");
@@ -976,27 +976,27 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
   }
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
-  text(pl,farAuto?`${S.name}（参考）`:S.name,24,C.t.fg,true);
-  badgeLine(pl,`${badge}  ▾`,9,badgeColor||C.t.muted);
+  text(pl,farAuto?`${S.name}（参考）`:S.name,27,C.t.fg,true);
+  badgeLine(pl,`${badge}  ▾`,10,badgeColor||C.t.muted);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
   const info=hd.addStack();info.layoutVertically();
-  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,16,C.t.fg,true);
-  text(info,farAuto?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",10,farAuto?C.t.warn:C.t.sub);
+  const d=new Date(),tc=tideCycle(d);text(info,`${d.getMonth()+1}/${d.getDate()}・${tc.name}`,18,C.t.fg,true);
+  text(info,farAuto?"地点未確定":we?`☀︎↑${we.sunrise}  ☀︎↓${we.sunset}`:"JMA",11,farAuto?C.t.warn:C.t.sub);
   hd.addSpacer(8);
 
   const rf=hd.addStack();rf.layoutVertically();rf.backgroundColor=new Color(C.t.panel,.6);rf.cornerRadius=10;rf.setPadding(5,8,5,8);
-  text(rf,"↻",18,C.t.sub,true);if(refreshURL)rf.url=refreshURL;
+  text(rf,"↻",20,C.t.sub,true);if(refreshURL)rf.url=refreshURL;
 
-  w.addSpacer(8);
+  w.addSpacer(4);
 
   if(farAuto){
     const gate=w.addStack();gate.layoutVertically();gate.backgroundColor=new Color(C.t.panel,.48);gate.cornerRadius=14;gate.setPadding(14,14,14,14);
     text(gate,"⚠ 釣り地点を選択",17,C.t.warn,true);
     gate.addSpacer(4);
     text(gate,`現在のAUTO基準点は ${S.name}・約${Math.round(distanceKm)}km先`,10,C.t.fg,true);
-    text(gate,"この距離では潮・まずめ・風・波・地合いを釣行判断に使えないため非表示にしています。",9,C.t.sub);
+    text(gate,"この距離では潮・まずめ指数や風・波を釣行判断に使えないため非表示にしています。",9,C.t.sub);
     gate.addSpacer(10);
     const cta=gate.addStack();cta.layoutHorizontally();cta.backgroundColor=new Color(C.t.bg2,.95);cta.cornerRadius=10;cta.setPadding(8,10,8,10);
     text(cta,"釣り地点を選ぶ  ›",12,C.t.fg,true);cta.addSpacer();
@@ -1006,7 +1006,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     text(note,"地点設定後に表示",9,C.t.muted,true);
     text(note,"潮グラフ・潮チャンス推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
-    const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(8,9,8,9);
+    const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(9,10,9,10);
     if(farAuto){
       const warn=decision.addStack();warn.layoutVertically();
       text(warn,"⚠ 釣り地点を選択",11,C.t.warn,true);
@@ -1014,22 +1014,22 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       if(settingsURL)decision.url=settingsURL;
     }else{
       const nowBox=decision.addStack();nowBox.layoutVertically();
-      text(nowBox,"潮・まずめ",9,C.t.sub,true);
+      text(nowBox,"潮・まずめ",10,C.t.sub,true);
       const nowLine=nowBox.addStack();nowLine.layoutHorizontally();nowLine.centerAlignContent();
-      text(nowLine,fg.stars,17,C.t.fg,true);nowLine.addSpacer(5);text(nowLine,fg.label,10,C.t.muted,true);
+      text(nowLine,fg.stars,20,C.t.fg,true);nowLine.addSpacer(6);text(nowLine,fg.label,11,C.t.muted,true);
       decision.addSpacer();
       const future=decision.addStack();future.layoutVertically();
       const chanceText=best?.display||"--";
-      text(future,"次のピーク",8,C.t.sub,true);
-      text(future,chanceText,11,C.t.warn,true);
+      text(future,"次のピーク",9,C.t.sub,true);
+      text(future,chanceText,13,C.t.warn,true);
 
       if(guideURL)decision.url=guideURL;
     }
   
-    w.addSpacer(4);
-    const im=w.addImage(graph(t,650,320,bands,we));im.imageSize=new Size(325,160);im.applyFittingContentMode();
+    w.addSpacer(2);
+    const im=w.addImage(graph(t,650,348,bands,we));im.imageSize=new Size(325,174);im.applyFittingContentMode();
   
-    w.addSpacer(3);
+    w.addSpacer(2);
     if(we){
       const ms=w.addStack();ms.layoutHorizontally();
       metric(ms,"風",`${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}`,windGuide(we.wind),null,101);
