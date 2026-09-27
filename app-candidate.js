@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.7 — Sharpen tide+mazume scoring valleys between opportunity windows
+// TIDE DASH v0.15.8 — Mazume as independent opportunity mode with overlap boost
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -454,11 +454,19 @@ function fishingScoreAt(t,we,m){
   const tide=tideOpportunityAt(t,m);
   const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
   const magic=lightFactorAt(m,we);
-  const score=Math.round(100*(.70*tide.core+.20*magic+.10*range));
-  return{score,tide,magic,range};
+
+  // Mazume is now an independent opportunity mode, not merely a small bonus.
+  // At the center of mazume, this mode is strong enough to make a "good" window
+  // even when tide timing is weak. Tide + mazume overlap receives a synergy boost.
+  const mazumeMode=.78*Math.pow(magic,1.10);
+  const core=Math.max(tide.core,mazumeMode);
+  const overlap=Math.min(tide.core,mazumeMode);
+  const score=Math.round(100*(.75*core+.15*overlap+.10*range));
+
+  return{score,tide,magic,mazumeMode,overlap,range};
 }
 function fishingGuide(t,we,now=new Date()){
-  const nm=minDay(now),calc=fishingScoreAt(t,we,nm),tide=calc.tide,range=calc.range,magic=calc.magic,score=calc.score;
+  const nm=minDay(now),calc=fishingScoreAt(t,we,nm),tide=calc.tide,range=calc.range,magic=calc.magic,mazumeMode=calc.mazumeMode,overlap=calc.overlap,score=calc.score;
   let label,stars;
   if(score>=78){label="かなり良い";stars="★★★★★"}
   else if(score>=62){label="良い";stars="★★★★☆"}
@@ -480,7 +488,7 @@ function fishingGuide(t,we,now=new Date()){
   else if((we?.wind??0)>=5)condition="風やや強め";
   else condition="釣行条件は穏やか";
 
-  return{score,label,stars,shortReason:tideReason,tideMove:tide.move,tideTurn:tide.turn,tideCore:tide.core,magic,range,condition};
+  return{score,label,stars,shortReason:tideReason,tideMove:tide.move,tideTurn:tide.turn,tideCore:tide.core,magic,mazumeMode,overlap,range,condition};
 }
 
 function tideMoveAt(t,m){
@@ -667,6 +675,7 @@ async function showGuide(){
     `潮の動き：${Math.round(g.tideMove*100)}%`,
     `満干潮前後：${Math.round(g.tideTurn*100)}%`,
     `まずめ：${Math.round(g.magic*100)}%`,
+    `まずめモード：${Math.round(g.mazumeMode*100)}%`,
     `潮差：${Math.round(g.range*100)}%`,
     `次の満干潮：${next}`,
     `次のピーク：${best?.display??"--"}`,
@@ -677,11 +686,11 @@ async function showGuide(){
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
-    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
+    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめ単独でも候補になり、潮条件と重なると強く評価します。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
-    "潮要素は『満干潮の中間付近で潮位変化が大きい時間』と『満干潮前後の短い暫定候補』を別々に評価し、強い方を採用します。その間には意図的に弱い時間帯を作っています。満干潮前後は実際の潮止まり時刻を示すものではありません。"
+    "潮は『満干潮の中間付近で潮位変化が大きい時間』と『満干潮前後の短い暫定候補』を別々に評価します。朝夕まずめも独立モードとして評価し、潮とまずめが重なる時間を最も強くします。満干潮前後は実際の潮止まり時刻を示すものではありません。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
