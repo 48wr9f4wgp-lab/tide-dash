@@ -1,4 +1,4 @@
-// TIDE DASH v0.17.0 — Reliability pass: validated cache / partial-data warnings / trust gates / coverage-safe forecast
+// TIDE DASH v0.17.1 — Payload completeness validation / precise stale-source warnings
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -421,8 +421,23 @@ async function weather(now,S){
   const wu=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&wind_speed_unit=ms&timezone=${tz}&forecast_days=2`;
   const mu=`https://marine-api.open-meteo.com/v1/marine?latitude=${S.lat}&longitude=${S.lon}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction&timezone=${tz}&forecast_days=2&cell_selection=sea`;
   const k=hourKey(now),todayKey=dateKey(now),nextKey=dateKey(addDay(now,1));
-  const validWeather=o=>Array.isArray(o?.hourly?.time)&&o.hourly.time.includes(k)&&Array.isArray(o?.daily?.time)&&o.daily.time.includes(todayKey)&&Array.isArray(o?.daily?.sunrise)&&Array.isArray(o?.daily?.sunset);
-  const validMarine=o=>Array.isArray(o?.hourly?.time)&&o.hourly.time.includes(k)&&Array.isArray(o?.hourly?.wave_height);
+  const validWeather=o=>{
+    if(!Array.isArray(o?.hourly?.time)||!Array.isArray(o?.daily?.time))return false;
+    const hi=o.hourly.time.indexOf(k),di=o.daily.time.indexOf(todayKey),dni=o.daily.time.indexOf(nextKey);
+    if(hi<0||di<0||dni<0)return false;
+    const nums=[
+      o.hourly?.precipitation?.[hi],
+      o.hourly?.wind_speed_10m?.[hi],
+      o.hourly?.wind_direction_10m?.[hi]
+    ];
+    const sun=[o.daily?.sunrise?.[di],o.daily?.sunset?.[di],o.daily?.sunrise?.[dni],o.daily?.sunset?.[dni]];
+    return nums.every(Number.isFinite)&&sun.every(x=>typeof x==="string"&&x.length>=16);
+  };
+  const validMarine=o=>{
+    if(!Array.isArray(o?.hourly?.time))return false;
+    const hi=o.hourly.time.indexOf(k);
+    return hi>=0&&Number.isFinite(o?.hourly?.wave_height?.[hi]);
+  };
   const w=await cachedJSON(wu,`weather_${S.code}.json`,25*60000,validWeather,C.weatherFallbackMaxMin);
   let m=null,marineIssue=null;
   try{m=await cachedJSON(mu,`marine_${S.code}.json`,25*60000,validMarine,C.weatherFallbackMaxMin)}catch(_){marineIssue="波を取得できません"}
@@ -751,7 +766,8 @@ async function showGuide(){
   if(!guideWarning&&wp?.issues?.length)guideWarning=wp.issues.join(" / ");
   if(!guideWarning&&NET.fallbacks.length){
     const ages=NET.fallbacks.map(x=>x.ageMin).filter(x=>x!=null),age=ages.length?Math.max(...ages):null;
-    guideWarning=age==null?"過去の天気/波データ":age<60?`天気/波 ${age}分前のデータ`:`天気/波 ${Math.floor(age/60)}時間前のデータ`;
+    const labels=[...new Set(NET.fallbacks.map(x=>x.key.startsWith("marine_")?"波":"天気"))].join("/");
+    guideWarning=age==null?`${labels} 過去のデータ`:age<60?`${labels} ${age}分前のデータ`:`${labels} ${Math.floor(age/60)}時間前のデータ`;
   }
   const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we),hasLight=hasMazumeData(we),idxTitle=indexTitle(we);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
