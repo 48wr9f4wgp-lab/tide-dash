@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.6 — Large layout density pass: use top/bottom space and enlarge core data
+// TIDE DASH v0.14.7 — Rename heuristic as tide+mazume index and explain its drivers
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -453,11 +453,11 @@ function fishingScoreAt(t,we,m){
 function fishingGuide(t,we,now=new Date()){
   const nm=minDay(now),calc=fishingScoreAt(t,we,nm),tide=calc.tide,range=calc.range,magic=calc.magic,score=calc.score;
   let label,stars;
-  if(score>=78){label="かなり狙い目";stars="★★★★★"}
-  else if(score>=62){label="狙い目";stars="★★★★☆"}
-  else if(score>=45){label="まだ狙える";stars="★★★☆☆"}
+  if(score>=78){label="かなり良い";stars="★★★★★"}
+  else if(score>=62){label="良い";stars="★★★★☆"}
+  else if(score>=45){label="まずまず";stars="★★★☆☆"}
   else if(score>=28){label="やや弱い";stars="★★☆☆☆"}
-  else{label="潮待ち";stars="★☆☆☆☆"}
+  else{label="弱い";stars="★☆☆☆☆"}
 
   let tideReason;
   if(tide.turn>=.7)tideReason="満干潮前後の地合い候補";
@@ -642,13 +642,13 @@ async function showGuide(){
   const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
   const a=new Alert();
-  a.title=`🎣 ${g.label}  ${g.stars}`;
+  a.title=`🌊 潮・まずめ ${g.stars}`;
   a.message=[
-    `今の目安：${g.score}/100`,
-    `潮が動く要素：${Math.round(g.tideMove*100)}%`,
-    `満干潮前後要素：${Math.round(g.tideTurn*100)}%`,
-    `マヅメ要素：${Math.round(g.magic*100)}%`,
-    `潮差要素：${Math.round(g.range*100)}%`,
+    `潮・まずめ指数：${g.score}/100`,
+    `潮の動き：${Math.round(g.tideMove*100)}%`,
+    `満干潮前後：${Math.round(g.tideTurn*100)}%`,
+    `まずめ：${Math.round(g.magic*100)}%`,
+    `潮差：${Math.round(g.range*100)}%`,
     `次の満干潮：${next}`,
     `次のピーク：${best?.display??"--"}`,
     `風：${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s "+dir8(we.windDir)+" / "+windGuide(we.wind):"--"}`,
@@ -658,7 +658,7 @@ async function showGuide(){
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
-    "これは『釣れる確率』ではありません。潮が動く時間・満干潮前後の暫定地合い・朝夕マヅメ・潮差から作る初心者向けの目安です。魚種、水温適性、ベイト、地形、仕掛けなどはスコア未考慮です。",
+    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
@@ -733,7 +733,7 @@ function graph(t,width=650,height=320,bands=null,we=null){
   // 24 one-hour bars. Height = final fishing score for the matching time slot.
   if(we){
     c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.sub,.92));
-    c.drawTextInRect("地合い",new Rect(L,barLabelY,52,14));
+    c.drawTextInRect("潮チャンス",new Rect(L,barLabelY,52,14));
     c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
     const samples=[];
@@ -895,7 +895,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(5);
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();
     const nowBox=decision.addStack();nowBox.layoutVertically();
-    text(nowBox,"今の地合い",7,C.t.sub,true);
+    text(nowBox,"潮・まずめ",7,C.t.sub,true);
     text(nowBox,fg.stars,12,C.t.fg,true);
     text(nowBox,fg.label,7,C.t.muted,true);
     decision.addSpacer();
@@ -948,7 +948,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(4);
     const ms=w.addStack();ms.layoutHorizontally();ms.centerAlignContent();
     const nowBox=ms.addStack();nowBox.layoutVertically();
-    text(nowBox,"今の地合い",8,C.t.sub,true);
+    text(nowBox,"潮・まずめ",8,C.t.sub,true);
     const nl=nowBox.addStack();nl.layoutHorizontally();nl.centerAlignContent();
     text(nl,fg.stars,13,C.t.fg,true);nl.addSpacer(4);text(nl,fg.label,8,C.t.muted,true);
     ms.addSpacer();
@@ -1004,7 +1004,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(10);
     const note=w.addStack();note.layoutVertically();
     text(note,"地点設定後に表示",9,C.t.muted,true);
-    text(note,"潮グラフ・地合い推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
+    text(note,"潮グラフ・潮チャンス推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(8,9,8,9);
     if(farAuto){
@@ -1014,7 +1014,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       if(settingsURL)decision.url=settingsURL;
     }else{
       const nowBox=decision.addStack();nowBox.layoutVertically();
-      text(nowBox,"今の地合い",9,C.t.sub,true);
+      text(nowBox,"潮・まずめ",9,C.t.sub,true);
       const nowLine=nowBox.addStack();nowLine.layoutHorizontally();nowLine.centerAlignContent();
       text(nowLine,fg.stars,17,C.t.fg,true);nowLine.addSpacer(5);text(nowLine,fg.label,10,C.t.muted,true);
       decision.addSpacer();
