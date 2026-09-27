@@ -61,14 +61,15 @@ def main():
             if not (20<=lat<=50 and 120<=lon<=150):
                 continue
             seen.add(code)
-            pref_code=code.zfill(7)[:2]
+            admin=norm_code(rec.get("C09_003")).zfill(5)
+            pref_code=admin[:2]
             d,st=nearest_station(lat,lon,stations)
             ports.append({
                 "id":f"c09-{code}",
                 "name":name,
                 "prefecture":PREFS.get(pref_code,""),
                 "prefectureCode":pref_code,
-                "adminCode":norm_code(rec.get("C09_003")),
+                "adminCode":admin,
                 "class":norm_code(rec.get("C09_004")),
                 "lat":round(lat,6),
                 "lon":round(lon,6),
