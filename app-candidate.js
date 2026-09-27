@@ -1,4 +1,4 @@
-// TIDE DASH v0.19.0 — Nationwide fishing-port browser: keyword + region/prefecture filters
+// TIDE DASH v0.19.1 — Tide-reference transparency: station name + distance + fixed-spot caution
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -14,6 +14,8 @@ const C={
   mazumeCoreMin:30,
   mazumeFadeMin:90,
   weatherFallbackMaxMin:180,
+  tideRefCautionKm:30,
+  tideRefWarnKm:50,
   defaultFav:{code:"UC",name:"内浦",lat:35.0167,lon:138.8833,area:"沼津"},
   t:{
     bg1:"#061824",bg2:"#0A3147",panel:"#0E3A50",
@@ -337,12 +339,35 @@ function nearest(st,loc){
   }
   return best;
 }
+function tideReferenceFor(place,stations){
+  if(!place?.code)return null;
+  const ref=stations.find(x=>x.code===place.code)||null;
+  const name=place.tideName||ref?.name||place.code;
+  let distanceKm=null;
+  if(ref&&Number.isFinite(place?.lat)&&Number.isFinite(place?.lon)){
+    distanceKm=km(place.lat,place.lon,ref.lat,ref.lon);
+  }else if(Number.isFinite(place?.tideDistanceKm)){
+    distanceKm=Number(place.tideDistanceKm);
+  }
+  return{name,distanceKm,code:place.code};
+}
+function tideReferenceUI(ref){
+  if(!ref?.name||!Number.isFinite(ref.distanceKm))return{text:"",level:"unknown"};
+  const d=ref.distanceKm,ds=d<10?d.toFixed(1):String(Math.round(d));
+  if(d>=C.tideRefWarnKm)return{text:`⚠ 潮:${ref.name} ${ds}km 参考`,level:"warn"};
+  if(d>=C.tideRefCautionKm)return{text:`潮:${ref.name} ${ds}km 参考`,level:"caution"};
+  return{text:`潮:${ref.name} ${ds}km`,level:"near"};
+}
 async function currentLocation(){Location.setAccuracyToKilometer();return await Location.current()}
 
 async function resolveStation(force=false){
   const p=loadPrefs(),stations=await stationCatalog();
   if(p.mode==="fixed"){
-    return{station:p.fixedStation||p.favorites[0]||C.defaultFav,prefs:p,badge:"★ 固定",badgeColor:C.t.a,distanceKm:null,locationState:"fixed"};
+    const fixed=p.fixedStation||p.favorites[0]||C.defaultFav;
+    return{
+      station:fixed,prefs:p,badge:"★ 固定",badgeColor:C.t.a,distanceKm:null,
+      locationState:"fixed",tideRef:tideReferenceFor(fixed,stations)
+    };
   }
   let loc=null;
   try{
@@ -362,7 +387,8 @@ async function resolveStation(force=false){
       return{
         station:n,prefs:p,
         badge:d>=C.farKm?`AUTO · ⚠ ${d}km`:`AUTO · ${d}km`,
-        badgeColor:C.t.muted,distanceKm:d,locationState:d>=C.farKm?"far":"current"
+        badgeColor:C.t.muted,distanceKm:d,locationState:d>=C.farKm?"far":"current",
+        tideRef:{name:n.name,distanceKm:0,code:n.code}
       };
     }
   }
@@ -922,7 +948,14 @@ async function showGuide(){
   const a=new Alert();
   a.title=`🌊 ${idxTitle} ${g.stars}`;
   a.message=[
-    ["spot","area","fishing_port"].includes(r.station?.kind)?`地点：${r.station.name} / 潮位基準点：${r.station.tideName||r.station.code}`:`地点：${r.station.name}`,
+    ["spot","area","fishing_port"].includes(r.station?.kind)
+      ?`地点：${r.station.name} / 潮位基準点：${r.tideRef?.name||r.station.tideName||r.station.code}${Number.isFinite(r.tideRef?.distanceKm)?" "+(r.tideRef.distanceKm<10?r.tideRef.distanceKm.toFixed(1):Math.round(r.tideRef.distanceKm))+"km":""}`
+      :`地点：${r.station.name}`,
+    Number.isFinite(r.tideRef?.distanceKm)&&r.tideRef.distanceKm>=C.tideRefWarnKm
+      ?"潮位注意：基準点が50km以上離れているため参考表示です。"
+      :Number.isFinite(r.tideRef?.distanceKm)&&r.tideRef.distanceKm>=C.tideRefCautionKm
+        ?"潮位注意：基準点が30km以上離れているため参考として見てください。"
+        :"",
     r.station?.kind==="fishing_port"?"漁港位置：国土数値情報2006年度版（現況要確認）":"",
     `${idxTitle}指数：${g.score}/100`,
     `潮の動き：${Math.round(g.tideMove*100)}%`,
@@ -1131,7 +1164,7 @@ function badgeLine(st,badge,z,col){
   text(r,m[1],z,col,true);text(r,m[2],z,C.t.warn,true);return r;
 }
 
-function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="current"){
+function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="current",tideRef=null){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
   const w=new ListWidget();
   w.setPadding(large?4:12,14,large?4:10,14);
@@ -1141,6 +1174,8 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   const locationBlocked=farAuto||locationState==="previous"||locationState==="missing";
   const fg=locationBlocked?null:fishingGuide(t,we,new Date()),best=locationBlocked?null:bestFishingWindow(t,we),bands=locationBlocked?[]:timingBands(t,we,best);
   const idxTitle=locationBlocked?"潮・まずめ":indexTitle(we),peakUI=peakSummary(best);
+  const showTideRef=locationState==="fixed"&&["spot","area","fishing_port"].includes(S?.kind);
+  const tideRefUI=showTideRef?tideReferenceUI(tideRef):{text:"",level:"unknown"};
   const blockTitle=farAuto?"⚠ 釣り地点を選択":"⚠ 現在地を確認できません";
   const blockShort=farAuto
     ?`最寄り潮位地点まで ${Math.round(distanceKm)}km`
@@ -1158,7 +1193,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     const sl=sh.addStack();sl.layoutVertically();
     text(sl,S.name,14,C.t.fg,true);
     const smallBadge=String(badge).replace(/AUTO\s*·\s*/,"AUTO ").replace(/\s+/g," ").trim();
-    badgeLine(sl,`${smallBadge}  ▾`,7,badgeColor||C.t.muted);
+    badgeLine(sl,`${smallBadge}${tideRefUI.text?" · "+tideRefUI.text:""}  ▾`,7,badgeColor||C.t.muted);
     if(settingsURL)sl.url=settingsURL;
     sh.addSpacer();
     const sd=new Date(),stc=tideCycle(sd),sr=sh.addStack();sr.layoutVertically();
@@ -1216,7 +1251,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     const mh=w.addStack();mh.layoutHorizontally();mh.centerAlignContent();
     const ml=mh.addStack();ml.layoutVertically();
     text(ml,S.name,15,C.t.fg,true);
-    badgeLine(ml,`${badge}  ▾`,8,badgeColor||C.t.sub);
+    badgeLine(ml,`${badge}${tideRefUI.text?" · "+tideRefUI.text:""}  ▾`,8,badgeColor||C.t.sub);
     if(settingsURL)ml.url=settingsURL;
     mh.addSpacer();
     const md=mh.addStack();md.layoutVertically();
@@ -1280,7 +1315,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   const hd=w.addStack();hd.layoutHorizontally();hd.centerAlignContent();
   const pl=hd.addStack();pl.layoutVertically();
   text(pl,locationBlocked?`${S.name}（参考）`:S.name,27,C.t.fg,true);
-  badgeLine(pl,`${badge}  ▾`,10,badgeColor||C.t.muted);
+  badgeLine(pl,`${badge}${tideRefUI.text?" · "+tideRefUI.text:""}  ▾`,10,badgeColor||C.t.muted);
   if(settingsURL)pl.url=settingsURL;
   hd.addSpacer();
 
@@ -1348,7 +1383,7 @@ async function buildCurrent(forceLocation=false){
   const r=await resolveStation(forceLocation),now=new Date();
   const locationBlocked=["far","previous","missing"].includes(r.locationState);
   if(locationBlocked){
-    return widget(null,null,r.station,r.badge,r.badgeColor,null,r.distanceKm,r.locationState);
+    return widget(null,null,r.station,r.badge,r.badgeColor,null,r.distanceKm,r.locationState,r.tideRef);
   }
   let t,wp=null,err=null;
   try{t=await tide(now,r.station)}
@@ -1365,7 +1400,7 @@ async function buildCurrent(forceLocation=false){
     const stale=age==null?`⚠ ${labels} 過去のデータ`:age<60?`⚠ ${labels} ${age}分前のデータ`:`⚠ ${labels} ${Math.floor(age/60)}時間前のデータ`;
     err=err?`${err} / ${stale}`:stale;
   }
-  return widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm,r.locationState);
+  return widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm,r.locationState,r.tideRef);
 }
 async function present(w){
   const f=config.widgetFamily||"large";
