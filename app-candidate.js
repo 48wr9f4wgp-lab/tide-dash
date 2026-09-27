@@ -1,4 +1,4 @@
-// TIDE DASH v0.16.0 — Timing consistency pass: aligned 30m bins / exact NOW / unified mazume / no fake peaks
+// TIDE DASH v0.16.1 — Small/Medium semantic alignment / tide-only fallback
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -477,7 +477,7 @@ function fishingGuide(t,we,now=new Date()){
   else{label="弱い";stars="★☆☆☆☆"}
 
   let tideReason;
-  if(tide.turn>=.7)tideReason="満干潮前後の地合い候補";
+  if(tide.turn>=.7)tideReason="満干潮前後の候補";
   else if(tide.move>=.75)tideReason="潮がよく動く時間帯";
   else if(tide.turn>tide.move)tideReason="満干潮へ近づく時間帯";
   else tideReason="潮の動きは弱め";
@@ -588,6 +588,16 @@ function eventDayWord(e){
   return d===1?"明日 ":d===2?"明後日 ":"";
 }
 
+function hasMazumeData(we){
+  return hmMinute(we?.sunrise)!=null||hmMinute(we?.sunset)!=null||
+    hmMinute(we?.sunriseNext)!=null||hmMinute(we?.sunsetNext)!=null;
+}
+function indexTitle(we){return hasMazumeData(we)?"潮・まずめ":"潮のみ"}
+function peakSummary(best){
+  if(best?.display==="今")return{title:"ピーク中",value:null};
+  return{title:"次のピーク",value:best?.display||"候補なし"};
+}
+
 function tideRead(t){
   const p=t.phaseProgress==null?.5:Math.max(0,Math.min(1,t.phaseProgress));
   const down=t.previousEvent?.type==="high"&&t.nextEvent?.type==="low";
@@ -681,19 +691,19 @@ async function showGuide(){
   const r=await resolveStation(false),now=new Date();
   let t,wp=null;
   try{t=await tide(now,r.station)}catch(e){
-    const a=new Alert();a.title="釣りチャンス";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
+    const a=new Alert();a.title="潮・まずめ";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
   try{wp=await weather(now,r.station)}catch(_){}
-  const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we);
+  const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we),hasLight=hasMazumeData(we),idxTitle=indexTitle(we);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
   const a=new Alert();
-  a.title=`🌊 潮・まずめ ${g.stars}`;
+  a.title=`🌊 ${idxTitle} ${g.stars}`;
   a.message=[
-    `潮・まずめ指数：${g.score}/100`,
+    `${idxTitle}指数：${g.score}/100`,
     `潮の動き：${Math.round(g.tideMove*100)}%`,
     `満干潮前後：${Math.round(g.tideTurn*100)}%`,
-    `まずめ：${Math.round(g.magic*100)}%`,
-    `まずめモード：${Math.round(g.mazumeMode*100)}%`,
+    `まずめ：${hasLight?Math.round(g.magic*100)+"%":"取得できず"}`,
+    `まずめモード：${hasLight?Math.round(g.mazumeMode*100)+"%":"--"}`,
     `潮差：${Math.round(g.range*100)}%`,
     `次の満干潮：${next}`,
     `次のピーク：${best?.display??"候補なし"}`,
@@ -704,7 +714,7 @@ async function showGuide(){
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
-    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめは日の出・日の入り±30分を中心帯、±90分を評価範囲として、グラフ表示と計算で同じ範囲を使います。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
+    hasLight?"これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめは日の出・日の入り±30分を中心帯、±90分を評価範囲として、グラフ表示と計算で同じ範囲を使います。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。":"天気データを取得できないため、現在はまずめを除いた『潮のみ指数』です。",
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
@@ -902,6 +912,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
   const we=wp?.current??null,settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh"),guideURL=scriptURL("guide"),tideHelpURL=scriptURL("tidehelp");
   const farAuto=Number.isFinite(distanceKm)&&distanceKm>=C.farKm&&String(badge).includes("AUTO");
   const fg=fishingGuide(t,we,new Date()),best=farAuto?null:bestFishingWindow(t,we),bands=farAuto?[]:timingBands(t,we,best);
+  const idxTitle=indexTitle(we),peakUI=peakSummary(best);
 
   // Dedicated small layout: fishing-first glance.
   if(small){
@@ -925,7 +936,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       const fw=w.addStack();fw.layoutVertically();fw.backgroundColor=new Color(C.t.panel,.48);fw.cornerRadius=10;fw.setPadding(7,8,7,8);
       text(fw,"⚠ 釣り地点を選択",10,C.t.warn,true);
       text(fw,`最寄り潮位地点まで ${Math.round(distanceKm)}km`,7,C.t.muted);
-      text(fw,"地点設定後に地合い・潮・風・波を表示",7,C.t.sub);
+      text(fw,"地点設定後に潮・まずめ・風・波を表示",7,C.t.sub);
       if(settingsURL)fw.url=settingsURL;
       w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
       return w;
@@ -934,13 +945,17 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(5);
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();
     const nowBox=decision.addStack();nowBox.layoutVertically();
-    text(nowBox,"潮・まずめ",7,C.t.sub,true);
+    text(nowBox,idxTitle,7,C.t.sub,true);
     text(nowBox,fg.stars,12,C.t.fg,true);
     text(nowBox,fg.label,7,C.t.muted,true);
     decision.addSpacer();
     const peakBox=decision.addStack();peakBox.layoutVertically();
-    text(peakBox,"次のピーク",7,C.t.sub,true);
-    text(peakBox,best?.display||"候補なし",8,C.t.warn,true);
+    if(peakUI.value==null){
+      text(peakBox,"ピーク中",9,C.t.warn,true);
+    }else{
+      text(peakBox,peakUI.title,7,C.t.sub,true);
+      text(peakBox,peakUI.value,8,C.t.warn,true);
+    }
     if(guideURL)decision.url=guideURL;
 
     w.addSpacer(4);
@@ -978,7 +993,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
       const fw=w.addStack();fw.layoutVertically();fw.backgroundColor=new Color(C.t.panel,.48);fw.cornerRadius=10;fw.setPadding(7,9,7,9);
       text(fw,"⚠ 釣り地点を選択",12,C.t.warn,true);
       text(fw,`最寄り潮位地点まで ${Math.round(distanceKm)}km`,8,C.t.muted);
-      text(fw,"地点設定後に 地合い・潮・まずめ・風・波 を表示",8,C.t.sub);
+      text(fw,"地点設定後に 潮・まずめ・風・波 を表示",8,C.t.sub);
       if(settingsURL)fw.url=settingsURL;
       w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
       return w;
@@ -987,13 +1002,17 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(4);
     const ms=w.addStack();ms.layoutHorizontally();ms.centerAlignContent();
     const nowBox=ms.addStack();nowBox.layoutVertically();
-    text(nowBox,"潮・まずめ",8,C.t.sub,true);
+    text(nowBox,idxTitle,8,C.t.sub,true);
     const nl=nowBox.addStack();nl.layoutHorizontally();nl.centerAlignContent();
     text(nl,fg.stars,13,C.t.fg,true);nl.addSpacer(4);text(nl,fg.label,8,C.t.muted,true);
     ms.addSpacer();
     const peakBox=ms.addStack();peakBox.layoutVertically();
-    text(peakBox,"次のピーク",8,C.t.sub,true);
-    text(peakBox,best?.display||"候補なし",10,C.t.warn,true);
+    if(peakUI.value==null){
+      text(peakBox,"ピーク中",11,C.t.warn,true);
+    }else{
+      text(peakBox,peakUI.title,8,C.t.sub,true);
+      text(peakBox,peakUI.value,10,C.t.warn,true);
+    }
 
     if(guideURL)ms.url=guideURL;
 
@@ -1043,21 +1062,20 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(10);
     const note=w.addStack();note.layoutVertically();
     text(note,"地点設定後に表示",9,C.t.muted,true);
-    text(note,"潮グラフ・潮・まずめ推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
+    text(note,"潮グラフ・潮/まずめ指数・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(9,10,9,10);
     const nowBox=decision.addStack();nowBox.layoutVertically();
-    text(nowBox,"潮・まずめ",10,C.t.sub,true);
+    text(nowBox,idxTitle,10,C.t.sub,true);
     const nowLine=nowBox.addStack();nowLine.layoutHorizontally();nowLine.centerAlignContent();
     text(nowLine,fg.stars,20,C.t.fg,true);nowLine.addSpacer(6);text(nowLine,fg.label,11,C.t.muted,true);
     decision.addSpacer();
     const future=decision.addStack();future.layoutVertically();
-    const inPeak=best?.display==="今",chanceText=best?.display||"候補なし";
-    if(inPeak){
+    if(peakUI.value==null){
       text(future,"ピーク中",14,C.t.warn,true);
     }else{
-      text(future,"次のピーク",9,C.t.sub,true);
-      text(future,chanceText,13,C.t.warn,true);
+      text(future,peakUI.title,9,C.t.sub,true);
+      text(future,peakUI.value,13,C.t.warn,true);
     }
     if(guideURL)decision.url=guideURL;
   
