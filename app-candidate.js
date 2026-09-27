@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.9 — Terminology cleanup: unify tide+mazume labels
+// TIDE DASH v0.15.0 — Validation pass: one scoring engine for stars / next peak / timeline
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -498,25 +498,36 @@ function fishingWindowLabel(start,end){
   if(ds===de)return `${prefix(ds)}${clockFromAbs(start)}〜${clockFromAbs(end)}`;
   return `${prefix(ds)}${clockFromAbs(start)}〜${prefix(de)}${clockFromAbs(end)}`;
 }
-function bestFishingWindow(t,we){
-  const start=Math.ceil(t.nowMin/30)*30,samples=[];
-  for(let i=0;i<=44;i++){
-    const minute=start+i*30,calc=fishingScoreAt(t,we,minute);
+function fishingPeaks(t,we,start,end){
+  const samples=[],from=Math.floor(start/30)*30,to=Math.ceil(end/30)*30;
+  for(let minute=from;minute<=to;minute+=30){
+    const calc=fishingScoreAt(t,we,minute);
     samples.push({minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic});
   }
-  let peak=null;
+  const peaks=[];
   for(let i=1;i<samples.length-1;i++){
     const a=samples[i-1],b=samples[i],c=samples[i+1];
     const localMax=b.score>=a.score&&b.score>=c.score&&(b.score>a.score||b.score>c.score);
-    if(localMax&&b.score>=45){peak=b;break}
+    if(localMax&&b.score>=45)peaks.push(b);
   }
+  return peaks;
+}
+function bestFishingWindow(t,we){
+  const start=t.nowMin-60,end=t.nowMin+1320,peaks=fishingPeaks(t,we,start,end);
+  let peak=peaks.find(p=>Math.abs(p.minute-t.nowMin)<=30);
+  if(!peak)peak=peaks.find(p=>p.minute>t.nowMin+30);
   if(!peak){
-    peak=samples.filter(x=>x.minute>=t.nowMin).reduce((a,b)=>!a||b.score>a.score?b:a,null);
+    const from=Math.ceil(t.nowMin/30)*30;
+    for(let minute=from;minute<=end;minute+=30){
+      const calc=fishingScoreAt(t,we,minute);
+      if(!peak||calc.score>peak.score)peak={minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic};
+    }
   }
   if(!peak)return null;
   const delta=Math.max(0,peak.minute-t.nowMin),windowStart=peak.minute-30,windowEnd=peak.minute+30;
-  return{...peak,delta,windowStart,windowEnd,display:delta<=30?"今":fishingWindowLabel(windowStart,windowEnd)};
+  return{...peak,delta,windowStart,windowEnd,display:Math.abs(peak.minute-t.nowMin)<=30?"今":fishingWindowLabel(windowStart,windowEnd)};
 }
+
 function mazumeWindows(t,we){
   const out=[];
   const add=(minute,label)=>{
@@ -577,26 +588,27 @@ function tideStateText(t,tr){
   return `${tr.up?"↗":"↘"} ${tr.direction}${tr.stage}${pct?" "+pct:""}`;
 }
 function tideBrief(tr){return tr.meaning}
+function displayed1(v){
+  if(v==null||Number.isNaN(Number(v)))return null;
+  return Math.round(Number(v)*10)/10;
+}
 function windGuide(v){
-  if(v==null||Number.isNaN(Number(v)))return "--";
-  v=Number(v);
+  v=displayed1(v);if(v==null)return "--";
   if(v<3)return "穏やか";
   if(v<5)return "まずまず";
   if(v<8)return "風強め";
   return "強風";
 }
 function waveGuide(v){
-  if(v==null||Number.isNaN(Number(v)))return "--";
-  v=Number(v);
+  v=displayed1(v);if(v==null)return "--";
   if(v<.5)return "低い";
   if(v<1)return "やや波";
   if(v<1.5)return "波高め";
   return "高波";
 }
 function rainGuide(v){
-  if(v==null||Number.isNaN(Number(v)))return "--";
-  v=Number(v);
-  if(v<=.05)return "ほぼなし";
+  v=displayed1(v);if(v==null)return "--";
+  if(v<=0)return "ほぼなし";
   if(v<1)return "小雨";
   if(v<3)return "雨";
   return "強め";
@@ -739,37 +751,43 @@ function graph(t,width=650,height=348,bands=null,we=null){
     const samples=[];
     for(let i=0;i<n;i++){
       const slotStart=t.graphStart+i*60;
-      // Use the stronger of the two half-hour checks so a narrow peak is not missed by the 1h bars.
       const a=fishingScoreAt(t,we,slotStart+15),b=fishingScoreAt(t,we,slotStart+45);
       samples.push({i,score:Math.max(a.score,b.score)});
     }
 
-    // Keep the strip sparse: select only meaningful local peaks, separated by at least 3 hours.
-    const peaks=samples.filter((x,i)=>{
-      const p=samples[i-1]?.score??-1,nx=samples[i+1]?.score??-1;
-      return x.score>=45&&x.score>=p&&x.score>=nx&&(x.score>p||x.score>nx);
-    }).sort((a,b)=>b.score-a.score);
-
+    const allPeaks=fishingPeaks(t,we,t.graphStart,t.graphEnd);
+    const next=bestFishingWindow(t,we);
     const chosen=[];
-    for(const p of peaks){
-      if(chosen.every(q=>Math.abs(q.i-p.i)>=3)){chosen.push(p);if(chosen.length>=4)break}
+    if(next&&next.minute>=t.graphStart&&next.minute<=t.graphEnd)chosen.push(next);
+
+    // Keep at most three visible clusters. The next chronological peak is always first;
+    // additional peaks are the strongest distinct peaks at least 3h away.
+    const extras=allPeaks
+      .filter(p=>!next||Math.abs(p.minute-next.minute)>30)
+      .sort((a,b)=>b.score-a.score);
+    for(const p of extras){
+      if(chosen.every(q=>Math.abs(q.minute-p.minute)>=180)){chosen.push(p);if(chosen.length>=3)break}
     }
-    chosen.sort((a,b)=>a.i-b.i);
 
     const visible=new Map();
+    const peakBin=p=>Math.max(0,Math.min(n-1,Math.floor((p.minute-t.graphStart)/60)));
     for(const p of chosen){
-      visible.set(p.i,{score:p.score,weight:1});
-      for(const j of [p.i-1,p.i+1]){
+      const i=peakBin(p),score=p.score;
+      visible.set(i,{score,weight:1,isNext:!!next&&Math.abs(p.minute-next.minute)<=30});
+      for(const j of [i-1,i+1]){
         if(j<0||j>=n)continue;
         const ns=samples[j].score;
-        if(ns>=35&&!visible.has(j))visible.set(j,{score:ns,weight:.48});
+        if(ns>=35&&!visible.has(j))visible.set(j,{score:ns,weight:.48,isNext:false});
       }
     }
 
-    // If NOW itself is at least a real candidate, keep a subdued current bar even when it is not a selected peak.
+    // NOW uses the exact same current score as the star card.
     const nowIndex=Math.max(0,Math.min(n-1,Math.floor((t.nowMin-t.graphStart)/60)));
-    if(samples[nowIndex]?.score>=45&&!visible.has(nowIndex)){
-      visible.set(nowIndex,{score:samples[nowIndex].score,weight:.42});
+    const currentScore=fishingScoreAt(t,we,t.nowMin).score;
+    if(currentScore>=45){
+      const existing=visible.get(nowIndex);
+      if(existing)existing.score=Math.max(existing.score,currentScore);
+      else visible.set(nowIndex,{score:currentScore,weight:.42,isNext:false});
     }
 
     for(let i=0;i<n;i++){
@@ -779,7 +797,7 @@ function graph(t,width=650,height=348,bands=null,we=null){
       const shown=score>=80?1:Math.max(.18,Math.pow(Math.max(0,(score-35)/45),.78));
       const bh=Math.max(3,barH*shown*v.weight);
       const bx=L+i*(bw+gap),by=barY+barH-bh;
-      const alpha=(.34+.58*shown)*(.72+.28*v.weight);
+      const alpha=Math.min(1,(.34+.58*shown)*(.72+.28*v.weight)+(v.isNext?.10:0));
       c.setFillColor(new Color(C.t.warn,alpha));
       c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
 
@@ -1007,24 +1025,16 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     text(note,"潮グラフ・潮・まずめ推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(9,10,9,10);
-    if(farAuto){
-      const warn=decision.addStack();warn.layoutVertically();
-      text(warn,"⚠ 釣り地点を選択",11,C.t.warn,true);
-      text(warn,`AUTO地点が${Math.round(distanceKm)}km離れているため地合い判定を停止中`,8,C.t.muted);
-      if(settingsURL)decision.url=settingsURL;
-    }else{
-      const nowBox=decision.addStack();nowBox.layoutVertically();
-      text(nowBox,"潮・まずめ",10,C.t.sub,true);
-      const nowLine=nowBox.addStack();nowLine.layoutHorizontally();nowLine.centerAlignContent();
-      text(nowLine,fg.stars,20,C.t.fg,true);nowLine.addSpacer(6);text(nowLine,fg.label,11,C.t.muted,true);
-      decision.addSpacer();
-      const future=decision.addStack();future.layoutVertically();
-      const chanceText=best?.display||"--";
-      text(future,"次のピーク",9,C.t.sub,true);
-      text(future,chanceText,13,C.t.warn,true);
-
-      if(guideURL)decision.url=guideURL;
-    }
+    const nowBox=decision.addStack();nowBox.layoutVertically();
+    text(nowBox,"潮・まずめ",10,C.t.sub,true);
+    const nowLine=nowBox.addStack();nowLine.layoutHorizontally();nowLine.centerAlignContent();
+    text(nowLine,fg.stars,20,C.t.fg,true);nowLine.addSpacer(6);text(nowLine,fg.label,11,C.t.muted,true);
+    decision.addSpacer();
+    const future=decision.addStack();future.layoutVertically();
+    const chanceText=best?.display||"--";
+    text(future,"次のピーク",9,C.t.sub,true);
+    text(future,chanceText,13,C.t.warn,true);
+    if(guideURL)decision.url=guideURL;
   
     w.addSpacer(2);
     const im=w.addImage(graph(t,650,348,bands,we));im.imageSize=new Size(325,174);im.applyFittingContentMode();
