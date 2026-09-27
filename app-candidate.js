@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.8 — Large scale-up: tighter edges / larger typography / fuller vertical use
+// TIDE DASH v0.14.9 — Terminology cleanup: unify tide+mazume labels
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -733,7 +733,7 @@ function graph(t,width=650,height=348,bands=null,we=null){
   // 24 one-hour bars. Height = final fishing score for the matching time slot.
   if(we){
     c.setFont(Font.boldSystemFont(13));c.setTextColor(new Color(C.t.sub,.92));
-    c.drawTextInRect("潮チャンス",new Rect(L,barLabelY,52,14));
+    c.drawTextInRect("潮・まずめ",new Rect(L,barLabelY,52,14));
     c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
     const n=24,gap=3,bw=(W-gap*(n-1))/n;
     const samples=[];
@@ -1004,7 +1004,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     w.addSpacer(10);
     const note=w.addStack();note.layoutVertically();
     text(note,"地点設定後に表示",9,C.t.muted,true);
-    text(note,"潮グラフ・潮チャンス推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
+    text(note,"潮グラフ・潮・まずめ推移・朝夕まずめ・満干潮・次のピーク・風・波・雨",9,C.t.sub);
   }else{
     const decision=w.addStack();decision.layoutHorizontally();decision.centerAlignContent();decision.backgroundColor=new Color(C.t.panel,.34);decision.cornerRadius=12;decision.setPadding(9,10,9,10);
     if(farAuto){
