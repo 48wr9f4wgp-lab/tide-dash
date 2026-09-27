@@ -1,4 +1,4 @@
-// TIDE DASH v0.19.1 — Tide-reference transparency: station name + distance + fixed-spot caution
+// TIDE DASH v0.19.2 — Tide-reference wording polish for Large/Medium/Small
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -352,11 +352,23 @@ function tideReferenceFor(place,stations){
   return{name,distanceKm,code:place.code};
 }
 function tideReferenceUI(ref){
-  if(!ref?.name||!Number.isFinite(ref.distanceKm))return{text:"",level:"unknown"};
-  const d=ref.distanceKm,ds=d<10?d.toFixed(1):String(Math.round(d));
-  if(d>=C.tideRefWarnKm)return{text:`⚠ 潮:${ref.name} ${ds}km 参考`,level:"warn"};
-  if(d>=C.tideRefCautionKm)return{text:`潮:${ref.name} ${ds}km 参考`,level:"caution"};
-  return{text:`潮:${ref.name} ${ds}km`,level:"near"};
+  if(!ref?.name||!Number.isFinite(ref.distanceKm))return{text:"",shortText:"",level:"unknown"};
+  const d=ref.distanceKm,ds=d<10?d.toFixed(1):String(Math.round(d)),shortDs=String(Math.round(d));
+  if(d>=C.tideRefWarnKm)return{
+    text:`⚠ 潮基準:${ref.name} ${ds}km`,
+    shortText:`⚠${ref.name} ${shortDs}km`,
+    level:"warn"
+  };
+  if(d>=C.tideRefCautionKm)return{
+    text:`潮基準:${ref.name} ${ds}km 参考`,
+    shortText:`${ref.name} ${shortDs}km 参考`,
+    level:"caution"
+  };
+  return{
+    text:`潮基準:${ref.name} ${ds}km`,
+    shortText:`${ref.name} ${shortDs}km`,
+    level:"near"
+  };
 }
 async function currentLocation(){Location.setAccuracyToKilometer();return await Location.current()}
 
@@ -1193,7 +1205,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     const sl=sh.addStack();sl.layoutVertically();
     text(sl,S.name,14,C.t.fg,true);
     const smallBadge=String(badge).replace(/AUTO\s*·\s*/,"AUTO ").replace(/\s+/g," ").trim();
-    badgeLine(sl,`${smallBadge}${tideRefUI.text?" · "+tideRefUI.text:""}  ▾`,7,badgeColor||C.t.muted);
+    badgeLine(sl,`${smallBadge}${tideRefUI.shortText?" · "+tideRefUI.shortText:""}  ▾`,7,badgeColor||C.t.muted);
     if(settingsURL)sl.url=settingsURL;
     sh.addSpacer();
     const sd=new Date(),stc=tideCycle(sd),sr=sh.addStack();sr.layoutVertically();
