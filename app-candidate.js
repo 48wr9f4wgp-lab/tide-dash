@@ -1,4 +1,4 @@
-// TIDE DASH v0.16.3 — Medium footer: three compact condition cards
+// TIDE DASH v0.17.0 — Reliability pass: validated cache / partial-data warnings / trust gates / coverage-safe forecast
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -9,6 +9,7 @@ const C={
   maxFavorites:5,
   mazumeCoreMin:30,
   mazumeFadeMin:90,
+  weatherFallbackMaxMin:180,
   defaultFav:{code:"UC",name:"内浦",lat:35.0167,lon:138.8833,area:"沼津"},
   t:{
     bg1:"#061824",bg2:"#0A3147",panel:"#0E3A50",
@@ -219,6 +220,17 @@ async function resolveStation(force=false){
   return{station:p.favorites[0]||C.defaultFav,prefs:p,badge:"⚠ 位置情報なし",badgeColor:C.t.warn,distanceKm:null,locationState:"missing"};
 }
 
+function locationBlockedResult(r){return ["far","previous","missing"].includes(r?.locationState)}
+function locationBlockMessage(r){
+  if(r?.locationState==="far")return `最寄り潮位地点まで ${Math.round(r.distanceKm)}km。釣り地点を選択してください。`;
+  if(r?.locationState==="previous")return "現在地を取得できず前回地点しか確認できません。現在地を更新してください。";
+  return "現在地を取得できません。位置情報を確認するか釣り地点を固定してください。";
+}
+async function guardLocationForDetail(r,title){
+  if(!locationBlockedResult(r))return false;
+  const a=new Alert();a.title=title;a.message=locationBlockMessage(r);a.addAction("閉じる");await a.presentAlert();
+  return true;
+}
 async function searchAndFix(p){
   const st=await stationCatalog(),a=new Alert();
   a.title="地点を検索";
@@ -272,26 +284,52 @@ async function settings(){
   if(i===2+favs.length){await addCurrentFavorite(p)}
 }
 
-async function cache(url,key,ttl){
-  const path=fm.joinPath(cacheDir,key);
+function cacheAgeMin(path){
+  if(!fm.fileExists(path))return null;
+  const mod=fm.modificationDate(path);
+  return mod?Math.max(0,Math.round((Date.now()-mod.getTime())/60000)):null;
+}
+function validCachedRaw(raw,validator){
+  try{return typeof raw==="string"&&raw.length>0&&(!validator||validator(raw))}catch(_){return false}
+}
+async function cache(url,key,ttl,opts={}){
+  const path=fm.joinPath(cacheDir,key),validator=opts.validator||null,maxFallbackMin=opts.maxFallbackMin??null;
+  const readValid=()=>{
+    if(!fm.fileExists(path))return null;
+    const raw=fm.readString(path);
+    return validCachedRaw(raw,validator)?raw:null;
+  };
   if(fm.fileExists(path)){
     const m=fm.modificationDate(path);
-    if(m&&Date.now()-m.getTime()<ttl)return fm.readString(path);
+    if(m&&Date.now()-m.getTime()<ttl){
+      const raw=readValid();
+      if(raw!=null)return raw;
+    }
   }
   try{
     const r=new Request(url);r.timeoutInterval=15;
-    const s=await r.loadString();fm.writeString(path,s);return s;
+    const raw=await r.loadString();
+    if(!validCachedRaw(raw,validator))throw new Error(`invalid payload: ${key}`);
+    fm.writeString(path,raw);
+    return raw;
   }catch(e){
-    if(fm.fileExists(path)){
-      const mod=fm.modificationDate(path);
-      const ageMin=mod?Math.max(0,Math.round((Date.now()-mod.getTime())/60000)):null;
+    const ageMin=cacheAgeMin(path),raw=readValid();
+    const withinLimit=maxFallbackMin==null||(ageMin!=null&&ageMin<=maxFallbackMin);
+    if(raw!=null&&withinLimit){
       if(key.startsWith("weather_")||key.startsWith("marine_"))NET.fallbacks.push({key,ageMin});
-      return fm.readString(path);
+      return raw;
     }
     throw e;
   }
 }
-const cachedJSON=async(u,k,t)=>JSON.parse(await cache(u,k,t));
+const cachedJSON=async(u,k,t,validateObj=null,maxFallbackMin=null)=>{
+  const validator=raw=>{
+    let obj;
+    try{obj=JSON.parse(raw)}catch(_){return false}
+    return !validateObj||validateObj(obj);
+  };
+  return JSON.parse(await cache(u,k,t,{validator,maxFallbackMin}));
+};
 
 function parseLine(line){
   if(!line||line.length<136)return null;
@@ -323,7 +361,8 @@ function parseAnnual(s){
 }
 async function annual(y,S){
   const u=`https://www.data.jma.go.jp/gmd/kaiyou/data/db/tide/suisan/txt/${y}/${S.code}.txt`;
-  return parseAnnual(await cache(u,`jma_${S.code}_${y}.txt`,12*3600000));
+  const raw=await cache(u,`jma_${S.code}_${y}.txt`,12*3600000,{validator:x=>parseAnnual(x).size>300});
+  return parseAnnual(raw);
 }
 function absHourly(day,offset){
   if(!day)return[];
@@ -331,8 +370,9 @@ function absHourly(day,offset){
 }
 function interpolateHourly(points,m){
   if(!points.length)return null;
-  if(m<=points[0].minute)return points[0].level;
-  if(m>=points[points.length-1].minute)return points[points.length-1].level;
+  if(m<points[0].minute||m>points[points.length-1].minute)return null;
+  if(m===points[0].minute)return points[0].level;
+  if(m===points[points.length-1].minute)return points[points.length-1].level;
   let i=0;
   while(i<points.length-1&&points[i+1].minute<m)i++;
   const a=points[i],b=points[i+1],f=(m-a.minute)/(b.minute-a.minute);
@@ -354,6 +394,8 @@ async function tide(now,S){
   ].sort((a,b)=>a.minute-b.minute);
 
   const nm=minDay(now),current=interpolateHourly(hourly,nm);
+  if(current==null)throw Error("JMA tide coverage missing for current time");
+  const dataStart=hourly.length?hourly[0].minute:null,dataEnd=hourly.length?hourly[hourly.length-1].minute:null;
   const events=[];
   if(prev)for(const e of prev.events)events.push({...e,absoluteMinute:e.minute-1440});
   for(const e of today.events)events.push({...e,absoluteMinute:e.minute});
@@ -371,41 +413,46 @@ async function tide(now,S){
   const graphStart=Math.floor((nm-120)/30)*30,graphEnd=graphStart+1440;
   const graphSeries=[];
   for(let m=graphStart;m<=graphEnd;m+=15)graphSeries.push({minute:m,level:interpolateHourly(hourly,m)});
-  return{today,hourly,current,nowMin:nm,events,previousEvent:pe,nextEvent:ne,futureEvents,phaseProgress:progress,dailyRange:range,graphStart,graphEnd,graphSeries};
+  return{today,hourly,current,nowMin:nm,events,previousEvent:pe,nextEvent:ne,futureEvents,phaseProgress:progress,dailyRange:range,graphStart,graphEnd,graphSeries,dataStart,dataEnd};
 }
 
 async function weather(now,S){
   const tz="Asia%2FTokyo";
   const wu=`https://api.open-meteo.com/v1/forecast?latitude=${S.lat}&longitude=${S.lon}&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&daily=sunrise,sunset&wind_speed_unit=ms&timezone=${tz}&forecast_days=2`;
   const mu=`https://marine-api.open-meteo.com/v1/marine?latitude=${S.lat}&longitude=${S.lon}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction&timezone=${tz}&forecast_days=2&cell_selection=sea`;
-  const[w,m]=await Promise.all([
-    cachedJSON(wu,`weather_${S.code}.json`,25*60000),
-    cachedJSON(mu,`marine_${S.code}.json`,25*60000).catch(()=>null)
-  ]);
-  const k=hourKey(now),wi=w.hourly?.time?.indexOf(k)??-1,mi=m?.hourly?.time?.indexOf(k)??-1;
+  const k=hourKey(now),todayKey=dateKey(now),nextKey=dateKey(addDay(now,1));
+  const validWeather=o=>Array.isArray(o?.hourly?.time)&&o.hourly.time.includes(k)&&Array.isArray(o?.daily?.time)&&o.daily.time.includes(todayKey)&&Array.isArray(o?.daily?.sunrise)&&Array.isArray(o?.daily?.sunset);
+  const validMarine=o=>Array.isArray(o?.hourly?.time)&&o.hourly.time.includes(k)&&Array.isArray(o?.hourly?.wave_height);
+  const w=await cachedJSON(wu,`weather_${S.code}.json`,25*60000,validWeather,C.weatherFallbackMaxMin);
+  let m=null,marineIssue=null;
+  try{m=await cachedJSON(mu,`marine_${S.code}.json`,25*60000,validMarine,C.weatherFallbackMaxMin)}catch(_){marineIssue="波を取得できません"}
+  const wi=w.hourly.time.indexOf(k),mi=m?.hourly?.time?.indexOf(k)??-1;
+  if(wi<0)throw Error("weather current hour missing");
+  const di=w.daily.time.indexOf(todayKey),dni=w.daily.time.indexOf(nextKey);
   const current={
-    temp:wi>=0?w.hourly.temperature_2m[wi]:null,
-    precip:wi>=0?w.hourly.precipitation[wi]:null,
-    weatherCode:wi>=0?w.hourly.weather_code[wi]:null,
-    wind:wi>=0?w.hourly.wind_speed_10m[wi]:null,
-    windDir:wi>=0?w.hourly.wind_direction_10m[wi]:null,
-    wave:mi>=0?m.hourly.wave_height[mi]:null,
-    waveDir:mi>=0?m.hourly.wave_direction[mi]:null,
-    wavePeriod:mi>=0?m.hourly.wave_period[mi]:null,
-    sst:mi>=0?(m.hourly?.sea_surface_temperature?.[mi]??null):null,
-    currentVelocity:mi>=0?(m.hourly?.ocean_current_velocity?.[mi]??null):null,
-    currentDir:mi>=0?(m.hourly?.ocean_current_direction?.[mi]??null):null,
-    sunrise:w.daily?.sunrise?.[0]?.slice(11,16)??"--:--",
-    sunset:w.daily?.sunset?.[0]?.slice(11,16)??"--:--",
-    sunriseNext:w.daily?.sunrise?.[1]?.slice(11,16)??"--:--",
-    sunsetNext:w.daily?.sunset?.[1]?.slice(11,16)??"--:--"
+    temp:w.hourly.temperature_2m?.[wi]??null,
+    precip:w.hourly.precipitation?.[wi]??null,
+    weatherCode:w.hourly.weather_code?.[wi]??null,
+    wind:w.hourly.wind_speed_10m?.[wi]??null,
+    windDir:w.hourly.wind_direction_10m?.[wi]??null,
+    wave:mi>=0?(m?.hourly?.wave_height?.[mi]??null):null,
+    waveDir:mi>=0?(m?.hourly?.wave_direction?.[mi]??null):null,
+    wavePeriod:mi>=0?(m?.hourly?.wave_period?.[mi]??null):null,
+    sst:mi>=0?(m?.hourly?.sea_surface_temperature?.[mi]??null):null,
+    currentVelocity:mi>=0?(m?.hourly?.ocean_current_velocity?.[mi]??null):null,
+    currentDir:mi>=0?(m?.hourly?.ocean_current_direction?.[mi]??null):null,
+    sunrise:di>=0?(w.daily.sunrise?.[di]?.slice(11,16)??"--:--"):"--:--",
+    sunset:di>=0?(w.daily.sunset?.[di]?.slice(11,16)??"--:--"):"--:--",
+    sunriseNext:dni>=0?(w.daily.sunrise?.[dni]?.slice(11,16)??"--:--"):"--:--",
+    sunsetNext:dni>=0?(w.daily.sunset?.[dni]?.slice(11,16)??"--:--"):"--:--"
   };
+  if(current.wave==null&&!marineIssue)marineIssue="波を取得できません";
   const slots=[],sh=Math.ceil(now.getHours()/3)*3;
   for(let n=0;n<4;n++){
     const d=new Date(now);d.setMinutes(0,0,0);d.setHours(sh+n*3);
     const a=w.hourly?.time?.indexOf(hourKey(d))??-1,b=m?.hourly?.time?.indexOf(hourKey(d))??-1;
     if(a<0)continue;
-    slots.push({time:`${p2(d.getHours())}:00`,weatherCode:w.hourly.weather_code[a],temp:w.hourly.temperature_2m[a],precip:w.hourly.precipitation[a],wind:w.hourly.wind_speed_10m[a],wave:b>=0?m.hourly.wave_height[b]:null});
+    slots.push({time:`${p2(d.getHours())}:00`,weatherCode:w.hourly.weather_code?.[a],temp:w.hourly.temperature_2m?.[a],precip:w.hourly.precipitation?.[a],wind:w.hourly.wind_speed_10m?.[a],wave:b>=0?(m?.hourly?.wave_height?.[b]??null):null});
   }
   const marineSeries=[];
   const baseDay=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
@@ -416,9 +463,8 @@ async function weather(now,S){
     const velocity=m.hourly?.ocean_current_velocity?.[i],direction=m.hourly?.ocean_current_direction?.[i];
     if(Number.isFinite(velocity))marineSeries.push({minute:day*1440+hh*60+mm,velocity,direction:Number.isFinite(direction)?direction:null});
   }
-  return{current,slots,marineSeries};
+  return{current,slots,marineSeries,issues:marineIssue?[marineIssue]:[]};
 }
-
 
 function hmMinute(s){
   if(!/^\d{2}:\d{2}$/.test(s||""))return null;
@@ -453,6 +499,9 @@ function tideOpportunityAt(t,m){
   return{move,turn,moveMode,turnMode,core:Math.max(moveMode,turnMode)};
 }
 function fishingScoreAt(t,we,m){
+  if(!Number.isFinite(t?.dataStart)||!Number.isFinite(t?.dataEnd)||m<t.dataStart||m>t.dataEnd){
+    return{score:null,valid:false,tide:{move:0,turn:0,moveMode:0,turnMode:0,core:0},magic:0,mazumeMode:0,overlap:0,range:0};
+  }
   const tide=tideOpportunityAt(t,m);
   const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
   const magic=lightFactorAt(m,we);
@@ -465,7 +514,7 @@ function fishingScoreAt(t,we,m){
   const overlap=Math.min(tide.core,mazumeMode);
   const score=Math.round(100*(.75*core+.15*overlap+.10*range));
 
-  return{score,tide,magic,mazumeMode,overlap,range};
+  return{score,valid:true,tide,magic,mazumeMode,overlap,range};
 }
 function fishingGuide(t,we,now=new Date()){
   const nm=minDay(now),calc=fishingScoreAt(t,we,nm),tide=calc.tide,range=calc.range,magic=calc.magic,mazumeMode=calc.mazumeMode,overlap=calc.overlap,score=calc.score;
@@ -521,7 +570,7 @@ function fishingPeaks(t,we,start,end){
   const samples=[],from=Math.floor(start/30)*30,to=Math.ceil(end/30)*30;
   for(let minute=from;minute<=to;minute+=30){
     const calc=fishingScoreAt(t,we,minute);
-    samples.push({minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic});
+    samples.push({minute,score:Number.isFinite(calc.score)?calc.score:-1,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic});
   }
   const peaks=[];
   for(let i=1;i<samples.length-1;i++){
@@ -546,6 +595,7 @@ function bestFishingWindow(t,we){
     const from=Math.ceil(t.nowMin/30)*30;
     for(let minute=from;minute<=end;minute+=30){
       const calc=fishingScoreAt(t,we,minute);
+      if(!Number.isFinite(calc.score))continue;
       if(!fallback||calc.score>fallback.score)fallback={minute,score:calc.score,tideMove:calc.tide.move,tideTurn:calc.tide.turn,tideCore:calc.tide.core,magic:calc.magic};
     }
     if(fallback?.score>=45)peak=fallback;
@@ -658,6 +708,7 @@ function rainGuide(v){
 }
 async function showTideHelp(){
   const r=await resolveStation(false),now=new Date();
+  if(await guardLocationForDetail(r,"潮の見方"))return;
   let t;
   try{t=await tide(now,r.station)}catch(_){
     const a=new Alert();a.title="潮の見方";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
@@ -688,12 +739,20 @@ async function showTideHelp(){
 }
 
 async function showGuide(){
+  NET.fallbacks.length=0;
   const r=await resolveStation(false),now=new Date();
+  if(await guardLocationForDetail(r,"潮・まずめ"))return;
   let t,wp=null;
   try{t=await tide(now,r.station)}catch(e){
     const a=new Alert();a.title="潮・まずめ";a.message="潮位データを取得できません";a.addAction("閉じる");await a.presentAlert();return;
   }
-  try{wp=await weather(now,r.station)}catch(_){}
+  let guideWarning=null;
+  try{wp=await weather(now,r.station)}catch(_){guideWarning="天気/波を取得できません"}
+  if(!guideWarning&&wp?.issues?.length)guideWarning=wp.issues.join(" / ");
+  if(!guideWarning&&NET.fallbacks.length){
+    const ages=NET.fallbacks.map(x=>x.ageMin).filter(x=>x!=null),age=ages.length?Math.max(...ages):null;
+    guideWarning=age==null?"過去の天気/波データ":age<60?`天気/波 ${age}分前のデータ`:`天気/波 ${Math.floor(age/60)}時間前のデータ`;
+  }
   const we=wp?.current??null,g=fishingGuide(t,we,now),best=bestFishingWindow(t,we),hasLight=hasMazumeData(we),idxTitle=indexTitle(we);
   const next=t.nextEvent?`${t.nextEvent.type==="high"?"満潮":"干潮"} ${eventDayWord(t.nextEvent)}${eventClock(t.nextEvent)}`:"--";
   const a=new Alert();
@@ -707,6 +766,7 @@ async function showGuide(){
     `潮差：${Math.round(g.range*100)}%`,
     `次の満干潮：${next}`,
     `次のピーク：${best?.display??"候補なし"}`,
+    guideWarning?`データ注意：${guideWarning}`:"データ注意：なし",
     `風：${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s "+dir8(we.windDir)+" / "+windGuide(we.wind):"--"}`,
     `波：${we?.wave!=null?Number(we.wave).toFixed(1)+"m / "+waveGuide(we.wave):"--"}`,
     `雨：${we?.precip!=null?Number(we.precip).toFixed(1)+"mm / "+rainGuide(we.precip):"--"}`,
@@ -811,6 +871,7 @@ function graph(t,width=650,height=348,bands=null,we=null){
       const score=i===nowIndex
         ?fishingScoreAt(t,we,t.nowMin).score
         :fishingScoreAt(t,we,slotStart+15).score;
+      if(!Number.isFinite(score))continue;
 
       // Three visible levels, still one amber hue:
       // Weak <45        = hidden
@@ -925,6 +986,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   // Dedicated small layout: fishing-first glance.
   if(small){
     w.setPadding(9,10,9,10);
+    w.url=locationBlocked?(settingsURL||refreshURL):(guideURL||settingsURL);
 
     const sh=w.addStack();sh.layoutHorizontally();sh.centerAlignContent();
     const sl=sh.addStack();sl.layoutVertically();
@@ -973,7 +1035,8 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     const sf=w.addStack();sf.layoutHorizontally();sf.centerAlignContent();
     const stale=!!err;
     if(stale){
-      text(sf,"⚠ データ古い",8,C.t.warn,true);
+      const msg=err.includes("前のデータ")||err.includes("過去のデータ")?"⚠ データ古い":err.includes("波")&&!err.includes("天気")?"⚠ 波取得できず":"⚠ データ取得不可";
+      text(sf,msg,8,C.t.warn,true);
     }else{
       text(sf,`風 ${we?.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"}`,7,(we?.wind??0)>=8?C.t.warn:C.t.muted,true);
       sf.addSpacer();
@@ -1128,12 +1191,13 @@ async function buildCurrent(forceLocation=false){
     text(w,"TIDE DASH",18,C.t.fg,true);w.addSpacer(8);text(w,"潮位データを取得できません",13,C.t.warn,true);w.addSpacer(4);text(w,String(e),9,C.t.sub);return w;
   }
   try{wp=await weather(now,r.station)}catch(_){err="⚠ 天気/波を取得できません"}
-  if(!err&&NET.fallbacks.length){
+  if(!err&&wp?.issues?.length)err=`⚠ ${wp.issues.join(" / ")}`;
+  if(NET.fallbacks.length){
     const ages=NET.fallbacks.map(x=>x.ageMin).filter(x=>x!=null);
     const age=ages.length?Math.max(...ages):null;
-    if(age==null)err="⚠ 天気/波 過去のデータ";
-    else if(age<60)err=`⚠ 天気/波 ${age}分前のデータ`;
-    else err=`⚠ 天気/波 ${Math.floor(age/60)}時間前のデータ`;
+    const labels=[...new Set(NET.fallbacks.map(x=>x.key.startsWith("marine_")?"波":"天気"))].join("/");
+    const stale=age==null?`⚠ ${labels} 過去のデータ`:age<60?`⚠ ${labels} ${age}分前のデータ`:`⚠ ${labels} ${Math.floor(age/60)}時間前のデータ`;
+    err=err?`${err} / ${stale}`:stale;
   }
   return widget(t,wp,r.station,r.badge,r.badgeColor,err,r.distanceKm,r.locationState);
 }
