@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.6 — Hide weak bars / plain-language stale data warning
+// TIDE DASH v0.15.7 — Sharpen tide+mazume scoring valleys between opportunity windows
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -438,9 +438,16 @@ function tideTurnAt(t,m){
 }
 function tideOpportunityAt(t,m){
   const move=tideMoveAt(t,m),turn=tideTurnAt(t,m);
-  // Moving-tide and high/low windows are two separate opportunity modes.
-  // Cap either mode below 1.0 so a single tide signal cannot create a 5-star verdict by itself.
-  const moveMode=.85*move,turnMode=.85*turn;
+
+  // Two distinct tide modes with an intentional valley between them:
+  // 1) "moving tide" only becomes meaningful once the phase is well underway,
+  //    then peaks around the midpoint between high/low.
+  // 2) "high/low window" stays a short provisional opportunity around extrema.
+  // This prevents the two modes from covering nearly the whole day.
+  const moveGate=Math.max(0,Math.min(1,(move-.55)/.45));
+  const moveMode=.85*Math.pow(moveGate,1.45);
+  const turnMode=.85*Math.pow(turn,1.15);
+
   return{move,turn,moveMode,turnMode,core:Math.max(moveMode,turnMode)};
 }
 function fishingScoreAt(t,we,m){
@@ -674,7 +681,7 @@ async function showGuide(){
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
-    "潮要素は『潮が動く時間』と『満干潮前後の暫定候補』の強い方を採用します。グラフでは満潮・干潮前後を必ず候補として表示しますが、実際の潮止まり時刻を示すものではありません。"
+    "潮要素は『満干潮の中間付近で潮位変化が大きい時間』と『満干潮前後の短い暫定候補』を別々に評価し、強い方を採用します。その間には意図的に弱い時間帯を作っています。満干潮前後は実際の潮止まり時刻を示すものではありません。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
