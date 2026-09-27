@@ -1,4 +1,4 @@
-// TIDE DASH v0.16.2 — Trust states: block unverified AUTO data before network fetch
+// TIDE DASH v0.16.3 — Medium footer: three compact condition cards
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1030,11 +1030,19 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
 
     const foot=w.addStack();foot.layoutHorizontally();foot.centerAlignContent();
     if(we){
-      text(foot,`風 ${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}・${windGuide(we.wind)}`,8,C.t.sub,true);
-      foot.addSpacer(10);
-      text(foot,`波 ${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}・${waveGuide(we.wave)}`,8,C.t.sub,true);
-      foot.addSpacer(10);
-      text(foot,`雨 ${we.precip!=null?Number(we.precip).toFixed(1)+"mm":"--"}`,8,C.t.sub,true);
+      const mediumCard=(label,value,detail)=>{
+        const b=foot.addStack();b.layoutVertically();b.size=new Size(96,0);
+        b.backgroundColor=new Color(C.t.panel,.46);b.cornerRadius=8;b.setPadding(4,6,4,6);
+        text(b,label,7,C.t.sub);
+        text(b,value,9,C.t.fg,true);
+        text(b,detail,7,C.t.muted);
+        return b;
+      };
+      mediumCard("風",`${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}`,windGuide(we.wind));
+      foot.addSpacer(5);
+      mediumCard("波",`${we.wave!=null?Number(we.wave).toFixed(1)+"m":"--"}`,waveGuide(we.wave));
+      foot.addSpacer(5);
+      mediumCard("雨",`${we.precip!=null?Number(we.precip).toFixed(1)+"mm":"--"}`,rainGuide(we.precip));
     }
     if(err){w.addSpacer(2);text(w,err,7,C.t.warn)}
     w.refreshAfterDate=new Date(Date.now()+C.refresh*60000);
