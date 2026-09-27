@@ -1,4 +1,4 @@
-// TIDE DASH v0.18.0 — Fishing spot catalog: searchable ports/coasts mapped to JMA tide stations
+// TIDE DASH v0.18.1 — Nationwide coastal areas: curated 60 + JMA-derived searchable regions
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -258,7 +258,18 @@ async function guardLocationForDetail(r,title){
   return true;
 }
 async function searchAndFix(p){
-  const [st,spots]=await Promise.all([stationCatalog(),fishingSpotCatalog()]),a=new Alert();
+  const [st,spots]=await Promise.all([stationCatalog(),fishingSpotCatalog()]);
+  const coastalAreas=st.map(x=>({
+    ...x,
+    id:`area-${x.code}`,
+    name:`${x.name}周辺`,
+    area:"沿岸エリア",
+    type:"沿岸",
+    kind:"area",
+    tideName:x.name,
+    keywords:[x.name]
+  }));
+  const a=new Alert();
   a.title="釣り地点を検索";
   a.message="港・海岸・磯・地域名、または潮位基準点名で検索します。立入可否・釣り可否は現地ルールを確認してください。";
   a.addTextField("例：大洗 / 伊豆 / 寺泊 / 城ヶ島","");
@@ -266,9 +277,19 @@ async function searchAndFix(p){
   if(await a.presentAlert()<0)return false;
   const query=a.textFieldValue(0).trim();if(!query)return false;
   const matchSpot=x=>[x.name,x.area,x.type,...(x.keywords||[])].some(v=>String(v||"").includes(query));
-  const spotHits=spots.filter(matchSpot).slice(0,12);
-  const stationHits=st.filter(x=>x.name.includes(query)).map(x=>({...x,kind:"station"})).slice(0,6);
-  const hits=[...spotHits,...stationHits].slice(0,15);
+  const spotHits=spots.filter(matchSpot).slice(0,10);
+  const areaHits=coastalAreas.filter(matchSpot).slice(0,8);
+  const stationHits=st.filter(x=>x.name.includes(query)).map(x=>({...x,kind:"station"})).slice(0,4);
+
+  // Curated fishing areas first, then nationwide JMA-derived coastal regions,
+  // and finally the raw tide station for advanced/manual selection.
+  const seen=new Set(),hits=[];
+  for(const x of [...spotHits,...areaHits,...stationHits]){
+    const key=`${x.kind}:${x.id||x.code}:${x.name}`;
+    if(seen.has(key))continue;
+    seen.add(key);hits.push(x);
+    if(hits.length>=15)break;
+  }
   if(!hits.length){
     const z=new Alert();z.title="見つかりません";z.message="別の港・地域名で検索してください";z.addAction("OK");await z.presentAlert();
     return searchAndFix(p);
@@ -277,7 +298,9 @@ async function searchAndFix(p){
   hits.forEach(x=>{
     const label=x.kind==="spot"
       ?`🎣 ${x.name}｜${x.area}（潮:${x.tideName||x.code}）`
-      :`🌊 ${x.name}｜潮位基準点`;
+      :x.kind==="area"
+        ?`📍 ${x.name}｜沿岸エリア（潮:${x.tideName||x.code}）`
+        :`🌊 ${x.name}｜潮位基準点`;
     b.addAction(label);
   });
   b.addCancelAction("キャンセル");
@@ -809,7 +832,7 @@ async function showGuide(){
   const a=new Alert();
   a.title=`🌊 ${idxTitle} ${g.stars}`;
   a.message=[
-    r.station?.kind==="spot"?`スポット：${r.station.name} / 潮位基準点：${r.station.tideName||r.station.code}`:`地点：${r.station.name}`,
+    ["spot","area"].includes(r.station?.kind)?`地点：${r.station.name} / 潮位基準点：${r.station.tideName||r.station.code}`:`地点：${r.station.name}`,
     `${idxTitle}指数：${g.score}/100`,
     `潮の動き：${Math.round(g.tideMove*100)}%`,
     `満干潮前後：${Math.round(g.tideTurn*100)}%`,
