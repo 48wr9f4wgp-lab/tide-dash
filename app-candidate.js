@@ -1,4 +1,4 @@
-// TIDE DASH v0.13.11 — Remove redundant tide-change wording from glance UI
+// TIDE DASH v0.14.0 — Fishing-window engine: moving tide + provisional high/low window
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -428,15 +428,25 @@ function cyclicMinuteDistance(a,b){
   const d=Math.abs(a-b)%1440;
   return Math.min(d,1440-d);
 }
+function tideTurnAt(t,m){
+  const ev=t.events||[];
+  if(!ev.length)return 0;
+  const d=Math.min(...ev.map(e=>Math.abs(e.absoluteMinute-m)));
+  if(d<=45)return 1;
+  if(d>=120)return 0;
+  return Math.max(0,Math.min(1,(120-d)/75));
+}
+function tideOpportunityAt(t,m){
+  const move=tideMoveAt(t,m),turn=tideTurnAt(t,m);
+  return{move,turn,core:Math.max(move,turn)};
+}
 function fishingGuide(t,we,now=new Date()){
-  const p=t.phaseProgress==null?.5:Math.max(0,Math.min(1,t.phaseProgress));
-  const tideMove=Math.max(0,Math.sin(Math.PI*p));
+  const nm=minDay(now),tide=tideOpportunityAt(t,nm);
   const range=Math.max(0,Math.min(1,(t.dailyRange-40)/140));
-  const nm=minDay(now);
   const sunrise=hmMinute(we?.sunrise),sunset=hmMinute(we?.sunset);
   const lightDist=Math.min(cyclicMinuteDistance(nm,sunrise),cyclicMinuteDistance(nm,sunset));
   const magic=Number.isFinite(lightDist)?Math.max(0,1-lightDist/90):0;
-  const score=Math.round(100*(.70*tideMove+.20*magic+.10*range));
+  const score=Math.round(100*(.70*tide.core+.20*magic+.10*range));
   let label,stars;
   if(score>=78){label="かなり狙い目";stars="★★★★★"}
   else if(score>=62){label="狙い目";stars="★★★★☆"}
@@ -445,10 +455,10 @@ function fishingGuide(t,we,now=new Date()){
   else{label="潮待ち";stars="★☆☆☆☆"}
 
   let tideReason;
-  if(p<=.12||p>=.88)tideReason="満干潮が近い";
-  else if(p<=.30)tideReason="潮位変化が増えやすい";
-  else if(p<=.70)tideReason="潮位変化が大きい時間帯";
-  else tideReason="潮位変化が小さくなりやすい";
+  if(tide.turn>=.7)tideReason="満干潮前後の地合い候補";
+  else if(tide.move>=.75)tideReason="潮がよく動く時間帯";
+  else if(tide.turn>tide.move)tideReason="満干潮へ近づく時間帯";
+  else tideReason="潮の動きは弱め";
   if(magic>=.65)tideReason=`マヅメ中・${tideReason}`;
   else if(magic>=.25)tideReason=`マヅメ接近・${tideReason}`;
 
@@ -458,7 +468,7 @@ function fishingGuide(t,we,now=new Date()){
   else if((we?.wind??0)>=5)condition="風やや強め";
   else condition="釣行条件は穏やか";
 
-  return{score,label,stars,shortReason:tideReason,tideMove,magic,range,condition};
+  return{score,label,stars,shortReason:tideReason,tideMove:tide.move,tideTurn:tide.turn,tideCore:tide.core,magic,range,condition};
 }
 
 function tideMoveAt(t,m){
@@ -488,9 +498,9 @@ function bestFishingWindow(t,we){
   const start=Math.ceil(t.nowMin/30)*30;
   let best=null;
   for(let i=0;i<=44;i++){
-    const minute=start+i*30,tideMove=tideMoveAt(t,minute),magic=lightFactorAt(minute,we);
-    const score=Math.round(100*(.70*tideMove+.20*magic+.10*range));
-    if(!best||score>best.score)best={minute,score};
+    const minute=start+i*30,tide=tideOpportunityAt(t,minute),magic=lightFactorAt(minute,we);
+    const score=Math.round(100*(.70*tide.core+.20*magic+.10*range));
+    if(!best||score>best.score)best={minute,score,tideMove:tide.move,tideTurn:tide.turn,tideCore:tide.core,magic};
   }
   if(!best)return null;
   const delta=Math.max(0,best.minute-t.nowMin),windowStart=best.minute-30,windowEnd=best.minute+30;
@@ -628,7 +638,8 @@ async function showGuide(){
   a.title=`🎣 ${g.label}  ${g.stars}`;
   a.message=[
     `今の目安：${g.score}/100`,
-    `潮位変化要素：${Math.round(g.tideMove*100)}%`,
+    `潮が動く要素：${Math.round(g.tideMove*100)}%`,
+    `満干潮前後要素：${Math.round(g.tideTurn*100)}%`,
     `マヅメ要素：${Math.round(g.magic*100)}%`,
     `潮差要素：${Math.round(g.range*100)}%`,
     `次の満干潮：${next}`,
@@ -640,11 +651,11 @@ async function showGuide(){
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
-    "これは『釣れる確率』ではありません。潮位変化・朝夕マヅメ・潮差から作る初心者向けの目安です。魚種、水温適性、ベイト、地形、仕掛けなどはスコア未考慮です。",
+    "これは『釣れる確率』ではありません。潮が動く時間・満干潮前後の暫定地合い・朝夕マヅメ・潮差から作る初心者向けの目安です。魚種、水温適性、ベイト、地形、仕掛けなどはスコア未考慮です。",
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
-    "潮の基本：満干潮の中間ほど潮位変化が大きくなりやすい傾向があります。実際の潮流の速さ・向きとは別物です。"
+    "満潮・干潮前後は暫定的な地合い候補として加点していますが、実際の潮止まり時刻を示すものではありません。局地的な潮流は地形などでズレます。"
   ].join("\n");
   a.addAction("閉じる");
   await a.presentAlert();
@@ -652,7 +663,7 @@ async function showGuide(){
 
 function graph(t,width=650,height=240,bands=null){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=34,B=46,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
+  const L=8,R=8,T=34,B=56,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
   let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
   if(Math.abs(mx-mn)<10){mx+=5;mn-=5}
   const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
@@ -695,17 +706,15 @@ function graph(t,width=650,height=240,bands=null){
   for(const m of gridTimes){const p=new Path(),x=X(m);p.move(new Point(x,T));p.addLine(new Point(x,T+H));c.addPath(p);c.strokePath()}
   for(const ff of[.33,.66]){const p=new Path(),y=T+H*ff;p.move(new Point(L,y));p.addLine(new Point(L+W,y));c.addPath(p);c.strokePath()}
 
-  // Day boundary: one date label at midnight so the rolling 24h view is unambiguous.
-  const baseDate=new Date();
+  // Day boundary: vertical line now; date is drawn below the 00:00 tick later.
+  const baseDate=new Date(),dateMarks=[];
   const firstBoundary=Math.ceil(t.graphStart/1440)*1440;
   for(let bm=firstBoundary;bm<=t.graphEnd;bm+=1440){
     if(bm<=t.graphStart)continue;
     const bx=X(bm),bp=new Path();bp.move(new Point(bx,T));bp.addLine(new Point(bx,T+H));c.addPath(bp);
     c.setStrokeColor(new Color(C.t.sub,.38));c.setLineWidth(1);c.strokePath();
     const bd=new Date(baseDate);bd.setDate(baseDate.getDate()+Math.floor(bm/1440));
-    c.setFont(Font.boldSystemFont(11));c.setTextColor(new Color(C.t.sub,.9));
-    const dw=42,dx=Math.max(L,Math.min(L+W-dw,bx-dw/2));
-    c.drawTextInRect(`${bd.getMonth()+1}/${bd.getDate()}`,new Rect(dx,height-38,dw,15));
+    dateMarks.push({x:bx,label:`${bd.getMonth()+1}/${bd.getDate()}`});
   }
 
   const path=new Path();
@@ -731,7 +740,12 @@ function graph(t,width=650,height=240,bands=null){
   c.setFont(Font.semiboldSystemFont(16));c.setTextColor(new Color(C.t.sub));
   for(const m of gridTimes){
     const label=clockFromAbs(m),xx=X(m),tw=52;
-    c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-20,tw,18));
+    c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-31,tw,18));
+  }
+  c.setFont(Font.boldSystemFont(11));c.setTextColor(new Color(C.t.sub,.9));
+  for(const dm of dateMarks){
+    const dw=42,dx=Math.max(L,Math.min(L+W-dw,dm.x-dw/2));
+    c.drawTextInRect(dm.label,new Rect(dx,height-14,dw,13));
   }
   return c.getImage();
 }
