@@ -1,4 +1,4 @@
-// TIDE DASH Loader v1.0
+// TIDE DASH Loader v1.1
 // Scriptable側にはこのローダーだけ残す。
 // 本体はGitHubの main.js を毎回確認し、取得失敗時は前回成功版へフォールバックする。
 
@@ -48,18 +48,20 @@ async function fetchLatest() {
   req.headers = { "Cache-Control": "no-cache" };
 
   const code = await req.loadString();
-
   if (!validRemoteCode(code)) {
     throw new Error("取得した本体コードの検証に失敗");
   }
-
-  fm.writeString(cachePath, code);
-  writeMeta({
-    updatedAt: new Date().toISOString(),
-    source: LOADER.remoteURL
-  });
-
   return code;
+}
+
+function saveSuccessfulMain(code) {
+  try {
+    fm.writeString(cachePath, code);
+    writeMeta({
+      updatedAt: new Date().toISOString(),
+      source: LOADER.remoteURL
+    });
+  } catch (_) {}
 }
 
 async function loadCode() {
@@ -73,20 +75,20 @@ async function loadCode() {
 
   if (shouldCheck) {
     try {
-      return await fetchLatest();
+      return { code: await fetchLatest(), fresh: true };
     } catch (e) {
       if (fm.fileExists(cachePath)) {
-        return fm.readString(cachePath);
+        return { code: fm.readString(cachePath), fresh: false };
       }
       throw new Error("TIDE DASH本体を取得できません: " + e);
     }
   }
 
   if (fm.fileExists(cachePath)) {
-    return fm.readString(cachePath);
+    return { code: fm.readString(cachePath), fresh: false };
   }
 
-  return await fetchLatest();
+  return { code: await fetchLatest(), fresh: true };
 }
 
 async function runRemote(code) {
@@ -98,8 +100,24 @@ async function runRemote(code) {
 }
 
 try {
-  const code = await loadCode();
-  await runRemote(code);
+  const loaded = await loadCode();
+  try {
+    await runRemote(loaded.code);
+    if (loaded.fresh) saveSuccessfulMain(loaded.code);
+  } catch (runError) {
+    // A freshly downloaded bootstrap is never allowed to destroy the previous
+    // working bootstrap. If execution fails, retry the previous successful one.
+    if (loaded.fresh && fm.fileExists(cachePath)) {
+      const previous = fm.readString(cachePath);
+      if (previous !== loaded.code) {
+        await runRemote(previous);
+      } else {
+        throw runError;
+      }
+    } else {
+      throw runError;
+    }
+  }
 } catch (e) {
   const w = new ListWidget();
   w.backgroundColor = new Color("#061824");
