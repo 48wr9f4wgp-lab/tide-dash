@@ -1,4 +1,4 @@
-// TIDE DASH v0.15.8 — Mazume as independent opportunity mode with overlap boost
+// TIDE DASH v0.15.9 — Mazume plateau ±30m / peak-in-progress requires good score
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -505,7 +505,9 @@ function lightFactorAt(m,we){
   if(sr2!=null)pts.push(1440+sr2);if(ss2!=null)pts.push(1440+ss2);
   if(!pts.length)return 0;
   const d=Math.min(...pts.map(x=>Math.abs(m-x)));
-  return Math.max(0,1-d/90);
+  if(d<=30)return 1;
+  if(d>=90)return 0;
+  return Math.max(0,Math.min(1,(90-d)/60));
 }
 function fishingWindowLabel(start,end){
   const ds=Math.floor(start/1440),de=Math.floor(end/1440);
@@ -529,8 +531,11 @@ function fishingPeaks(t,we,start,end){
 }
 function bestFishingWindow(t,we){
   const start=t.nowMin-60,end=t.nowMin+1320,peaks=fishingPeaks(t,we,start,end);
-  let peak=peaks.find(p=>Math.abs(p.minute-t.nowMin)<=30);
-  if(!peak)peak=peaks.find(p=>p.minute>t.nowMin+30);
+  const currentGood=peaks.find(p=>Math.abs(p.minute-t.nowMin)<=30&&p.score>=62);
+  const nextGood=peaks.find(p=>p.minute>t.nowMin+30&&p.score>=62);
+  const nextCandidate=peaks.find(p=>p.minute>t.nowMin+30&&p.score>=45);
+  let peak=currentGood||nextGood||nextCandidate;
+
   if(!peak){
     const from=Math.ceil(t.nowMin/30)*30;
     for(let minute=from;minute<=end;minute+=30){
@@ -539,8 +544,9 @@ function bestFishingWindow(t,we){
     }
   }
   if(!peak)return null;
+  const inPeak=Math.abs(peak.minute-t.nowMin)<=30&&peak.score>=62;
   const delta=Math.max(0,peak.minute-t.nowMin),windowStart=peak.minute-30,windowEnd=peak.minute+30;
-  return{...peak,delta,windowStart,windowEnd,display:Math.abs(peak.minute-t.nowMin)<=30?"今":fishingWindowLabel(windowStart,windowEnd)};
+  return{...peak,delta,windowStart,windowEnd,display:inPeak?"今":fishingWindowLabel(windowStart,windowEnd)};
 }
 
 function mazumeWindows(t,we){
@@ -686,7 +692,7 @@ async function showGuide(){
     we?.sst!=null?`水温モデル：${Number(we.sst).toFixed(1)}℃`:"水温モデル：--",
     we?.currentVelocity!=null?`海流モデル：${Number(we.currentVelocity).toFixed(1)}km/h →${dir8(we.currentDir)}`:"海流モデル：--",
     "",
-    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめ単独でも候補になり、潮条件と重なると強く評価します。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
+    "これは『釣れる確率』や総合地合いではありません。潮の動き・満干潮前後・朝夕まずめ・潮差だけから作る『潮・まずめ指数』です。まずめは日の出・日の入り±30分を中心帯として最大評価し、その外側は90分まで徐々に弱めます。魚種、水温適性、ベイト、地形、仕掛けなどは未考慮です。",
     "",
     "海流モデルは広域予測です。港内・瀬戸・磯際などの局地的な潮流そのものではありません。",
     "",
