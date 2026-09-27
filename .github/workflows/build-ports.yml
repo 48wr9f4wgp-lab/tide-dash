@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - ".github/workflows/build-ports.yml"
+      - "scripts/build_ports.py"
+      - "stations.json"
 
 permissions:
   contents: write
