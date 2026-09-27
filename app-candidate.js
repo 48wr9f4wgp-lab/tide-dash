@@ -1,4 +1,4 @@
-// TIDE DASH v0.14.2 — Fishing score histogram: replace peak stripe with 24h bars
+// TIDE DASH v0.14.3 — Integrated fishing-score lane: 24h bars inside tide graph
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -535,23 +535,6 @@ function mazumeWindows(t,we){
 function timingBands(t,we,best){
   return mazumeWindows(t,we);
 }
-function fishingBarsImage(t,we,width=650,height=54){
-  const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=18,B=3,W=width-L-R,H=height-T-B,n=24,gap=3;
-  c.setFont(Font.boldSystemFont(14));c.setTextColor(new Color(C.t.sub,.92));
-  c.drawTextInRect("地合い",new Rect(L,0,72,16));
-  const bw=(W-gap*(n-1))/n;
-  c.setFillColor(new Color(C.t.grid,.38));
-  c.fillRect(new Rect(L,T+H-1,W,1));
-  for(let i=0;i<n;i++){
-    const minute=t.graphStart+i*60+30,calc=fishingScoreAt(t,we,minute);
-    const score=Math.max(0,Math.min(100,calc.score)),bh=Math.max(3,H*score/100);
-    const x=L+i*(bw+gap),y=T+H-bh,alpha=.24+.56*(score/100);
-    c.setFillColor(new Color(C.t.warn,alpha));
-    c.fillRect(new Rect(x,y,Math.max(2,bw),bh));
-  }
-  return c.getImage();
-}
 function eventDayIndex(e){
   const m=e?.absoluteMinute??e?.minute??0;
   return Math.floor(m/1440);
@@ -685,49 +668,51 @@ async function showGuide(){
   await a.presentAlert();
 }
 
-function graph(t,width=650,height=240,bands=null){
+function graph(t,width=650,height=240,bands=null,we=null){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
-  const L=8,R=8,T=34,B=56,W=width-L-R,H=height-T-B,s=t.graphSeries.filter(p=>p.level!=null);
+  const L=8,R=8,T=34,W=width-L-R,s=t.graphSeries.filter(p=>p.level!=null);
+  const tideH=112,eventY=T+tideH+4,barLabelY=eventY+18,barY=barLabelY+15,barH=24;
+  const timeY=height-31,dateY=height-14;
   let mn=Math.min(...s.map(p=>p.level)),mx=Math.max(...s.map(p=>p.level));
   if(Math.abs(mx-mn)<10){mx+=5;mn-=5}
   const pd=Math.max(5,(mx-mn)*.08);mn-=pd;mx+=pd;
-  const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W,Y=l=>T+(1-(l-mn)/(mx-mn))*H;
+  const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W,Y=l=>T+(1-(l-mn)/(mx-mn))*tideH;
 
+  // Mazume stays as a faint tide-area overlay.
   if(Array.isArray(bands)){
     for(const b of bands){
+      if(b.kind!=="mazume")continue;
       const bs=Math.max(t.graphStart,b.start),be=Math.min(t.graphEnd,b.end);
       if(be<=bs)continue;
       const x1=X(bs),x2=X(be),label=b.label||"";
-      if(b.kind==="mazume"){
-        c.setFillColor(new Color(C.t.warn,.055));
-        c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),H));
-        if(label&&x2-x1>48){
-          const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
-          c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.93));
-          c.drawTextInRect(label,new Rect(lx,2,labelW,18));
-        }
+      c.setFillColor(new Color(C.t.warn,.055));
+      c.fillRect(new Rect(x1,T,Math.max(2,x2-x1),tideH));
+      if(label&&x2-x1>48){
+        const labelW=Math.max(52,Math.min(90,x2-x1)),cx=(x1+x2)/2,lx=Math.max(L,Math.min(L+W-labelW,cx-labelW/2));
+        c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(C.t.warn,.93));
+        c.drawTextInRect(label,new Rect(lx,2,labelW,18));
       }
     }
   }
 
-  const area=new Path();area.move(new Point(X(s[0].minute),T+H));
+  const area=new Path();area.move(new Point(X(s[0].minute),T+tideH));
   for(const p of s)area.addLine(new Point(X(p.minute),Y(p.level)));
-  area.addLine(new Point(X(s[s.length-1].minute),T+H));area.closeSubpath();
+  area.addLine(new Point(X(s[s.length-1].minute),T+tideH));area.closeSubpath();
   c.addPath(area);c.setFillColor(new Color(C.t.a,.10));c.fillPath();
 
   c.setStrokeColor(new Color(C.t.grid,.42));c.setLineWidth(1);
   const gridTimes=[],firstGrid=Math.ceil(t.graphStart/360)*360;
   for(let m=firstGrid;m<=t.graphEnd;m+=360)gridTimes.push(m);
-  for(const m of gridTimes){const p=new Path(),x=X(m);p.move(new Point(x,T));p.addLine(new Point(x,T+H));c.addPath(p);c.strokePath()}
-  for(const ff of[.33,.66]){const p=new Path(),y=T+H*ff;p.move(new Point(L,y));p.addLine(new Point(L+W,y));c.addPath(p);c.strokePath()}
+  for(const m of gridTimes){const p=new Path(),x=X(m);p.move(new Point(x,T));p.addLine(new Point(x,T+tideH));c.addPath(p);c.strokePath()}
+  for(const ff of[.33,.66]){const p=new Path(),y=T+tideH*ff;p.move(new Point(L,y));p.addLine(new Point(L+W,y));c.addPath(p);c.strokePath()}
 
-  // Day boundary: vertical line now; date is drawn below the 00:00 tick later.
+  // Day boundary: vertical line across tide + score lane, date under its 00:00 tick.
   const baseDate=new Date(),dateMarks=[];
   const firstBoundary=Math.ceil(t.graphStart/1440)*1440;
   for(let bm=firstBoundary;bm<=t.graphEnd;bm+=1440){
     if(bm<=t.graphStart)continue;
-    const bx=X(bm),bp=new Path();bp.move(new Point(bx,T));bp.addLine(new Point(bx,T+H));c.addPath(bp);
-    c.setStrokeColor(new Color(C.t.sub,.38));c.setLineWidth(1);c.strokePath();
+    const bx=X(bm),bp=new Path();bp.move(new Point(bx,T));bp.addLine(new Point(bx,barY+barH));c.addPath(bp);
+    c.setStrokeColor(new Color(C.t.sub,.32));c.setLineWidth(1);c.strokePath();
     const bd=new Date(baseDate);bd.setDate(baseDate.getDate()+Math.floor(bm/1440));
     dateMarks.push({x:bx,label:`${bd.getMonth()+1}/${bd.getDate()}`});
   }
@@ -742,10 +727,25 @@ function graph(t,width=650,height=240,bands=null){
     c.setFillColor(new Color(col));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
     const lw=70,lx=Math.max(L,Math.min(L+W-lw,ex-lw/2));
     c.setFont(Font.boldSystemFont(12));c.setTextColor(new Color(col,.98));
-    c.drawTextInRect(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,new Rect(lx,T+H+7,lw,16));
+    c.drawTextInRect(`${e.type==="high"?"満":"干"} ${eventClock(e)}`,new Rect(lx,eventY,lw,16));
   });
 
-  const x=X(t.nowMin),y=Y(t.current),nl=new Path();nl.move(new Point(x,T));nl.addLine(new Point(x,T+H));c.addPath(nl);
+  // 24 one-hour bars. Height = final fishing score for the matching time slot.
+  if(we){
+    c.setFont(Font.boldSystemFont(11));c.setTextColor(new Color(C.t.sub,.92));
+    c.drawTextInRect("地合い",new Rect(L,barLabelY,52,14));
+    c.setFillColor(new Color(C.t.grid,.34));c.fillRect(new Rect(L,barY+barH-1,W,1));
+    const n=24,gap=3,bw=(W-gap*(n-1))/n;
+    for(let i=0;i<n;i++){
+      const minute=t.graphStart+i*60+30,calc=fishingScoreAt(t,we,minute);
+      const score=Math.max(0,Math.min(100,calc.score)),bh=Math.max(2,barH*score/100);
+      const bx=L+i*(bw+gap),by=barY+barH-bh,alpha=.24+.56*(score/100);
+      c.setFillColor(new Color(C.t.warn,alpha));
+      c.fillRect(new Rect(bx,by,Math.max(2,bw),bh));
+    }
+  }
+
+  const x=X(t.nowMin),y=Y(t.current),nl=new Path();nl.move(new Point(x,T));nl.addLine(new Point(x,barY+barH));c.addPath(nl);
   c.setStrokeColor(new Color(C.t.fg,.75));c.setLineWidth(2);c.strokePath();
   c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-9,y-9,18,18));
   c.setFillColor(new Color(C.t.b));c.fillEllipse(new Rect(x-5,y-5,10,10));
@@ -755,12 +755,12 @@ function graph(t,width=650,height=240,bands=null){
   c.setFont(Font.semiboldSystemFont(16));c.setTextColor(new Color(C.t.sub));
   for(const m of gridTimes){
     const label=clockFromAbs(m),xx=X(m),tw=52;
-    c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),height-31,tw,18));
+    c.drawTextInRect(label,new Rect(Math.max(0,Math.min(width-tw,xx-tw/2)),timeY,tw,18));
   }
   c.setFont(Font.boldSystemFont(11));c.setTextColor(new Color(C.t.sub,.9));
   for(const dm of dateMarks){
     const dw=42,dx=Math.max(L,Math.min(L+W-dw,dm.x-dw/2));
-    c.drawTextInRect(dm.label,new Rect(dx,height-14,dw,13));
+    c.drawTextInRect(dm.label,new Rect(dx,dateY,dw,13));
   }
   return c.getImage();
 }
@@ -980,13 +980,9 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null){
     }
   
     w.addSpacer(6);
-    const im=w.addImage(graph(t,650,240,bands));im.imageSize=new Size(325,126);im.applyFittingContentMode();
-    w.addSpacer(2);
-    if(we){
-      const bi=w.addImage(fishingBarsImage(t,we));bi.imageSize=new Size(325,27);bi.applyFittingContentMode();
-    }
+    const im=w.addImage(graph(t,650,240,bands,we));im.imageSize=new Size(325,132);im.applyFittingContentMode();
   
-    w.addSpacer(4);
+    w.addSpacer(5);
     if(we){
       const ms=w.addStack();ms.layoutHorizontally();
       metric(ms,"風",`${we.wind!=null?Number(we.wind).toFixed(1)+"m/s":"--"} ${dir8(we.windDir)}`,windGuide(we.wind),null,101);
