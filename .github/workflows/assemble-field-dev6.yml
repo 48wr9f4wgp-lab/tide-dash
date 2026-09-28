@@ -1,0 +1,34 @@
+name: Assemble verified field-view dev6
+on:
+  push:
+    branches: ['chatgpt/field-view-dev6-build']
+permissions:
+  contents: write
+jobs:
+  assemble:
+    if: github.repository == '48wr9f4wgp-lab/tide-dash' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_SHA: ${{ github.sha }}
+      BUILD_BRANCH: chatgpt/field-view-dev6-build
+    steps:
+      - name: Assemble exact locally tested artifact; never update main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin https://github.com/48wr9f4wgp-lab/tide-dash.git
+          gh auth setup-git
+          git fetch --no-tags origin "$RUN_SHA" 7dc68393c0036ae626391ed299eb88d29c3e4725
+          git checkout -b "$BUILD_BRANCH" "$RUN_SHA"
+          python3 scripts/build-field-dev6.py
+          node -e 'const fs=require("fs");const A=Object.getPrototypeOf(async function(){}).constructor;new A(fs.readFileSync("app-candidate.js","utf8"));console.log("Syntax PASS");'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app-candidate.js
+          git commit -m 'build: exact dev6 field artifact verified by SHA256'
+          git push origin "HEAD:refs/heads/$BUILD_BRANCH"
+          git rev-parse HEAD:app-candidate.js
+          echo 'Candidate manifest and main were not changed.'
