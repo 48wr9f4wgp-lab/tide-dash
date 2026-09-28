@@ -31,7 +31,6 @@
     "state": "PROMOTED",
     "record": "VERIFIED_BASELINE_CANDIDATE.md",
     "verified_at": "2026-09-28",
-    "confirmed_baseline_remains": "0.19.4",
     "promotion_readiness": "PROMOTION_READY",
     "readiness_record": "BASELINE_PROMOTION_READINESS.md",
     "readiness_at": "2026-09-29",
@@ -44,7 +43,8 @@
       "battery / thermal profiling"
     ],
     "promoted_at": "2026-09-29",
-    "promoted_to": "VERIFIED_BASELINE"
+    "promoted_to": "VERIFIED_BASELINE",
+    "historical_confirmed_baseline_before_promotion": "0.19.4"
   },
   "verified_baseline": {
     "version": "0.20.0-dev.10",
