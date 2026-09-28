@@ -1,19 +1,26 @@
 {
   "schema": 1,
-  "phase": "大サイズの現地視認性改善版を配信・実機確認待ち",
-  "checks": {"boot":"warn","test":"pass","device":"warn","save":"pass","analytics":"na","performance":"none","release":"warn"},
-  "next": "既存ウィジェットを更新し、大サイズの風・波の数字、次の2つの満干潮、雨の対象時間、更新・詳細ボタンが実機で読めて押せることを確認する。屋外・日差し下の視認性は未検証。",
-  "note": "大サイズのみ配置と表示色を調整。風と波は同格の大きな2枚、雨は対象時間付き1行へ。潮位解析・予報取得・キャッシュ・欠測処理・保存記録・詳細2段構成は維持。134項目を3タイムゾーンで実行し全件PASS。別のCI組立はSHA256・構文のみを確認。中小サイズ、Stable 0.12.0、旧版復旧経路を維持。",
+  "phase": "dev.6タイムアウト復旧後の軽量フィールド版を配信・実機確認待ち",
+  "checks": {
+    "boot": "warn",
+    "test": "pass",
+    "device": "warn",
+    "save": "pass",
+    "analytics": "na",
+    "performance": "warn",
+    "release": "warn"
+  },
+  "next": "既存ウィジェットを更新し、タイムアウトせず表示されること、風・波の大きい2カード、雨の1行表示を実機確認する。",
+  "note": "実機でdev.6がScriptable timeout。まずdev.5へ即時復旧後、実機で動作済みdev.5のグラフ描画をそのまま使う軽量dev.7を作成。独自fieldGraph/fieldWidgetは不使用。110項目をAsia/Tokyo・UTC・America/Los_Angelesで各110/110 PASS。Stable 0.12.0とdev.5復旧経路を維持。",
   "updated_at": "2026-09-28",
-  "candidate_version": "0.20.0-dev.6",
-  "candidate_source_commit": "ec6411ba8f73ed9c4e3dfe66f7dd2ee59c61b6c7",
-  "candidate_git_blob": "f5e7c6534a4220c0ab0622f60b593acc9724c5ed",
-  "candidate_sha256": "650a16fcce889b9c3fba917c69e023b062fb4c8bf9043c52e0ff1410438dedd0",
+  "candidate_version": "0.20.0-dev.7",
+  "candidate_source_commit": "7736770ffdc635ef008c8b90d4957465289b1d71",
+  "candidate_git_blob": "04a00bfd159c2b3f8c3e792d07d5aa1bef570273",
+  "candidate_sha256": "e05f5a684575b6c5cd795e92b78dc0029c3c746541a59a757ff260e2a0979983",
   "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
-  "release_approval_scope": "Current user execution approval for field-readability presentation improvements on the existing Scriptable widget channel; numerical and evidence logic preserved",
+  "release_approval_scope": "User requested execution toward maximum field readability; this dev.7 specifically fixes the observed dev.6 native timeout while preserving the established logic.",
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": null,
-  "previous_device_evidence": "User screenshots show dev4/5 large Home Screen and two-stage saved-record detail; not proof of dev6 behavior or all reliability cases",
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.6.md"
+  "evidence": "deployments/v0.20.0-dev.7.md"
 }
