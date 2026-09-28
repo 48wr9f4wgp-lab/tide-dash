@@ -1,5 +1,5 @@
 // TIDE DASH v0.20.0-dev.4 | Glance-first presentation; unchanged domain code
-const APP_VERSION="0.20.0-dev.7";
+const APP_VERSION="0.20.0-dev.8";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1009,7 +1009,7 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   if(!compact){
     const accepted=[];
     // Prioritize the next event when labels would overlap. All markers and detail rows remain.
-    const events=[...(t.graphEvents||[])].sort((a,b)=>(a===t.nextEvent?-1:b===t.nextEvent?1:a.absoluteMinute-b.absoluteMinute));
+    const events=(t.graphEvents||[]).filter(e=>e.absoluteMinute>=t.nowMin).slice(0,2);
     for(const e of events){
       const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2));
       if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
@@ -1183,7 +1183,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
       if(guideURL)box.url=guideURL;
     };
     card("風",c?.wind,"m/s",Number.isFinite(c?.windDir)?`${dir8(c.windDir)}から`:"向き不明");row.addSpacer(5);
-    card("波",c?.wave,"m","波の高さ");
+    card("波",c?.wave,"m",null);
     w.addSpacer(3);
     const rainRow=w.addStack();rainRow.layoutHorizontally();rainRow.centerAlignContent();if(guideURL)rainRow.url=guideURL;
     text(rainRow,`${rainTime}の雨`,11,C.t.sub);rainRow.addSpacer(7);
@@ -1202,7 +1202,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   }
   if(!small){
     const footer=w.addStack();footer.layoutHorizontally();
-    text(footer,large?`予報 ${forecastAt}`:`予報 ${forecastAt} / 雨 ${rainTime}`,large?10:8,C.t.sub);footer.addSpacer();
+    if(!large)text(footer,`予報 ${forecastAt} / 雨 ${rainTime}`,8,C.t.sub);footer.addSpacer();
     const detail=text(footer,"詳細 ›",large?10:8,C.t.sub);if(guideURL)detail.url=guideURL;
   }
   return w;
