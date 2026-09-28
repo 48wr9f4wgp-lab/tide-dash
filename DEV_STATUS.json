@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "グラフ時刻線の視認性修正版を配信・実機確認待ち",
+  "phase": "dev.10通常表示実機PASS・異常系自動監査PASS・異常系実機確認待ち",
   "checks": {
     "boot": "pass",
     "test": "pass",
@@ -10,17 +10,17 @@
     "performance": "warn",
     "release": "warn"
   },
-  "next": "dev.10大サイズで、白い現在線に『今』、灰色点線の満干潮にアンカーとラベル接続、黄色の日の出・日没線にアンカーが表示され、時刻位置が直感的に一致することを実機確認する。その後は異常系実機監査へ進む。",
-  "note": "dev.9の時間軸計算・潮汐ロジック・予報取得・キャッシュ・詳細保存は変更なし。22:08例でグラフ開始20:00、今22:08=8.89%、満潮03:09=29.79%、日の出05:39=40.21%、日没17:32=89.72%と同一時間軸上の順序を再検証。dev.10は大サイズグラフの線の意味を直接読める表示だけ追加。重いdev.6描画は不使用。",
+  "next": "実機で通信断（機内モード）を確認し、保存予報または取得不可の表示が古い値を最新値として偽装しないことを確認する。その後、必要に応じて位置情報失敗・再起動復帰を確認する。",
+  "note": "dev.10大サイズ通常表示は実機で正常表示を確認。dev.6のScriptable timeoutはdev.7以降で再発していない。dev.10 exact artifactをローカル再構成しSHA256 189e6b432c2539dfb35a26eec5118d06b6056873bf053d4f1ab5dae1ae29cfeb / Git blob 99500300173aabc2e67430435d85dc917a29589fで配信ソースと一致確認。異常系22ケースをAsia/Tokyo・UTC・America/Los_Angelesで各22/22 PASS。通信断時の保存予報上限180分、海況単独失敗、天気単独失敗、座標別キャッシュ、破損キャッシュ、保存失敗、強制更新フォールバック、潮位欠測、潮位全失敗、欠測跨ぎ禁止、far/previous/missing位置ブロック、スナップショット破損/保存失敗、詳細閲覧無通信、固定地点起動、グラフ有限座標を検証。dev.10模擬大サイズ描画は300回平均約5.00ms、dev.6は約6.24ms（Nodeモックであり実機性能値ではない）。",
   "updated_at": "2026-09-28",
   "candidate_version": "0.20.0-dev.10",
   "candidate_source_commit": "bf5e3249c21fe05d8d7358efc48fd62d4056d1ce",
   "candidate_git_blob": "99500300173aabc2e67430435d85dc917a29589f",
   "candidate_sha256": "189e6b432c2539dfb35a26eec5118d06b6056873bf053d4f1ab5dae1ae29cfeb",
-  "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
-  "release_approval_scope": "User requested execution of graph marker readability improvements without changing timing logic.",
+  "delivery_state": "CANDIDATE_ENABLED_NORMAL_DEVICE_PASS_ABNORMAL_DEVICE_PENDING",
+  "release_approval_scope": "User requested abnormal-state audit execution while preserving the fixed UI and existing logic.",
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": null,
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.10.md"
+  "evidence": "deployments/v0.20.0-dev.10-abnormal-audit.md"
 }
