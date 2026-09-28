@@ -1,5 +1,5 @@
 // TIDE DASH v0.20.0-dev.4 | Glance-first presentation; unchanged domain code
-const APP_VERSION="0.20.0-dev.8";
+const APP_VERSION="0.20.0-dev.9";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -986,8 +986,10 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     const line=new Path();segment.forEach((p,i)=>i?line.addLine(new Point(X(p.minute),Y(p.level))):line.move(new Point(X(p.minute),Y(p.level))));
     c.addPath(line);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(compact?4:5);c.strokePath();
   }
-  // Gray dashed markers carry official event TIMES, not an invented hourly curve extremum.
-  for(const e of t.graphEvents||[]){
+  // Large face: keep only the same next-two extrema that receive labels.
+  // Compact faces preserve the prior full marker behavior.
+  const visibleEvents=compact?(t.graphEvents||[]):(t.graphEvents||[]).filter(e=>e.absoluteMinute>=t.nowMin).slice(0,2);
+  for(const e of visibleEvents){
     const x=X(e.absoluteMinute);
     for(let y=T;y<T+H;y+=10)drawLine(x,y,x,Math.min(y+4,T+H),C.t.sub,.5,1.3);
   }
@@ -1009,7 +1011,7 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   if(!compact){
     const accepted=[];
     // Prioritize the next event when labels would overlap. All markers and detail rows remain.
-    const events=(t.graphEvents||[]).filter(e=>e.absoluteMinute>=t.nowMin).slice(0,2);
+    const events=visibleEvents;
     for(const e of events){
       const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2));
       if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
@@ -1129,7 +1131,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   const dates=header.addStack();dates.layoutVertically();
   text(dates,dateKey(reference).slice(5).replace("-","/"),small?8:large?12:9,C.t.fg,true);
   text(dates,`${clockJST(reference)}時点`,small?7:large?10:8,C.t.sub);
-  if(!small){header.addSpacer(6);const refresh=header.addStack();text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
+  if(!small){header.addSpacer(6);const refresh=header.addStack();if(large){refresh.size=new Size(44,44);refresh.setPadding(5,9,5,9);refresh.centerAlignContent();}text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
   if(blocked){
     w.addSpacer(9);text(w,"釣り地点を選ぶ",small?12:large?18:14,C.t.warn,true);
     const a=text(w,locationBlockMessage({locationState,distanceKm}),small?8:11,C.t.sub);a.lineLimit=small?3:2;
