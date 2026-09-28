@@ -1,18 +1,26 @@
 {
   "schema": 1,
-  "phase": "一目で読める表示へ更新・実機確認待ち",
-  "checks": {"boot":"warn","test":"pass","device":"warn","save":"warn","analytics":"na","performance":"none","release":"warn"},
-  "next": "既存ウィジェットを更新し、潮の上下・次の満干潮・風波雨が読み取りやすいか、詳細へのタップを実機で確認する。手動取り込みは不要。",
-  "note": "表示処理のみ変更。配信中dev.2と予測・検証・保存・グラフ・起動処理の同一性を照合。106項目を3タイムゾーンで実行し全件PASS。小中大の模擬描画を確認。ネイティブ実機検証と実API通し確認は未完了。",
+  "phase": "詳細画面の簡素化版を配信・実機確認待ち",
+  "checks": {
+    "boot": "warn",
+    "test": "pass",
+    "device": "warn",
+    "save": "pass",
+    "analytics": "na",
+    "performance": "none",
+    "release": "warn"
+  },
+  "next": "既存ウィジェットの詳細を開き、最初に時刻・地点・潮・次の満干潮・風・波・雨だけが表示され、「詳しい根拠」で従来の完全説明へ進めることを実機確認する。",
+  "note": "ホーム画面、潮位ロジック、予報取得、キャッシュ、欠測処理、表示記録の内容は変更せず、詳細画面の入口だけ二段構成に整理。108項目をAsia/Tokyo・UTC・America/Los_Angelesで各108/108 PASS。詳細を開くだけでは新規取得せず、更新は明示操作のみ。Stable 0.12.0とdev.4復旧経路を維持。",
   "updated_at": "2026-09-28",
-  "candidate_version": "0.20.0-dev.4",
-  "candidate_source_commit": "a34aaf98c6e53227e3828906d77bf997972574aa",
-  "candidate_git_blob": "816cbf280753299a652a16bc6b09cfb26fb1e2d6",
-  "candidate_sha256": "f9f604d60f2939e213945afcb5621eb9531fd1281780ed039b7f511938e93a1a",
+  "candidate_version": "0.20.0-dev.5",
+  "candidate_source_commit": "7dc68393c0036ae626391ed299eb88d29c3e4725",
+  "candidate_git_blob": "469c9faa153d1da75773312392351c5ec7ff6713",
+  "candidate_sha256": "16307c7f3a9ba935937e98bd4275c2db315491531bc5beff92405b2ffcec9930",
   "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
-  "release_approval_scope": "User requested reflection plus glance-first simplification while retaining logic, on the existing Scriptable widget channel only",
+  "release_approval_scope": "User approved simplifying the detail first screen while preserving the established logic and Home Screen presentation",
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": null,
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.4.md"
+  "evidence": "deployments/v0.20.0-dev.5.md"
 }
