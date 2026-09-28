@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "stableVersion": "0.12.0",
   "stableURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/app-stable.js",
-  "candidateVersion": "0.20.0-dev.8",
-  "candidateURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/98127950d90fde69749ca3e0f611367bf920ec30/app-candidate.js",
+  "candidateVersion": "0.20.0-dev.9",
+  "candidateURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/376560a601914c2440bbd9303d5ed3a8f33f146d/app-candidate.js",
   "candidateEnabled": true,
   "updatedAt": "2026-09-28",
-  "candidateSourceCommit": "98127950d90fde69749ca3e0f611367bf920ec30",
-  "candidateSHA256": "b06dc610ad61c7eea38411efbea132b56da285a95d28ac64b33c528941feefdd",
+  "candidateSourceCommit": "376560a601914c2440bbd9303d5ed3a8f33f146d",
+  "candidateSHA256": "e467f12dc12fda66dc20b8352eeb72a2113a9a0709ad3e8631902a46be1d86a5",
   "validationStatus": "AUTOMATED_PASS_DEVICE_PENDING",
-  "previousCandidateVersion": "0.20.0-dev.7",
-  "rollbackManifestPath": "deployments/rollback-v0.20.0-dev.7.json"
+  "previousCandidateVersion": "0.20.0-dev.8",
+  "rollbackManifestPath": "deployments/rollback-v0.20.0-dev.8.json"
 }

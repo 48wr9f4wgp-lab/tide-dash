@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "phase": "dev.6タイムアウト復旧後の軽量フィールド版を配信・実機確認待ち",
+  "phase": "大サイズ通常表示の最終3点修正版を配信・異常系実機確認待ち",
   "checks": {
-    "boot": "warn",
+    "boot": "pass",
     "test": "pass",
     "device": "warn",
     "save": "pass",
@@ -10,17 +10,17 @@
     "performance": "warn",
     "release": "warn"
   },
-  "next": "既存ウィジェットを更新し、タイムアウトせず表示されること、風・波の大きい2カード、雨の1行表示を実機確認する。",
-  "note": "実機でdev.6がScriptable timeout。まずdev.5へ即時復旧後、実機で動作済みdev.5のグラフ描画をそのまま使う軽量dev.7を作成。独自fieldGraph/fieldWidgetは不使用。110項目をAsia/Tokyo・UTC・America/Los_Angelesで各110/110 PASS。Stable 0.12.0とdev.5復旧経路を維持。",
+  "next": "dev.9の大サイズ通常表示で、更新ボタンの操作性と次の2件だけの満干潮点線を確認。その後、通信断・保存予報・海況失敗・潮位失敗・位置情報失敗・再起動復帰を実機確認する。",
+  "note": "dev.8大サイズ通常表示は実機で正常表示を確認。dev.6のScriptable timeoutはdev.7以降で再発していない。dev.9はdev.8の軽量描画・データロジックを維持し、①DEV_STATUS同期、②大サイズ更新ボタン44x44pt、③大サイズグラフの満干潮点線をラベル対象と同じ次の2件へ限定、の3点のみ。中・小表示は点線仕様を変更しない。",
   "updated_at": "2026-09-28",
-  "candidate_version": "0.20.0-dev.7",
-  "candidate_source_commit": "7736770ffdc635ef008c8b90d4957465289b1d71",
-  "candidate_git_blob": "04a00bfd159c2b3f8c3e792d07d5aa1bef570273",
-  "candidate_sha256": "e05f5a684575b6c5cd795e92b78dc0029c3c746541a59a757ff260e2a0979983",
+  "candidate_version": "0.20.0-dev.9",
+  "candidate_source_commit": "376560a601914c2440bbd9303d5ed3a8f33f146d",
+  "candidate_git_blob": "df78b7acedb3b48028b9c51170715e4c813edcff",
+  "candidate_sha256": "e467f12dc12fda66dc20b8352eeb72a2113a9a0709ad3e8631902a46be1d86a5",
   "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
-  "release_approval_scope": "User requested execution toward maximum field readability; this dev.7 specifically fixes the observed dev.6 native timeout while preserving the established logic.",
+  "release_approval_scope": "User requested execution of the final three audit fixes while preserving logic and the established lightweight Home Screen design.",
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": null,
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.7.md"
+  "evidence": "deployments/v0.20.0-dev.9.md"
 }
