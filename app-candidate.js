@@ -1,5 +1,5 @@
 // TIDE DASH v0.20.0-dev.4 | Glance-first presentation; unchanged domain code
-const APP_VERSION="0.20.0-dev.4";
+const APP_VERSION="0.20.0-dev.5";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1055,6 +1055,57 @@ function glanceIssues(issues){
     .replace(/潮位に欠測/g,"潮の一部が不明")
     .replace(/表示根拠の保存不可/g,"詳細を保存できず")
     .replace(/潮位は離れた基準点の参考値/g,"潮は離れた地点の予測"));
+}
+
+// Detail presentation only. The saved evidence and all domain values stay unchanged.
+function guideSummary(saved){
+  const t=saved?.t,r=saved?.r,wp=saved?.wp,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),c=wp?.current;
+  const when=Number.isFinite(t?.referenceAt)?new Date(t.referenceAt):null;
+  const place=r?.station?.name||"地点不明";
+  const wind=Number.isFinite(c?.wind)?`${f1(c.wind,"m/s")}${Number.isFinite(c?.windDir)?` ${dir8(c.windDir)}から`:""}`:"--";
+  const wave=Number.isFinite(c?.wave)?f1(c.wave,"m"):"--";
+  const rain=Number.isFinite(c?.precip)?`${f1(c.precip,"mm")} (${glanceRainTime(c?.validTime)})`:"--";
+  return [
+    when?`${dateKey(when).slice(5).replace("-","/")} ${clockJST(when)}時点`:"表示時刻不明",
+    place,
+    "",
+    `潮　${view.label}`,
+    `${next.title.replace("次の","")}　${next.value}`,
+    "",
+    `風　${wind}`,
+    `波　${wave}`,
+    `雨　${rain}`,
+    "",
+    "この表示を作った時の情報です。"
+  ].join("\n");
+}
+async function showFullEvidence(saved){
+  const a=new Alert();
+  a.title="詳しい根拠";
+  a.message=saved.detail+
+    `\n\n表示作成: ${stampJST(new Date(saved.createdAt))} JST / ${saved.version}\nこの記録は端末内の保存データです。開いた時点の新しい予報へ置き換えていません。`;
+  a.addCancelAction("閉じる");
+  await a.presentAlert();
+}
+// This later declaration intentionally replaces the old full-text first screen.
+// Keeping the old declaration above preserves the already-verified evidence/domain block byte-for-byte.
+async function showGuide(){
+  const saved=readDisplaySnapshot(args.queryParameters?.snapshot),a=new Alert();
+  if(saved){
+    a.title="この表示の内容";
+    a.message=guideSummary(saved);
+    a.addAction("詳しい根拠");
+    a.addAction("最新に更新");
+    a.addCancelAction("閉じる");
+    const choice=await a.presentAlert();
+    if(choice===0){await showFullEvidence(saved);return;}
+    if(choice===1){const w=await buildCurrent(true);await present(w);}
+    return;
+  }
+  a.title="表示記録を確認できません";
+  a.message="この画面に対応する保存記録がありません。別の地点・時刻の情報では代用しません。最新に更新すると新しい表示と記録を作ります。";
+  a.addAction("最新に更新");a.addCancelAction("閉じる");
+  if(await a.presentAlert()===0){const w=await buildCurrent(true);await present(w);}
 }
 function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="current",tideRef=null){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
