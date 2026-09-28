@@ -1242,13 +1242,20 @@ function fieldGraph(t,wp,height=220){
     c.addPath(curve);c.setStrokeColor(new Color(FIELD.line));c.setLineWidth(5);c.strokePath();
   }
   // Only the next two official event labels are on the face. All events remain in Detail.
-  const accepted=[];
-  for(const e of fieldEventRows(t)){
-    const x=X(e.absoluteMinute);if(x<L||x>L+W)continue;
-    for(let y=T;y<T+H;y+=12)line(x,y,x,Math.min(y+5,T+H),FIELD.sub,1.5,.6);
-    const name=e.type==="high"?"満潮":"干潮",day=Math.floor(e.absoluteMinute/1440),prefix=day===1?"翌日 ":day===2?"翌々日 ":"";
-    const s=`${prefix}${name} ${eventClock(e)}`,w=prefix?184:132,lx=Math.max(L,Math.min(width-w,x-w/2));
-    if(!accepted.some(b=>lx<b[1]+8&&lx+w>b[0]-8)){label(s,lx+w/2,T+H+3,w,22,FIELD.ink);accepted.push([lx,lx+w]);}
+  const eventLabels=fieldEventRows(t).map(e=>{
+    const x=X(e.absoluteMinute),day=Math.floor(e.absoluteMinute/1440),prefix=day===1?"翌日 ":day===2?"翌々日 ":"";
+    const s=`${prefix}${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,w=prefix?176:124;
+    return{x,s,w,left:Math.max(L,Math.min(width-R-w,x-w/2))};
+  }).filter(e=>e.x>=L&&e.x<=L+W);
+  // Fit both event labels, rather than silently dropping the second at a tight spacing.
+  let right=L-8;
+  for(const e of eventLabels){e.left=Math.max(e.left,right+8);right=e.left+e.w;}
+  const shift=Math.max(0,right-(width-R));
+  for(const e of eventLabels){
+    e.left-=shift;
+    for(let y=T;y<T+H;y+=12)line(e.x,y,e.x,Math.min(y+5,T+H),FIELD.sub,1.5,.6);
+    line(e.x,T+H,e.left+e.w/2,T+H+3,FIELD.sub,1,.6);
+    label(e.s,e.left+e.w/2,T+H+3,e.w,22,FIELD.ink);
   }
   // Solar times have a single readable rail instead of multiple annotations inside the plot.
   const solar=solarEvents(t,wp).filter(e=>e.minute>=t.nowMin).slice(0,2);
