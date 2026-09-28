@@ -1,26 +1,18 @@
 {
   "schema": 1,
-  "phase": "画面監査4点の修正版配信・実機確認待ち",
-  "checks": {
-    "boot": "warn",
-    "test": "pass",
-    "device": "warn",
-    "save": "warn",
-    "analytics": "na",
-    "performance": "none",
-    "release": "warn"
-  },
-  "next": "既存ウィジェット更新後、0.20.0-dev.2の文字・cm目盛り・満干潮時間帯・表示記録へのタップを実機で確認する。別ファイルの取り込みは不要。",
-  "note": "134項目を3タイムゾーンで実行し全件PASS。76既存回帰・50画面/保存記録・8既存bootstrap模擬試験。直江津の保存済みJMA原表と模擬描画で確認。実API通し検証・新版の実機確認は未完了。Stable 0.12.0と旧版復旧経路を維持。",
+  "phase": "一目で読める表示へ更新・実機確認待ち",
+  "checks": {"boot":"warn","test":"pass","device":"warn","save":"warn","analytics":"na","performance":"none","release":"warn"},
+  "next": "既存ウィジェットを更新し、潮の上下・次の満干潮・風波雨が読み取りやすいか、詳細へのタップを実機で確認する。手動取り込みは不要。",
+  "note": "表示処理のみ変更。配信中dev.2と予測・検証・保存・グラフ・起動処理の同一性を照合。106項目を3タイムゾーンで実行し全件PASS。小中大の模擬描画を確認。ネイティブ実機検証と実API通し確認は未完了。",
   "updated_at": "2026-09-28",
-  "candidate_version": "0.20.0-dev.2",
-  "candidate_source_commit": "b0df288503fe11be3a4504d239acb9292daf4fe7",
-  "candidate_git_blob": "ad003c6b9b960851d0abd7ed7f1be28bcd944754",
-  "candidate_sha256": "9c2b565d2596cf0604180edbfa622e9cd46a6846d354d95494ce63a29bcf8c61",
+  "candidate_version": "0.20.0-dev.4",
+  "candidate_source_commit": "a34aaf98c6e53227e3828906d77bf997972574aa",
+  "candidate_git_blob": "816cbf280753299a652a16bc6b09cfb26fb1e2d6",
+  "candidate_sha256": "f9f604d60f2939e213945afcb5621eb9531fd1281780ed039b7f511938e93a1a",
   "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
-  "release_approval_scope": "Current user execution request for the four screen-audit corrections on the existing widget channel only",
+  "release_approval_scope": "User requested reflection plus glance-first simplification while retaining logic, on the existing Scriptable widget channel only",
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": null,
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.2.md"
+  "evidence": "deployments/v0.20.0-dev.4.md"
 }
