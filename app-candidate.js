@@ -1,5 +1,5 @@
 // TIDE DASH v0.20.0-dev.4 | Glance-first presentation; unchanged domain code
-const APP_VERSION="0.20.0-dev.9";
+const APP_VERSION="0.20.0-dev.10";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -996,7 +996,8 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   const solar=solarEvents(t,wp).filter(e=>e.minute>=t.graphStart&&e.minute<=t.graphEnd);
   const usedSolar=[[],[]];
   for(const e of solar){
-    const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,.45);
+    const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,.52);
+    if(!compact){c.setFillColor(new Color(C.t.warn,.95));c.fillEllipse(new Rect(x-3,T-3,6,6));}
     // Small charts use the readable text summary below the chart instead of tiny overlays.
     if(small)continue;
     const day=Math.floor(e.minute/1440),prefix=day===1?"翌日 ":day===-1?"前日 ":day===0?"":`${day}日後 `;
@@ -1010,19 +1011,21 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   }
   if(!compact){
     const accepted=[];
-    // Prioritize the next event when labels would overlap. All markers and detail rows remain.
     const events=visibleEvents;
     for(const e of events){
-      const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2));
+      const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2)),cx=lx+lw/2;
       if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
-      drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,lx+lw/2,eventY,lw,18);
+      c.setFillColor(new Color(C.t.sub,.9));c.fillEllipse(new Rect(x-3,T+H-3,6,6));
+      drawLine(x,T+H,cx,eventY-2,C.t.sub,.72,1.2);
+      drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,cx,eventY,lw,18);
       accepted.push([lx,lx+lw]);
     }
   }
-  const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.85,2);
+  const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.92,compact?2:2.8);
   if(Number.isFinite(t.current)){
     const y=Y(t.current);c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-5,y-5,10,10));
   }
+  if(!compact)drawLabel("今",x,T+H-24,42,16,C.t.fg);
   if(t.hasGaps)drawLabel("欠測あり",width-62,T+H-25,110,font,C.t.warn);
   return c.getImage();
 }
