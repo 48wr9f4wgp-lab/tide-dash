@@ -1,26 +1,19 @@
 {
   "schema": 1,
-  "phase": "詳細画面の簡素化版を配信・実機確認待ち",
-  "checks": {
-    "boot": "warn",
-    "test": "pass",
-    "device": "warn",
-    "save": "pass",
-    "analytics": "na",
-    "performance": "none",
-    "release": "warn"
-  },
-  "next": "既存ウィジェットの詳細を開き、最初に時刻・地点・潮・次の満干潮・風・波・雨だけが表示され、「詳しい根拠」で従来の完全説明へ進めることを実機確認する。",
-  "note": "ホーム画面、潮位ロジック、予報取得、キャッシュ、欠測処理、表示記録の内容は変更せず、詳細画面の入口だけ二段構成に整理。108項目をAsia/Tokyo・UTC・America/Los_Angelesで各108/108 PASS。詳細を開くだけでは新規取得せず、更新は明示操作のみ。Stable 0.12.0とdev.4復旧経路を維持。",
+  "phase": "大サイズの現地視認性改善版を配信・実機確認待ち",
+  "checks": {"boot":"warn","test":"pass","device":"warn","save":"pass","analytics":"na","performance":"none","release":"warn"},
+  "next": "既存ウィジェットを更新し、大サイズの風・波の数字、次の2つの満干潮、雨の対象時間、更新・詳細ボタンが実機で読めて押せることを確認する。屋外・日差し下の視認性は未検証。",
+  "note": "大サイズのみ配置と表示色を調整。風と波は同格の大きな2枚、雨は対象時間付き1行へ。潮位解析・予報取得・キャッシュ・欠測処理・保存記録・詳細2段構成は維持。134項目を3タイムゾーンで実行し全件PASS。別のCI組立はSHA256・構文のみを確認。中小サイズ、Stable 0.12.0、旧版復旧経路を維持。",
   "updated_at": "2026-09-28",
-  "candidate_version": "0.20.0-dev.5",
-  "candidate_source_commit": "7dc68393c0036ae626391ed299eb88d29c3e4725",
-  "candidate_git_blob": "469c9faa153d1da75773312392351c5ec7ff6713",
-  "candidate_sha256": "16307c7f3a9ba935937e98bd4275c2db315491531bc5beff92405b2ffcec9930",
+  "candidate_version": "0.20.0-dev.6",
+  "candidate_source_commit": "ec6411ba8f73ed9c4e3dfe66f7dd2ee59c61b6c7",
+  "candidate_git_blob": "f5e7c6534a4220c0ab0622f60b593acc9724c5ed",
+  "candidate_sha256": "650a16fcce889b9c3fba917c69e023b062fb4c8bf9043c52e0ff1410438dedd0",
   "delivery_state": "CANDIDATE_ENABLED_DEVICE_UNVERIFIED",
-  "release_approval_scope": "User approved simplifying the detail first screen while preserving the established logic and Home Screen presentation",
+  "release_approval_scope": "Current user execution approval for field-readability presentation improvements on the existing Scriptable widget channel; numerical and evidence logic preserved",
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": null,
+  "previous_device_evidence": "User screenshots show dev4/5 large Home Screen and two-stage saved-record detail; not proof of dev6 behavior or all reliability cases",
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.5.md"
+  "evidence": "deployments/v0.20.0-dev.6.md"
 }
