@@ -8,7 +8,7 @@
   "updatedAt": "2026-09-30",
   "candidateSourceCommit": "fecccbcf44ce699d9b3be10470b5f9c835481766",
   "candidateSHA256": "589a728a31e7ffe778922152ae8462372d87408ff1f617d74ff0ae233d66d0d0",
-  "validationStatus": "AUTOMATED_PASS_DEVICE_PENDING",
+  "validationStatus": "DEVICE_LARGE_PASS_FULL_EVIDENCE_PENDING",
   "previousCandidateVersion": "0.20.0-dev.22",
   "rollbackManifestPath": "deployments/rollback-v0.20.0-dev.22.json"
 }
