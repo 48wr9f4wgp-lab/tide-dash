@@ -66,7 +66,12 @@ jobs:
 
       - name: Validate Scriptable warning integration
         run: |
-          node --input-type=module --check < app-candidate.js
+          node - <<'NODE'
+          const fs=require("fs");
+          const src=fs.readFileSync("app-candidate.js","utf8");
+          new Function("return (async function(){\\n"+src+"\\n})");
+          console.log("Scriptable parse wrapper: PASS");
+          NODE
           python - <<'PY'
           from pathlib import Path
           s=Path("app-candidate.js").read_text(encoding="utf-8")
