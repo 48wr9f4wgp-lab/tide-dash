@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.14 | Evidence-backed historical target suggestions; tide/field logic unchanged
-const APP_VERSION="0.20.0-dev.14";
+// TIDE DASH v0.20.0-dev.15 | Region-aware evidence-backed target suggestions; tide/field logic unchanged
+const APP_VERSION="0.20.0-dev.15";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -47,7 +47,7 @@ const dir8=d=>!Number.isFinite(d)?"--":["北","北東","東","南東","南","南
 const f1=(v,s="")=>Number.isFinite(v)?`${v.toFixed(1)}${s}`:"--";
 const signedTide=v=>{if(!Number.isFinite(v))return "--";const n=Math.round(v);return n>0?`+${n}`:n<0?`−${Math.abs(n)}`:"0"};
 const NIIGATA_HISTORICAL_PRIOR={"1":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/449179.pdf","aji":21,"saba":94,"iwashi":0.1,"buri":82.3,"sawara":4.7,"hirame":0.2},"4":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/451323.pdf","aji":50.8,"saba":10.3,"iwashi":32.8,"buri":37.8,"sawara":7,"hirame":1.2},"5":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/455461.pdf","aji":115.7,"saba":43.9,"iwashi":19.3,"buri":143.4,"sawara":11.5,"hirame":6.6},"6":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/466455.pdf","aji":93.7,"saba":68,"iwashi":4.6,"buri":47.8,"sawara":6.7,"hirame":3.6},"7":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/466457.pdf","aji":39.3,"saba":9.1,"iwashi":1.1,"buri":15.7,"sawara":5.7,"hirame":0.7},"8":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/466261.pdf","aji":8.7,"saba":1.9,"iwashi":0.2,"buri":8.1,"sawara":2.6,"hirame":0.3},"9":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/468148.pdf","aji":8.5,"saba":1.9,"iwashi":0.2,"buri":3.5,"sawara":0.3,"hirame":0.2},"10":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/471497.pdf","aji":29.9,"saba":24.1,"iwashi":0.9,"buri":42.8,"sawara":8.9,"hirame":0.4},"11":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/474241.pdf","aji":47.3,"saba":60.8,"iwashi":0.8,"buri":66.1,"sawara":10.8,"hirame":0.9}};
-function niigataTargetSuggestions(S,reference,wp){
+function targetSuggestions(S,reference,wp){
   const area=String(S?.area||""),name=String(S?.name||"");
   if(!area.includes("新潟")&&!name.includes("柏崎")&&!name.includes("新潟"))return null;
   const month=jstDate(reference).getUTCMonth()+1,p=NIIGATA_HISTORICAL_PRIOR[String(month)];
@@ -66,6 +66,36 @@ function niigataTargetSuggestions(S,reference,wp){
   rows.sort((x,y)=>y.score-x.score||y.tons-x.tons);
   return{basis:"過去傾向",month,source:p.source,top:rows.slice(0,3),caveat:"新潟県内主要定置網の5年平均を地域・季節のpriorとして使用。遊漁の釣果を数値予測していません。"};
 }
+function ibarakiTargetSuggestions(S,reference,wp){
+  const area=String(S?.area||""),name=String(S?.name||"");
+  if(!area.includes("茨城")&&!name.includes("大津")&&!name.includes("平潟")&&!name.includes("大洗"))return null;
+  const z=jstDate(reference),month=z.getUTCMonth()+1,day=z.getUTCDate();
+  if(!((month===9&&day>=19)||(month===10&&day<=2)))return null;
+  const rows=[
+    {id:"HIRAME",name:"ヒラメ",score:2.2,confidence:"B",reasons:["2024・2025の同時期公式週報で小型船漁獲を確認"]},
+    {id:"BURI",name:"イナダ",score:2.0,confidence:"B",reasons:["2024・2025の同時期公式週報で小型船漁獲を確認"]},
+    {id:"SAWARA",name:"サワラ",score:1.1,confidence:"C",reasons:["2024同時期の公式週報で小型船漁獲を確認"]},
+    {id:"MAGOCHI",name:"マゴチ",score:1.0,confidence:"C",reasons:["2024同時期の公式週報で小型船漁獲を確認"]}
+  ];
+  rows.sort((x,y)=>y.score-x.score);
+  const otsu=name.includes("大津");
+  return{
+    basis:"同時期の公的漁況",
+    source:"https://www.pref.ibaraki.jp/nourinsuisan/suishi/gyogyo/data/gyokaikyo/gyokaikyou-sokuhou.html",
+    sources:[
+      "https://www.pref.ibaraki.jp/nourinsuisan/suishi/gyogyo/data/gyokaikyo/documents/06-26f.pdf",
+      "https://www.pref.ibaraki.jp/nourinsuisan/suishi/documents/07-27f.pdf",
+      "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html"
+    ],
+    top:rows.slice(0,3),
+    context:otsu?"大津では2026/09/25にシラス512kg・8隻（64.0kg/隻）、09/28に335kg・8隻（41.9kg/隻）の公式漁況あり。ベイト状況の参考で、対象魚の順位加点には未使用。":null,
+    caveat:"茨城県の同時期公式漁海況速報を地域priorとして使用。商業漁獲を遊漁の釣果確率へ変換していません。"
+  };
+}
+function targetSuggestions(S,reference,wp){
+  return ibarakiTargetSuggestions(S,reference,wp)||targetSuggestions(S,reference,wp);
+}
+
 function validDateKey(s){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(s||""))return false;
   const d=new Date(`${s}T00:00:00+09:00`);
@@ -926,7 +956,7 @@ function gridDescription(p){
 }
 function tideReferenceLabel(S,ref){return ref?.name||S?.tideName||S?.name||S?.code||"未確認"}
 function tideDetail(t,r,wp){
-  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt)),targets=niigataTargetSuggestions(r.station,new Date(t.referenceAt),wp);
+  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt)),targets=targetSuggestions(r.station,new Date(t.referenceAt),wp);
   const lines=[
     `TIDE DASH ${APP_VERSION}`,
     `表示基準: ${stampJST(new Date(t.referenceAt))} JST`,
@@ -972,7 +1002,9 @@ function tideDetail(t,r,wp){
     "",
     targets?`狙い目（過去傾向）: ${targets.top.map((x,i)=>`${i+1}.${x.name}[${x.confidence}]`).join(" / ")}`:"狙い目（過去傾向）: 対応する公的月別データなし",
     ...(targets?.top||[]).map(x=>`${x.name}[${x.confidence}]: ${x.reasons.join(" / ")}`),
-    targets?`過去傾向の出典: ${targets.source}`:null,
+    targets?`狙い目根拠: ${targets.basis}`:null,
+    targets?`主な出典: ${targets.source}`:null,
+    targets?.context||null,
     targets?targets.caveat:null,
     "信頼度A=最新の公的魚種signalあり / B=公的な複数年地域priorを主根拠 / C=転用・補助根拠のみ。",
     "",
@@ -1144,7 +1176,7 @@ function glanceIssues(issues){
 
 // Detail presentation only. The saved evidence and all domain values stay unchanged.
 function guideSummary(saved){
-  const t=saved?.t,r=saved?.r,wp=saved?.wp,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),c=wp?.current,targets=t&&r?.station?niigataTargetSuggestions(r.station,new Date(t.referenceAt),wp):null;
+  const t=saved?.t,r=saved?.r,wp=saved?.wp,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),c=wp?.current,targets=t&&r?.station?targetSuggestions(r.station,new Date(t.referenceAt),wp):null;
   const when=Number.isFinite(t?.referenceAt)?new Date(t.referenceAt):null;
   const place=r?.station?.name||"地点不明";
   const wind=Number.isFinite(c?.wind)?`${f1(c.wind,"m/s")}${Number.isFinite(c?.windDir)?` ${dir8(c.windDir)}から`:""}${Number.isFinite(c?.windGust)?` / 突風 ${f1(c.windGust,"m/s")}`:""}`:"--";
@@ -1162,7 +1194,7 @@ function guideSummary(saved){
     `波　${wave}`,
     `海水温　${sst}`,
     `雨　${rain}`,
-    targets?`狙い目（過去傾向）　${targets.top.map(x=>`${x.name}${x.confidence}`).join(" / ")}`:"",
+    targets?`狙い目　${targets.top.map(x=>`${x.name}${x.confidence}`).join(" / ")}`:"",
     "",
     "この表示を作った時の情報です。"
   ].join("\n");
@@ -1224,7 +1256,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     text(w,"タップして設定",small?8:11,C.t.fg,true);return w;
   }
 
-  const c=wp?.current,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),targets=niigataTargetSuggestions(S,reference,wp);
+  const c=wp?.current,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),targets=targetSuggestions(S,reference,wp);
   w.addSpacer(large?6:3);
   const hero=w.addStack();hero.layoutHorizontally();hero.centerAlignContent();
   const tideBox=hero.addStack();tideBox.layoutVertically();
@@ -1294,7 +1326,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   if(!small){
     const footer=w.addStack();footer.layoutHorizontally();
     if(!large)text(footer,`予報 ${forecastAt} / 雨 ${rainTime}`,8,C.t.sub);
-    else if(targets){const tt=text(footer,`狙い目(過去) ${targets.top.map(x=>`${x.name}${x.confidence}`).join("・")}`,9,C.t.sub);if(guideURL)tt.url=guideURL;}
+    else if(targets){const tt=text(footer,`狙い目 ${targets.top.map(x=>`${x.name}${x.confidence}`).join("・")}`,9,C.t.sub);if(guideURL)tt.url=guideURL;}
     footer.addSpacer();
     const detail=text(footer,"詳細 ›",large?10:8,C.t.sub);if(guideURL)detail.url=guideURL;
   }
