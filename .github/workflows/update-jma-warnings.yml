@@ -1,0 +1,76 @@
+# Refresh compact JMA warning snapshot for TIDE DASH
+name: Update JMA warning signals
+
+on:
+  push:
+    paths:
+      - "scripts/update_jma_warnings.py"
+      - ".github/workflows/update-jma-warnings.yml"
+      - "spots.json"
+  schedule:
+    # Every 15 minutes. GitHub-hosted schedules may be delayed.
+    - cron: "3,18,33,48 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tide-dash-jma-warning-signals
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Refresh official JMA warning snapshot
+        run: python scripts/update_jma_warnings.py
+
+      - name: Validate compact snapshot
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          spots=json.loads(Path("spots.json").read_text(encoding="utf-8"))
+          expected={
+              str(code)
+              for spot in spots.get("spots", [])
+              for code in spot.get("jmaWarningAreaCodes", [])
+              if str(code).isdigit() and len(str(code))==7
+          }
+          p=Path("jma_warning_signals.json")
+          if not p.exists():
+              raise SystemExit("jma_warning_signals.json was not produced")
+          o=json.loads(p.read_text(encoding="utf-8"))
+          assert o.get("schemaVersion")==2
+          assert o.get("policy",{}).get("officialSourcesOnly") is True
+          assert o.get("policy",{}).get("aggregateCurrentState") is True
+          assert o.get("source",{}).get("product")=="VPWS50"
+          assert set(o.get("areas",{})) == expected
+          allowed={"14","16","07","37"}
+          for area in o["areas"].values():
+              for warning in area.get("warnings",[]):
+                  assert warning.get("code") in allowed
+                  assert "解除" not in str(warning.get("status",""))
+          print("Validated JMA areas:", len(expected))
+          print("Source report:", o["source"].get("reportDatetime"))
+          PY
+
+      - name: Commit meaningful warning changes
+        run: |
+          if [ -z "$(git status --porcelain -- jma_warning_signals.json)" ]; then
+            echo "No JMA warning-state changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add jma_warning_signals.json
+          git commit -m "data: refresh JMA warning signals"
+          git push
