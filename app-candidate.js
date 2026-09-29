@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.17 | Auto-updating official fishery signals; tide/field logic unchanged
-const APP_VERSION="0.20.0-dev.17";
+// TIDE DASH v0.20.0-dev.18 | Live/static target evidence labels; ranking logic unchanged
+const APP_VERSION="0.20.0-dev.18";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1046,7 +1046,7 @@ function gridDescription(p){
 }
 function tideReferenceLabel(S,ref){return ref?.name||S?.tideName||S?.name||S?.code||"未確認"}
 function tideDetail(t,r,wp){
-  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt)),targets=targetSuggestions(r.station,new Date(t.referenceAt),wp);
+  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt)),targets=targetSuggestions(r.station,new Date(t.referenceAt),wp),targetEvidenceLabel=targets&&String(targets.basis||"").includes("自動更新")?"自動更新":"過去傾向";
   const lines=[
     `TIDE DASH ${APP_VERSION}`,
     `表示基準: ${stampJST(new Date(t.referenceAt))} JST`,
@@ -1090,7 +1090,7 @@ function tideDetail(t,r,wp){
     "有義波高は最大波高ではありません。実際にはこれより高い波もあります。",
     "安全・釣行可否の判定ではありません。現地状況と公的な警報・規制を確認してください。",
     "",
-    targets?`狙い目（過去傾向）: ${targets.top.map((x,i)=>`${i+1}.${x.name}[${x.confidence}]`).join(" / ")}`:"狙い目（過去傾向）: 対応する公的月別データなし",
+    targets?`狙い目（${targetEvidenceLabel}）: ${targets.top.map((x,i)=>`${i+1}.${x.name}[${x.confidence}]`).join(" / ")}`:"狙い目（過去傾向）: 対応する公的月別データなし",
     ...(targets?.top||[]).map(x=>`${x.name}[${x.confidence}]: ${x.reasons.join(" / ")}`),
     targets?`狙い目根拠: ${targets.basis}`:null,
     targets?`主な出典: ${targets.source}`:null,
