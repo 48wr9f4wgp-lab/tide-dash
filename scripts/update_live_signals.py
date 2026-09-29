@@ -46,7 +46,19 @@ def fetch(url: str, binary: bool = False):
     with urllib.request.urlopen(req, timeout=30) as res:
         data = res.read()
         final_url = res.geturl()
-    return (data if binary else data.decode("utf-8", errors="replace")), final_url
+        charset = res.headers.get_content_charset()
+    if binary:
+        return data, final_url
+    tried = []
+    for enc in [charset, "utf-8", "cp932", "shift_jis"]:
+        if not enc or enc in tried:
+            continue
+        tried.append(enc)
+        try:
+            return data.decode(enc), final_url
+        except (UnicodeDecodeError, LookupError):
+            pass
+    return data.decode("utf-8", errors="replace"), final_url
 
 
 def compact_text(html: str) -> str:
@@ -259,6 +271,9 @@ payload = {
 }
 if errors:
     payload["errors"] = errors
+
+if errors:
+    print("Adapter errors:", json.dumps(errors, ensure_ascii=False))
 
 if semantic(payload) == semantic(previous):
     print("No semantic live-signal changes")
