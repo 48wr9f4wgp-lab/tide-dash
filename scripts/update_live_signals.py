@@ -116,10 +116,13 @@ def parse_ibaraki(previous_region):
 def parse_shizuoka(previous_region):
     html, _ = fetch(SHIZUOKA_COASTAL)
     text = compact_text(html)
-    mm = re.search(r"定置網\s*[（(]\s*(\d{1,2})\s*月\s*[）)]", text)
-    if not mm:
-        raise ValueError("Shizuoka: set-net month not found")
-    month = int(mm.group(1))
+    month_candidates = [int(x) for x in re.findall(r"(?:R8年|令和8年)\s*(\d{1,2})月計", text)]
+    if not month_candidates:
+        month_candidates = [int(x) for x in re.findall(r"(\d{1,2})月", text)]
+    month_candidates = [x for x in month_candidates if 1 <= x <= 12]
+    if not month_candidates:
+        raise ValueError("Shizuoka: report month not found")
+    month = max(month_candidates)
     patterns = [
         ("MARUSOUDA", "ソウダ", r"マルソウダは\s*([0-9.]+)トン"),
         ("KAMASU", "カマス", r"ヤマトカマスは\s*([0-9.]+)トン"),
