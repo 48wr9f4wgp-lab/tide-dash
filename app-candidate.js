@@ -1,5 +1,5 @@
 // TIDE DASH v0.20.0-dev.4 | Glance-first presentation; unchanged domain code
-const APP_VERSION="0.20.0-dev.10";
+const APP_VERSION="0.20.0-dev.11";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -654,7 +654,7 @@ function shortHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCode
 function forecastRequest(kind,S){
   if(![S?.lat,S?.lon].every(Number.isFinite)||Math.abs(S.lat)>90||Math.abs(S.lon)>180)throw Error("invalid forecast location");
   const units=kind==="weather"?{
-    temperature_2m:"°C",precipitation:"mm",weather_code:"wmo code",wind_speed_10m:"m/s",wind_direction_10m:"°"
+    temperature_2m:"°C",precipitation:"mm",weather_code:"wmo code",wind_speed_10m:"m/s",wind_direction_10m:"°",wind_gusts_10m:"m/s"
   }:{wave_height:"m",wave_direction:"°",wave_period:"s",sea_surface_temperature:"°C",ocean_current_velocity:"km/h",ocean_current_direction:"°"};
   if(!["weather","marine"].includes(kind))throw Error("invalid forecast kind");
   const base=kind==="weather"?"https://api.open-meteo.com/v1/forecast":"https://marine-api.open-meteo.com/v1/marine";
@@ -669,7 +669,7 @@ function forecastValue(o,name,index,unit){
   const v=o?.hourly?.[name]?.[index];
   if(!Number.isFinite(v))return null;
   if(/direction/.test(name)&&(v<0||v>360))return null;
-  if(["wind_speed_10m","precipitation","wave_height","wave_period","ocean_current_velocity"].includes(name)&&v<0)return null;
+  if(["wind_speed_10m","wind_gusts_10m","precipitation","wave_height","wave_period","ocean_current_velocity"].includes(name)&&v<0)return null;
   return v;
 }
 function validForecast(o,req,now){
@@ -761,7 +761,7 @@ async function weather(now,S,force=false){
   const current={
     validTime:key,
     temp:val(wp,wi,"temperature_2m","°C"),precip:val(wp,wi,"precipitation","mm"),
-    weatherCode:val(wp,wi,"weather_code","wmo code"),wind:val(wp,wi,"wind_speed_10m","m/s"),windDir:val(wp,wi,"wind_direction_10m","°"),
+    weatherCode:val(wp,wi,"weather_code","wmo code"),wind:val(wp,wi,"wind_speed_10m","m/s"),windDir:val(wp,wi,"wind_direction_10m","°"),windGust:val(wp,wi,"wind_gusts_10m","m/s"),
     wave:val(mp,mi,"wave_height","m"),waveDir:val(mp,mi,"wave_direction","°"),wavePeriod:val(mp,mi,"wave_period","s"),
     sst:val(mp,mi,"sea_surface_temperature","°C"),currentVelocity:val(mp,mi,"ocean_current_velocity","km/h"),currentDir:val(mp,mi,"ocean_current_direction","°"),
     sunrise:dailySolar(wp,todayKey,"sunrise"),sunset:dailySolar(wp,todayKey,"sunset"),
@@ -885,7 +885,7 @@ function tideDetail(t,r,wp){
     solar.length?"日の出入りを地合いや魚の活性のピークに換算していません。":"日の出入りを取得できません。",
     "",
     `風・海況の予報対象: ${c?.validTime?.replace("T"," ")||"未取得"} JST`,
-    `風 (地上10m): ${f1(c?.wind,"m/s")} ${Number.isFinite(c?.windDir)?dir8(c.windDir)+"から":"方向不明"}`,
+    `風 (地上10m): ${f1(c?.wind,"m/s")} ${Number.isFinite(c?.windDir)?dir8(c.windDir)+"から":"方向不明"} / 突風 ${f1(c?.windGust,"m/s")}`,
     `有義波高: ${f1(c?.wave,"m")} / 周期 ${f1(c?.wavePeriod,"秒")}`,
     `波向: ${Number.isFinite(c?.waveDir)?dir8(c.waveDir)+"から":"未取得"}`,
     `降水: ${f1(c?.precip,"mm/1h")} / ${rainInterval(c?.validTime)}`,
@@ -1067,8 +1067,8 @@ function guideSummary(saved){
   const t=saved?.t,r=saved?.r,wp=saved?.wp,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),c=wp?.current;
   const when=Number.isFinite(t?.referenceAt)?new Date(t.referenceAt):null;
   const place=r?.station?.name||"地点不明";
-  const wind=Number.isFinite(c?.wind)?`${f1(c.wind,"m/s")}${Number.isFinite(c?.windDir)?` ${dir8(c.windDir)}から`:""}`:"--";
-  const wave=Number.isFinite(c?.wave)?f1(c.wave,"m"):"--";
+  const wind=Number.isFinite(c?.wind)?`${f1(c.wind,"m/s")}${Number.isFinite(c?.windDir)?` ${dir8(c.windDir)}から`:""}${Number.isFinite(c?.windGust)?` / 突風 ${f1(c.windGust,"m/s")}`:""}`:"--";
+  const wave=Number.isFinite(c?.wave)?`${f1(c.wave,"m")}${Number.isFinite(c?.wavePeriod)?` / 周期 ${f1(c.wavePeriod,"秒")}`:""}`:"--";
   const rain=Number.isFinite(c?.precip)?`${f1(c.precip,"mm")} (${glanceRainTime(c?.validTime)})`:"--";
   return [
     when?`${dateKey(when).slice(5).replace("-","/")} ${clockJST(when)}時点`:"表示時刻不明",
@@ -1187,8 +1187,8 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
       text(box,detail||" ",10,C.t.sub);
       if(guideURL)box.url=guideURL;
     };
-    card("風",c?.wind,"m/s",Number.isFinite(c?.windDir)?`${dir8(c.windDir)}から`:"向き不明");row.addSpacer(5);
-    card("波",c?.wave,"m",null);
+    card("風",c?.wind,"m/s",[Number.isFinite(c?.windDir)?`${dir8(c.windDir)}から`:"向き不明",Number.isFinite(c?.windGust)?`突風 ${f1(c.windGust)}m/s`:null].filter(Boolean).join("・"));row.addSpacer(5);
+    card("波",c?.wave,"m",Number.isFinite(c?.wavePeriod)?`周期 ${f1(c.wavePeriod)}秒`:"周期不明");
     w.addSpacer(3);
     const rainRow=w.addStack();rainRow.layoutHorizontally();rainRow.centerAlignContent();if(guideURL)rainRow.url=guideURL;
     text(rainRow,`${rainTime}の雨`,11,C.t.sub);rainRow.addSpacer(7);
