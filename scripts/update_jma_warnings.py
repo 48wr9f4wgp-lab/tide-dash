@@ -124,18 +124,28 @@ def atom_entries(feed_xml: bytes):
         if lname(e.tag) != "entry":
             continue
         updated = None
+        title = ""
         urls = []
         for x in list(e):
             n = lname(x.tag)
             if n == "updated" and x.text:
                 updated = parse_dt(x.text.strip())
+            elif n == "title" and x.text:
+                title = x.text.strip()
             elif n == "id" and x.text:
                 urls.append(x.text.strip())
             elif n == "link" and x.attrib.get("href"):
                 urls.append(x.attrib["href"].strip())
-        url = next((u for u in urls if re.search(r"(?:_|/)VPWS50(?:_|\.|$)", u)), None)
-        if url:
-            entries.append((updated or dt.datetime.min.replace(tzinfo=UTC), url))
+
+        # JMA Atom data URLs do not consistently expose the telegram code in
+        # the URL. Prefer an explicit VPWS50 URL when present, otherwise use
+        # the official entry title for the 2026 aggregate current-state product.
+        product_url = next((u for u in urls if re.search(r"(?:_|/)VPWS50(?:_|\\.|$)", u)), None)
+        is_aggregate = "集約通報" in title or "集約速報" in title
+        if product_url or is_aggregate:
+            url = product_url or next((u for u in urls if u.startswith("https://")), None)
+            if url:
+                entries.append((updated or dt.datetime.min.replace(tzinfo=UTC), url))
     return entries
 
 
