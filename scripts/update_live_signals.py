@@ -28,6 +28,7 @@ UA = "TIDE-DASH-live-signal-updater/1.0 (+official-public-data-only)"
 
 IBARAKI_SHIRASU = "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html"
 SHIZUOKA_COASTAL = "https://fish-exp.pref.shizuoka.jp/02fishery/2-1-1.html"
+SHIZUOKA_INDEX = "https://fish-exp.pref.shizuoka.jp/02fishery/2-1.html"
 NIIGATA_2026 = "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/2026mizuage.html"
 
 TARGET_NAMES = {
@@ -116,9 +117,13 @@ def parse_ibaraki(previous_region):
 def parse_shizuoka(previous_region):
     html, _ = fetch(SHIZUOKA_COASTAL)
     text = compact_text(html)
-    month_candidates = [int(x) for x in re.findall(r"(?:R8年|令和8年)\s*(\d{1,2})月計", text)]
+    fw = str.maketrans("０１２３４５６７８９", "0123456789")
+    normalized = text.translate(fw)
+    month_candidates = [int(x) for x in re.findall(r"(?:R8年|令和8年)?\s*(\d{1,2})月計", normalized)]
     if not month_candidates:
-        month_candidates = [int(x) for x in re.findall(r"(\d{1,2})月", text)]
+        index_html, _ = fetch(SHIZUOKA_INDEX)
+        index_text = compact_text(index_html).translate(fw)
+        month_candidates = [int(x) for x in re.findall(r"令和8年\s*(\d{1,2})月分掲載中", index_text)]
     month_candidates = [x for x in month_candidates if 1 <= x <= 12]
     if not month_candidates:
         raise ValueError("Shizuoka: report month not found")
