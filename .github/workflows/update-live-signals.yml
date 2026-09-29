@@ -1,0 +1,67 @@
+# Auto-refresh official regional fishery signals for TIDE DASH
+name: Update live regional fishery signals
+
+on:
+  push:
+    paths:
+      - "scripts/update_live_signals.py"
+      - ".github/workflows/update-live-signals.yml"
+  schedule:
+    # 06:17 / 12:17 / 18:17 / 00:17 JST (GitHub schedules may be delayed)
+    - cron: "17 21 * * *"
+    - cron: "17 3 * * *"
+    - cron: "17 9 * * *"
+    - cron: "17 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tide-dash-live-signals
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install parsers
+        run: python -m pip install --disable-pip-version-check beautifulsoup4==4.12.3 pypdf==5.1.0
+
+      - name: Refresh official signals
+        run: python scripts/update_live_signals.py
+
+      - name: Validate JSON
+        run: |
+          if [ ! -f live_regional_signals.json ]; then
+            echo "live_regional_signals.json was not produced"
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("live_regional_signals.json")
+          o=json.loads(p.read_text(encoding="utf-8"))
+          assert o.get("schemaVersion")==1
+          assert isinstance(o.get("regions"),dict)
+          assert o.get("policy",{}).get("officialSourcesOnly") is True
+          print("Validated regions:", ", ".join(sorted(o["regions"])))
+          PY
+
+      - name: Commit meaningful signal changes
+        run: |
+          if [ -z "$(git status --porcelain -- live_regional_signals.json)" ]; then
+            echo "No live-signal changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add live_regional_signals.json
+          git commit -m "data: refresh official live fishery signals"
+          git push
