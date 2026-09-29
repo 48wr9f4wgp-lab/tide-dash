@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-29",
+  "policy": {
+    "output": "relative_target_ranking",
+    "absoluteProbability": false,
+    "genericTideBonus": false,
+    "genericLunarBonus": false,
+    "personalLogsPrimary": false
+  },
+  "profiles": [
+    {
+      "id": "MA_AJI",
+      "name": "マアジ",
+      "scientificName": "Trachurus japonicus",
+      "status": "partial_ready",
+      "inputs": {
+        "regional_presence": "supported",
+        "seasonality": "supported",
+        "sst": "supporting_only",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "evidence": [
+        {
+          "id": "aji_takahashi_2021",
+          "type": "peer_reviewed",
+          "directness": "recruitment_ecology",
+          "region": "southwestern Sea of Japan",
+          "use": "thermal_supporting_context",
+          "url": "https://consensus.app/papers/linking-environmental-drivers-juvenile-growth-and-takahashi-sassa/62f21a52e4b35923b55699157c38198b/"
+        },
+        {
+          "id": "niigata_species_trend",
+          "type": "official",
+          "directness": "commercial_regional_presence",
+          "region": "Niigata",
+          "use": "presence_seasonality",
+          "url": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/gyokakudoko.html"
+        }
+      ]
+    },
+    {
+      "id": "BURI",
+      "name": "ブリ系",
+      "scientificName": "Seriola quinqueradiata",
+      "status": "partial_ready",
+      "inputs": {
+        "regional_presence": "supported",
+        "seasonality": "supported",
+        "sst": "qualitative_support",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "evidence": [
+        {
+          "id": "buri_furukawa_2020",
+          "type": "peer_reviewed",
+          "directness": "movement_habitat",
+          "region": "northeastern Japan Sea",
+          "use": "seasonal_movement_thermal_context",
+          "url": "https://consensus.app/papers/horizontal-and-vertical-movement-of-yellowtails-seriola-furukawa-kozuka/2ed9c3b5f1455493bfc3942cbea67b13/"
+        },
+        {
+          "id": "niigata_buri",
+          "type": "official",
+          "directness": "commercial_regional_presence",
+          "region": "Niigata/Sado",
+          "use": "presence",
+          "url": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/buri.html"
+        }
+      ]
+    },
+    {
+      "id": "SAWARA",
+      "name": "サワラ・サゴシ",
+      "scientificName": "Scomberomorus niphonius",
+      "status": "presence_ready",
+      "inputs": {
+        "regional_presence": "supported",
+        "seasonality": "supported",
+        "sst": "pending",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "evidence": [
+        {
+          "id": "sawara_ohshimo_2021",
+          "type": "peer_reviewed",
+          "directness": "distribution_abundance",
+          "region": "Yellow Sea/East China Sea/Sea of Japan",
+          "use": "distribution_background",
+          "url": "https://consensus.app/papers/fluctuations-in-distribution-and-relative-abundance-of-ohshimo-muko/3c19ed5d5d175acc9c84163d4195b3d0/"
+        },
+        {
+          "id": "niigata_species_trend",
+          "type": "official",
+          "directness": "commercial_regional_presence",
+          "region": "Niigata",
+          "use": "presence_seasonality",
+          "url": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/gyokakudoko.html"
+        }
+      ]
+    },
+    {
+      "id": "HIRAME",
+      "name": "ヒラメ",
+      "scientificName": "Paralichthys olivaceus",
+      "status": "partial_ready",
+      "inputs": {
+        "regional_presence": "supported",
+        "seasonality": "supported",
+        "sst": "not_direct_proxy",
+        "bottom_temperature": "supported",
+        "tide": "unknown",
+        "lunar": "unknown"
+      },
+      "evidence": [
+        {
+          "id": "hirame_kurita_2021",
+          "type": "peer_reviewed",
+          "directness": "habitat_temperature",
+          "region": "NE Japan Pacific",
+          "use": "depth_bottom_temperature_context",
+          "url": "https://consensus.app/papers/seasonal-changes-in-depth-and-temperature-of-habitat-for-kurita-sakuma/b2c8afbfc1c15c568c54a6300de51dfa/"
+        },
+        {
+          "id": "shizuoka_species",
+          "type": "official",
+          "directness": "regional_resource_profile",
+          "region": "Shizuoka",
+          "use": "presence_seasonality",
+          "url": "https://fish-exp.pref.shizuoka.jp/02fishery/2-5.html"
+        }
+      ]
+    },
+    {
+      "id": "AORI_IKA",
+      "name": "アオリイカ",
+      "scientificName": "Sepioteuthis lessoniana complex",
+      "status": "partial_ready",
+      "inputs": {
+        "regional_presence": "supported",
+        "seasonality": "strong",
+        "sst": "recruitment_support_only",
+        "salinity": "recruitment_support_only",
+        "tide": "unknown",
+        "lunar": "unknown"
+      },
+      "evidence": [
+        {
+          "id": "shizuoka_aori",
+          "type": "official",
+          "directness": "local_life_history",
+          "region": "Izu/Shizuoka",
+          "use": "seasonality",
+          "url": "https://fish-exp.pref.shizuoka.jp/izu/0005/08aori.html"
+        },
+        {
+          "id": "aori_ueta_1999",
+          "type": "peer_reviewed",
+          "directness": "year_class_recruitment",
+          "region": "Tokushima",
+          "use": "thermal_salinity_recruitment_context",
+          "url": "https://consensus.app/papers/relationship-between-yearclass-abundance-of-the-oval-ueta-tokai/712d27d1806a5a34a3a0ec933a60ba8f/"
+        }
+      ]
+    }
+  ],
+  "pending": [
+    "SABA",
+    "IWASHI",
+    "SEABASS",
+    "MAGOCHI",
+    "ROCKFISH"
+  ]
+}
