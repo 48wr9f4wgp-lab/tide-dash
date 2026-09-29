@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 3,
+  "updatedAt": "2026-09-29",
+  "policy": {
+    "purpose": "region-specific evidence-backed relative target suggestions",
+    "notCatchProbability": true,
+    "noGenericTideBonus": true,
+    "noGenericLunarBonus": true
+  },
+  "regions": [
+    {
+      "id": "NIIGATA_JAPAN_SEA",
+      "method": "same-month official five-year fixed-net average + species-limited modifiers",
+      "dataFile": "historical_target_priors_v1.json"
+    },
+    {
+      "id": "IBARAKI_PACIFIC",
+      "method": "same-season official weekly fishery bulletins + fresh local bait context",
+      "dataFile": "regional_target_priors_v2.json"
+    },
+    {
+      "id": "SHIZUOKA_EAST_IZU",
+      "method": "latest official monthly east-Izu large-set-net catch as recent regional prior",
+      "activeMonths": [
+        8,
+        9,
+        10
+      ],
+      "source": "https://fish-exp.pref.shizuoka.jp/02fishery/2-1-1.html",
+      "referencePeriod": "2026-08",
+      "candidates": [
+        {
+          "id": "MARUSOUDA",
+          "name": "ソウダ",
+          "confidence": "B",
+          "tons": 59.6,
+          "plainYearRatio": 2.95
+        },
+        {
+          "id": "KAMASU",
+          "name": "カマス",
+          "confidence": "B",
+          "tons": 51.3,
+          "plainYearRatio": 3.1
+        },
+        {
+          "id": "SABA",
+          "name": "サバ",
+          "confidence": "B",
+          "tons": 34.6,
+          "plainYearRatio": 0.25
+        },
+        {
+          "id": "MA_AJI",
+          "name": "アジ",
+          "confidence": "B",
+          "tons": 12,
+          "plainYearRatio": 0.36
+        },
+        {
+          "id": "BURI",
+          "name": "ブリ",
+          "confidence": "B",
+          "tons": 5.6,
+          "plainYearRatio": 0.35
+        }
+      ],
+      "note": "Published 2026-09-25. Used as latest official recent regional presence, not as recreational catch probability."
+    },
+    {
+      "id": "SHIZUOKA_IZU_SEASONAL",
+      "method": "Izu-specific official life-history evidence only",
+      "activeMonths": [
+        9,
+        10
+      ],
+      "source": "https://fish-exp.pref.shizuoka.jp/izu/0005/08aori.html",
+      "candidates": [
+        {
+          "id": "AORI_IKA",
+          "name": "アオリイカ",
+          "confidence": "C",
+          "reason": "official Izu research: spawning May-Jul; current-year juveniles about 13 cm by Oct"
+        }
+      ],
+      "note": "Used outside east Izu only as seasonal context; no current abundance claim."
+    }
+  ]
+}
