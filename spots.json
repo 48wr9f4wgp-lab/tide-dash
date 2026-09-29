@@ -24,6 +24,12 @@
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
         "北茨城市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0821500"
+      ],
+      "jmaWarningAreaNames": [
+        "北茨城市"
       ]
     },
     {
@@ -41,6 +47,12 @@
       ],
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
+        "北茨城市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0821500"
+      ],
+      "jmaWarningAreaNames": [
         "北茨城市"
       ]
     },
@@ -60,6 +72,12 @@
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
         "日立市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0820200"
+      ],
+      "jmaWarningAreaNames": [
+        "日立市"
       ]
     },
     {
@@ -76,6 +94,12 @@
       ],
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
+        "日立市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0820200"
+      ],
+      "jmaWarningAreaNames": [
         "日立市"
       ]
     },
@@ -95,6 +119,12 @@
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
         "ひたちなか市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0822100"
+      ],
+      "jmaWarningAreaNames": [
+        "ひたちなか市"
       ]
     },
     {
@@ -112,6 +142,12 @@
       ],
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
+        "大洗町"
+      ],
+      "jmaWarningAreaCodes": [
+        "0830900"
+      ],
+      "jmaWarningAreaNames": [
         "大洗町"
       ]
     },
@@ -131,6 +167,12 @@
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
         "鹿嶋市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0822200"
+      ],
+      "jmaWarningAreaNames": [
+        "鹿嶋市"
       ]
     },
     {
@@ -148,6 +190,12 @@
       ],
       "jmaPrefCode": "080000",
       "jmaAreaAliases": [
+        "神栖市"
+      ],
+      "jmaWarningAreaCodes": [
+        "0823200"
+      ],
+      "jmaWarningAreaNames": [
         "神栖市"
       ]
     },
@@ -167,6 +215,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "銚子市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1220200"
+      ],
+      "jmaWarningAreaNames": [
+        "銚子市"
       ]
     },
     {
@@ -183,6 +237,12 @@
       ],
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
+        "銚子市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1220200"
+      ],
+      "jmaWarningAreaNames": [
         "銚子市"
       ]
     },
@@ -202,6 +262,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "旭市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1221500"
+      ],
+      "jmaWarningAreaNames": [
+        "旭市"
       ]
     },
     {
@@ -220,6 +286,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "九十九里町"
+      ],
+      "jmaWarningAreaCodes": [
+        "1240300"
+      ],
+      "jmaWarningAreaNames": [
+        "九十九里町"
       ]
     },
     {
@@ -236,6 +308,12 @@
       ],
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
+        "勝浦市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1221800"
+      ],
+      "jmaWarningAreaNames": [
         "勝浦市"
       ]
     },
@@ -254,6 +332,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "勝浦市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1221800"
+      ],
+      "jmaWarningAreaNames": [
+        "勝浦市"
       ]
     },
     {
@@ -270,6 +354,12 @@
       ],
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
+        "鴨川市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1222300"
+      ],
+      "jmaWarningAreaNames": [
         "鴨川市"
       ]
     },
@@ -289,6 +379,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "南房総市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1223400"
+      ],
+      "jmaWarningAreaNames": [
+        "南房総市"
       ]
     },
     {
@@ -307,6 +403,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "南房総市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1223400"
+      ],
+      "jmaWarningAreaNames": [
+        "南房総市"
       ]
     },
     {
@@ -323,6 +425,12 @@
       ],
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
+        "館山市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1220500"
+      ],
+      "jmaWarningAreaNames": [
         "館山市"
       ]
     },
@@ -342,6 +450,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "富津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1222600"
+      ],
+      "jmaWarningAreaNames": [
+        "富津市"
       ]
     },
     {
@@ -360,6 +474,12 @@
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
         "富津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1222600"
+      ],
+      "jmaWarningAreaNames": [
+        "富津市"
       ]
     },
     {
@@ -376,6 +496,12 @@
       ],
       "jmaPrefCode": "120000",
       "jmaAreaAliases": [
+        "木更津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1220600"
+      ],
+      "jmaWarningAreaNames": [
         "木更津市"
       ]
     },
@@ -441,6 +567,12 @@
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
         "横須賀市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1420100"
+      ],
+      "jmaWarningAreaNames": [
+        "横須賀市"
       ]
     },
     {
@@ -457,6 +589,12 @@
       ],
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
+        "横須賀市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1420100"
+      ],
+      "jmaWarningAreaNames": [
         "横須賀市"
       ]
     },
@@ -476,6 +614,12 @@
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
         "三浦市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1421000"
+      ],
+      "jmaWarningAreaNames": [
+        "三浦市"
       ]
     },
     {
@@ -492,6 +636,12 @@
       ],
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
+        "三浦市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1421000"
+      ],
+      "jmaWarningAreaNames": [
         "三浦市"
       ]
     },
@@ -511,6 +661,12 @@
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
         "藤沢市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1420500"
+      ],
+      "jmaWarningAreaNames": [
+        "藤沢市"
       ]
     },
     {
@@ -529,6 +685,12 @@
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
         "小田原市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1420600"
+      ],
+      "jmaWarningAreaNames": [
+        "小田原市"
       ]
     },
     {
@@ -545,6 +707,12 @@
       ],
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
+        "真鶴町"
+      ],
+      "jmaWarningAreaCodes": [
+        "1438300"
+      ],
+      "jmaWarningAreaNames": [
         "真鶴町"
       ]
     },
@@ -563,6 +731,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "熱海市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220500"
+      ],
+      "jmaWarningAreaNames": [
+        "熱海市"
       ]
     },
     {
@@ -579,6 +753,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "伊東市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220800"
+      ],
+      "jmaWarningAreaNames": [
         "伊東市"
       ]
     },
@@ -597,6 +777,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "伊東市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220800"
+      ],
+      "jmaWarningAreaNames": [
+        "伊東市"
       ]
     },
     {
@@ -613,6 +799,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "伊東市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220800"
+      ],
+      "jmaWarningAreaNames": [
         "伊東市"
       ]
     },
@@ -631,6 +823,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "東伊豆町"
+      ],
+      "jmaWarningAreaCodes": [
+        "2230100"
+      ],
+      "jmaWarningAreaNames": [
+        "東伊豆町"
       ]
     },
     {
@@ -648,6 +846,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "下田市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2221900"
+      ],
+      "jmaWarningAreaNames": [
+        "下田市"
       ]
     },
     {
@@ -664,6 +868,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "下田市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2221900"
+      ],
+      "jmaWarningAreaNames": [
         "下田市"
       ]
     },
@@ -683,6 +893,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "南伊豆町"
+      ],
+      "jmaWarningAreaCodes": [
+        "2230400"
+      ],
+      "jmaWarningAreaNames": [
+        "南伊豆町"
       ]
     },
     {
@@ -699,6 +915,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "南伊豆町"
+      ],
+      "jmaWarningAreaCodes": [
+        "2230400"
+      ],
+      "jmaWarningAreaNames": [
         "南伊豆町"
       ]
     },
@@ -717,6 +939,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "松崎町"
+      ],
+      "jmaWarningAreaCodes": [
+        "2230500"
+      ],
+      "jmaWarningAreaNames": [
+        "松崎町"
       ]
     },
     {
@@ -733,6 +961,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "西伊豆町"
+      ],
+      "jmaWarningAreaCodes": [
+        "2230600"
+      ],
+      "jmaWarningAreaNames": [
         "西伊豆町"
       ]
     },
@@ -751,6 +985,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "伊豆市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2222200"
+      ],
+      "jmaWarningAreaNames": [
+        "伊豆市"
       ]
     },
     {
@@ -767,6 +1007,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "沼津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220300"
+      ],
+      "jmaWarningAreaNames": [
         "沼津市"
       ]
     },
@@ -785,6 +1031,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "沼津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220300"
+      ],
+      "jmaWarningAreaNames": [
+        "沼津市"
       ]
     },
     {
@@ -801,6 +1053,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "沼津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220300"
+      ],
+      "jmaWarningAreaNames": [
         "沼津市"
       ]
     },
@@ -819,6 +1077,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "沼津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2220300"
+      ],
+      "jmaWarningAreaNames": [
+        "沼津市"
       ]
     },
     {
@@ -835,6 +1099,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "静岡市南部"
+      ],
+      "jmaWarningAreaCodes": [
+        "2210001"
+      ],
+      "jmaWarningAreaNames": [
         "静岡市南部"
       ]
     },
@@ -853,6 +1123,12 @@
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
         "焼津市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2221200"
+      ],
+      "jmaWarningAreaNames": [
+        "焼津市"
       ]
     },
     {
@@ -869,6 +1145,12 @@
       ],
       "jmaPrefCode": "220000",
       "jmaAreaAliases": [
+        "御前崎市"
+      ],
+      "jmaWarningAreaCodes": [
+        "2222300"
+      ],
+      "jmaWarningAreaNames": [
         "御前崎市"
       ]
     },
@@ -888,6 +1170,12 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "村上市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1521200"
+      ],
+      "jmaWarningAreaNames": [
+        "村上市"
       ]
     },
     {
@@ -904,6 +1192,14 @@
       ],
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
+        "聖籠町",
+        "新潟市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1530700",
+        "1510000"
+      ],
+      "jmaWarningAreaNames": [
         "聖籠町",
         "新潟市"
       ]
@@ -923,6 +1219,12 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "新潟市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1510000"
+      ],
+      "jmaWarningAreaNames": [
+        "新潟市"
       ]
     },
     {
@@ -940,6 +1242,12 @@
       ],
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
+        "新潟市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1510000"
+      ],
+      "jmaWarningAreaNames": [
         "新潟市"
       ]
     },
@@ -959,6 +1267,12 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "長岡市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1520200"
+      ],
+      "jmaWarningAreaNames": [
+        "長岡市"
       ]
     },
     {
@@ -976,6 +1290,12 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "柏崎市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1520500"
+      ],
+      "jmaWarningAreaNames": [
+        "柏崎市"
       ]
     },
     {
@@ -992,6 +1312,12 @@
       ],
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
+        "上越市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1522200"
+      ],
+      "jmaWarningAreaNames": [
         "上越市"
       ]
     },
@@ -1011,6 +1337,12 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "糸魚川市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1521600"
+      ],
+      "jmaWarningAreaNames": [
+        "糸魚川市"
       ]
     },
     {
@@ -1028,6 +1360,12 @@
       ],
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
+        "糸魚川市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1521600"
+      ],
+      "jmaWarningAreaNames": [
         "糸魚川市"
       ]
     },
@@ -1047,6 +1385,12 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "佐渡市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1522400"
+      ],
+      "jmaWarningAreaNames": [
+        "佐渡市"
       ]
     },
     {
@@ -1065,12 +1409,19 @@
       "jmaPrefCode": "150000",
       "jmaAreaAliases": [
         "佐渡市"
+      ],
+      "jmaWarningAreaCodes": [
+        "1522400"
+      ],
+      "jmaWarningAreaNames": [
+        "佐渡市"
       ]
     }
   ],
   "jmaWarningMapping": {
-    "source": "JMA area.json",
-    "mode": "class20 alias resolution",
-    "status": "ALIASES_READY"
+    "source": "https://www.jma.go.jp/bosai/common/const/area.json",
+    "mode": "resolved class20 codes",
+    "status": "RESOLVED",
+    "resolvedCount": 60
   }
 }
