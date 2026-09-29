@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.20 | Hydrate JMA area metadata for saved fixed spots; safety logic unchanged
-const APP_VERSION="0.20.0-dev.20";
+// TIDE DASH v0.20.0-dev.21 | Midnight date integrated into graph; reserved safety row space
+const APP_VERSION="0.20.0-dev.21";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1264,7 +1264,8 @@ function tideScale(series){
 }
 function graphLayout(width,height,compact){
   const small=width<=420;
-  const L=small?52:50,R=14,T=compact?26:50,B=compact?44:78;
+  // Large keeps the same 220px plot height; only the old below-axis date gutter is reduced.
+  const L=small?52:50,R=14,T=compact?26:50,B=compact?44:54;
   return{L,R,T,B,W:width-L-R,H:height-T-B,small};
 }
 function graph(t,width=650,height=348,wp=null,compact=false){
@@ -1285,11 +1286,19 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   for(let minute=Math.ceil(t.graphStart/360)*360;minute<=t.graphEnd;minute+=360){
     gridTimes.push(minute);const x=X(minute);
     drawLine(x,T,x,T+H,C.t.grid,.42);
-    // A date is an additional label; it never replaces midnight's time.
-    if(!small||minute%720===0)drawLabel(clockFromAbs(minute),Math.max(L+(small?34:38),x),height-(small?47:44),small?68:76,font);
+    const axisY=compact?height-(small?47:44):height-23;
+    if(!small||minute%720===0)drawLabel(clockFromAbs(minute),Math.max(L+(small?34:38),x),axisY,small?68:76,font);
     if(minute%1440===0){
-      const date=dateKey(addDay(new Date(t.referenceAt),Math.floor(minute/1440))).slice(5).replace("-","/");
-      drawLabel(date,Math.max(L+(small?33:35),x),height-22,small?66:70,small?18:font-1);
+      const rawDate=dateKey(addDay(new Date(t.referenceAt),Math.floor(minute/1440))).slice(5).replace("-","/");
+      if(compact){
+        // Preserve the already-verified small/medium date layout.
+        drawLabel(rawDate,Math.max(L+(small?33:35),x),height-22,small?66:70,small?18:font-1);
+      }else{
+        // Large: make midnight a date boundary inside the plot instead of a second x-axis row.
+        const date=rawDate.replace(/^0/,"").replace("/0","/");
+        drawLine(x,T,x,T+H,C.t.sub,.58,1.25);
+        drawLabel(date,x+29,T+6,58,14,C.t.sub);
+      }
     }
   }
   if(!s.length){drawLabel("潮位データなし",width/2,T+H/2-10,220,font+1,C.t.warn);return c.getImage();}
@@ -1483,8 +1492,8 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   if(guideURL)hero.url=guideURL;
 
   w.addSpacer(large?5:2);
-  const image=w.addImage(large?graph(t,650,348,wp):miniGraph(t,small?420:620,small?132:112,wp));
-  image.imageSize=large?new Size(325,160):small?new Size(138,43):new Size(310,56);image.applyFittingContentMode();
+  const image=w.addImage(large?graph(t,650,324,wp):miniGraph(t,small?420:620,small?132:112,wp));
+  image.imageSize=large?new Size(325,149):small?new Size(138,43):new Size(310,56);image.applyFittingContentMode();
   if(guideURL)image.url=guideURL;
 
   const forecastAt=forecastClock(wp),rainTime=glanceRainTime(c?.validTime);
@@ -1527,15 +1536,15 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   }
 
   if(safetyFace){
-    const hazard=text(w,safetyFace,small?7:large?10:8,C.t.warn,true);hazard.lineLimit=large?2:1;if(guideURL)hazard.url=guideURL;
-    w.addSpacer(large?2:1);
+    const hazard=text(w,safetyFace,small?7:large?9:8,C.t.warn,true);hazard.lineLimit=1;if(guideURL)hazard.url=guideURL;
+    w.addSpacer(1);
   }
   const issues=[...(wp?.issues||[])];
   if(t.hasGaps)issues.push("潮位に欠測");
   if(snapshot&&!snapshot.saved)issues.push("表示根拠の保存不可");
   if(Number.isFinite(tideRef?.distanceKm)&&tideRef.distanceKm>=C.tideRefCautionKm)issues.push("潮位は離れた基準点の参考値");
   if(err)issues.push(err);
-  w.addSpacer(large?5:2);
+  w.addSpacer(large?(safetyFace?3:5):2);
   if(issues.length){
     const labels=glanceIssues(issues),msg=labels.slice(0,2).join(" / ")+(labels.length>2?` / 他${labels.length-2}件`:"");
     const notice=text(w,`⚠ ${msg}`,small?7:large?10:8,C.t.warn);notice.lineLimit=large?2:1;if(guideURL)notice.url=guideURL;
