@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-29T07:19:20+00:00",
+  "policy": {
+    "officialSourcesOnly": true,
+    "absoluteCatchProbability": false,
+    "failClosed": true,
+    "freshSignalRole": "booster_or_override_only_when_adapter_supports_it"
+  },
+  "regions": {
+    "IBARAKI_PACIFIC": {
+      "regionId": "IBARAKI_PACIFIC",
+      "sourceType": "official_fresh_bait_context",
+      "source": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html",
+      "publishedDate": "2026-09-28",
+      "freshBaitContext": {
+        "species": "シラス",
+        "district": "大津",
+        "rows": [
+          {
+            "date": "2026-09-28",
+            "boats": 8,
+            "kg": 335.0,
+            "cpueKgPerBoat": 41.9
+          }
+        ],
+        "rankingEffect": "none",
+        "note": "ベイト状況の参考。対象魚順位への自動加点には使用しない。"
+      }
+    }
+  },
+  "errors": {
+    "SHIZUOKA_EAST_IZU": "Shizuoka: set-net month not found",
+    "NIIGATA_JAPAN_SEA": "Niigata: no monthly PDF links parsed"
+  }
+}
