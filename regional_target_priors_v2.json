@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-09-29",
+  "policy": {
+    "purpose": "relative target suggestions from official regional evidence",
+    "notCatchProbability": true,
+    "noGenericTideBonus": true,
+    "noGenericLunarBonus": true
+  },
+  "regions": [
+    {
+      "id": "NIIGATA_JAPAN_SEA",
+      "method": "same-month official 5-year fixed-net average + species-limited modifiers",
+      "dataFile": "historical_target_priors_v1.json"
+    },
+    {
+      "id": "IBARAKI_PACIFIC",
+      "method": "same-season official weekly fishery bulletins + fresh local bait context",
+      "activeWindow": "09-19..10-02",
+      "candidates": [
+        {
+          "id": "HIRAME",
+          "name": "ヒラメ",
+          "confidence": "B",
+          "evidenceYears": [
+            2024,
+            2025
+          ],
+          "rankBasis": "repeated same-season official small-boat catches"
+        },
+        {
+          "id": "BURI",
+          "name": "イナダ",
+          "confidence": "B",
+          "evidenceYears": [
+            2024,
+            2025
+          ],
+          "rankBasis": "repeated same-season official small-boat catches"
+        },
+        {
+          "id": "SAWARA",
+          "name": "サワラ",
+          "confidence": "C",
+          "evidenceYears": [
+            2024
+          ],
+          "rankBasis": "same-season official small-boat catch"
+        },
+        {
+          "id": "MAGOCHI",
+          "name": "マゴチ",
+          "confidence": "C",
+          "evidenceYears": [
+            2024
+          ],
+          "rankBasis": "same-season official small-boat catch"
+        }
+      ],
+      "sources": {
+        "weekly2024": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/gyogyo/data/gyokaikyo/documents/06-26f.pdf",
+        "weekly2025": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/documents/07-27f.pdf",
+        "weeklyIndex": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/gyogyo/data/gyokaikyo/gyokaikyou-sokuhou.html",
+        "currentBait": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html"
+      },
+      "currentContext": {
+        "observedAt": "2026-09-29",
+        "otsuShirasu": [
+          {
+            "date": "2026-09-25",
+            "boats": 8,
+            "kg": 512,
+            "cpueKgPerBoat": 64
+          },
+          {
+            "date": "2026-09-28",
+            "boats": 8,
+            "kg": 335,
+            "cpueKgPerBoat": 41.9
+          }
+        ],
+        "rankingEffect": "none",
+        "note": "Fresh bait context only; not used as a target-fish score."
+      }
+    }
+  ]
+}
