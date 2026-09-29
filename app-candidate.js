@@ -16,6 +16,7 @@ const C={
   jmaWarningBaseURL:"https://www.jma.go.jp/bosai/warning/data/warning",
   jmaWarningCacheMin:10,
   jmaWarningFallbackMin:60,
+  jmaWarningReportMaxHours:36,
   farKm:50,
   maxFavorites:10,
   weatherFallbackMaxMin:180,
@@ -101,12 +102,16 @@ function jmaSpotWarningRef(S){
   if(/^\d{2}$/.test(pc)&&/^\d{5}$/.test(admin))return{pref:pc+"0000",codes:[admin+"00"],names:[S?.prefecture||S?.name||admin]};
   return null;
 }
+function jmaWarningPayloadFresh(payload,now=Date.now()){
+  const at=Date.parse(payload?.reportDatetime||"");
+  return Number.isFinite(at)&&at<=now+3600000&&now-at<=C.jmaWarningReportMaxHours*3600000;
+}
 function readJmaWarningCache(pref){
   try{
     const p=warningCachePath(pref);
     if(!fm.fileExists(p))return null;
     const e=JSON.parse(fm.readString(p));
-    if(e?.schema!==1||!Number.isFinite(e.fetchedAt)||!e.payload?.areaTypes)return null;
+    if(e?.schema!==1||!Number.isFinite(e.fetchedAt)||!e.payload?.areaTypes||!jmaWarningPayloadFresh(e.payload))return null;
     return e;
   }catch(_){return null}
 }
@@ -143,17 +148,20 @@ async function jmaSafetyWarnings(S,force=false){
   const cached=readJmaWarningCache(ref.pref),now=Date.now();
   const pack=(e,state)=>({...parseJmaSafety(e.payload,ref),state,fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`});
   if(!force&&cached&&now-cached.fetchedAt<C.jmaWarningCacheMin*60000)return pack(cached,"cached");
+  let stalePayload=null;
   try{
     const r=new Request(`${C.jmaWarningBaseURL}/${ref.pref}.json?t=${Date.now()}`);
     r.timeoutInterval=7;r.headers={"Cache-Control":"no-cache"};
     const payload=JSON.parse(await r.loadString());
     if(!payload?.areaTypes||!payload?.reportDatetime)throw Error("invalid JMA warning payload");
+    if(!jmaWarningPayloadFresh(payload,now)){stalePayload=payload;throw Error("stale JMA warning payload");}
     const parsed=parseJmaSafety(payload,ref);
     const e={schema:1,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
     try{fm.writeString(warningCachePath(ref.pref),raw);}catch(_){}
     return{...parsed,state:"network",fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
   }catch(_){
     if(cached&&now-cached.fetchedAt<=C.jmaWarningFallbackMin*60000)return pack(cached,"fallback");
+    if(stalePayload)return{...parseJmaSafety(stalePayload,ref),state:"stale",fetchedAt:Date.now(),sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
     return{state:"unavailable",items:[],areaMatched:false,fetchedAt:Date.now(),sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
   }
 }
@@ -164,13 +172,14 @@ function jmaSafetyFace(safety){
     return safety.state==="fallback"?`${body}（保存）`:body;
   }
   if(safety.state==="fallback")return"⚠ 気象庁警報は保存情報";
+  if(safety.state==="stale")return"⚠ 気象庁警報データが古い";
   if(safety.state==="unavailable")return"⚠ 気象庁警報を確認できません";
   if(safety.state==="unsupported")return"⚠ 気象庁警報区域が未対応";
   return null;
 }
 function jmaSafetyStateText(safety){
   if(!safety)return"未取得";
-  const state=safety.state==="network"?"通信取得":safety.state==="cached"?"キャッシュ":safety.state==="fallback"?"保存情報":safety.state==="unsupported"?"区域未対応":"取得不可";
+  const state=safety.state==="network"?"通信取得":safety.state==="cached"?"キャッシュ":safety.state==="fallback"?"保存情報":safety.state==="stale"?"旧電文":safety.state==="unsupported"?"区域未対応":"取得不可";
   return`${stampJST(new Date(safety.fetchedAt||Date.now()))} JST (${state})`;
 }
 function sourceMonthAgeDays(month,reference){
