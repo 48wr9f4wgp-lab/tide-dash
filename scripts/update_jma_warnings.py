@@ -152,14 +152,33 @@ def atom_entries(feed_xml: bytes):
 def latest_product_url() -> tuple[str, dt.datetime]:
     found = []
     errors = []
+    diagnostics = []
     for feed in FEEDS:
         try:
             raw, _ = fetch_bytes(feed)
             found.extend(atom_entries(raw))
+            root = ET.fromstring(raw)
+            for e in root.iter():
+                if lname(e.tag) != "entry":
+                    continue
+                title = ""
+                eid = ""
+                for x in list(e):
+                    if lname(x.tag) == "title" and x.text:
+                        title = x.text.strip()
+                    elif lname(x.tag) == "id" and x.text:
+                        eid = x.text.strip()
+                if title:
+                    diagnostics.append(f"{title} | {eid}")
         except Exception as exc:
             errors.append(f"{feed}: {exc}")
     if not found:
-        raise RuntimeError("VPWS50 not found in JMA Pull feed; " + " | ".join(errors))
+        sample = " || ".join(diagnostics[:40])
+        raise RuntimeError(
+            "VPWS50 not found in JMA Pull feed; "
+            + " | ".join(errors)
+            + (" ; sample entries: " + sample if sample else "")
+        )
     found.sort(key=lambda x: x[0], reverse=True)
     return found[0][1], found[0][0]
 
