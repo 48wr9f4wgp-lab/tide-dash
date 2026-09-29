@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.16 | Shizuoka/Izu target suggestions; tide/field logic unchanged
-const APP_VERSION="0.20.0-dev.16";
+// TIDE DASH v0.20.0-dev.17 | Auto-updating official fishery signals; tide/field logic unchanged
+const APP_VERSION="0.20.0-dev.17";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -10,6 +10,9 @@ const C={
   stationCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/stations.json",
   spotCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/spots.json",
   portCatalogURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/ports.json",
+  liveSignalsURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/live_regional_signals.json",
+  liveSignalsCacheMin:120,
+  liveSignalsFallbackDays:7,
   farKm:50,
   maxFavorites:10,
   weatherFallbackMaxMin:180,
@@ -30,6 +33,7 @@ const prefPath=fm.joinPath(fm.documentsDirectory(),C.prefs);
 const catPath=fm.joinPath(fm.documentsDirectory(),C.catalog);
 const spotPath=fm.joinPath(fm.documentsDirectory(),C.spotCatalog);
 const portPath=fm.joinPath(fm.documentsDirectory(),C.portCatalog);
+const liveSignalsPath=fm.joinPath(cacheDir,"live_regional_signals_v1.json");
 const NET={fallbacks:[]}; // Legacy JMA cache path; forecast caching is isolated below.
 
 const p2=n=>String(n).padStart(2,"0");
@@ -46,6 +50,52 @@ const clockFromAbs=m=>{if(!Number.isFinite(m))return "--:--";m=((Math.round(m)%1
 const dir8=d=>!Number.isFinite(d)?"--":["北","北東","東","南東","南","南西","西","北西"][Math.round((((d%360)+360)%360)/45)%8];
 const f1=(v,s="")=>Number.isFinite(v)?`${v.toFixed(1)}${s}`:"--";
 const signedTide=v=>{if(!Number.isFinite(v))return "--";const n=Math.round(v);return n>0?`+${n}`:n<0?`−${Math.abs(n)}`:"0"};
+
+function validLiveSignalsPayload(o){
+  if(o?.schemaVersion!==1||o?.policy?.officialSourcesOnly!==true||!o?.regions||typeof o.regions!=="object")return false;
+  const at=Date.parse(o.generatedAt||"");
+  return Number.isFinite(at)&&at<=Date.now()+86400000;
+}
+function readLiveSignalsCache(){
+  try{
+    if(!fm.fileExists(liveSignalsPath))return null;
+    const e=JSON.parse(fm.readString(liveSignalsPath));
+    if(e?.schema!==1||!Number.isFinite(e.fetchedAt)||!validLiveSignalsPayload(e.payload))return null;
+    return e;
+  }catch(_){return null}
+}
+async function liveRegionalSignals(force=false){
+  const cached=readLiveSignalsCache(),now=Date.now();
+  if(!force&&cached&&now-cached.fetchedAt<C.liveSignalsCacheMin*60000)
+    return{payload:cached.payload,fetchedAt:cached.fetchedAt,cacheState:"cached"};
+  try{
+    const r=new Request(C.liveSignalsURL);r.timeoutInterval=10;r.headers={"Cache-Control":"no-cache"};
+    const payload=JSON.parse(await r.loadString());
+    if(!validLiveSignalsPayload(payload))throw Error("invalid live signal payload");
+    const e={schema:1,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
+    try{fm.writeString(liveSignalsPath,raw);if(fm.readString(liveSignalsPath)!==raw)throw Error("live signal cache readback mismatch");}catch(_){}
+    return{payload,fetchedAt:e.fetchedAt,cacheState:"network"};
+  }catch(_){
+    if(cached&&now-cached.fetchedAt<=C.liveSignalsFallbackDays*86400000)
+      return{payload:cached.payload,fetchedAt:cached.fetchedAt,cacheState:"fallback"};
+    return null;
+  }
+}
+function liveRegion(wp,id){return wp?.liveSignals?.payload?.regions?.[id]||null}
+function sourceMonthAgeDays(month,reference){
+  if(!/^\d{4}-\d{2}$/.test(month||""))return Infinity;
+  const [y,m]=month.split("-").map(Number),end=new Date(Date.UTC(y,m,0,15));
+  return Math.max(0,(reference.getTime()-end.getTime())/86400000);
+}
+function sourceDateAgeDays(day,reference){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day||""))return Infinity;
+  return Math.max(0,(reference.getTime()-new Date(day+"T12:00:00+09:00").getTime())/86400000);
+}
+function liveSignalStateText(wp){
+  const p=wp?.liveSignals;if(!p)return"未取得";
+  const state=p.cacheState==="network"?"通信取得":p.cacheState==="fallback"?"保存signal":"キャッシュ";
+  return`${stampJST(new Date(p.fetchedAt))} JST (${state})`;
+}
 const NIIGATA_HISTORICAL_PRIOR={"1":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/449179.pdf","aji":21,"saba":94,"iwashi":0.1,"buri":82.3,"sawara":4.7,"hirame":0.2},"4":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/451323.pdf","aji":50.8,"saba":10.3,"iwashi":32.8,"buri":37.8,"sawara":7,"hirame":1.2},"5":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/455461.pdf","aji":115.7,"saba":43.9,"iwashi":19.3,"buri":143.4,"sawara":11.5,"hirame":6.6},"6":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/466455.pdf","aji":93.7,"saba":68,"iwashi":4.6,"buri":47.8,"sawara":6.7,"hirame":3.6},"7":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/466457.pdf","aji":39.3,"saba":9.1,"iwashi":1.1,"buri":15.7,"sawara":5.7,"hirame":0.7},"8":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/466261.pdf","aji":8.7,"saba":1.9,"iwashi":0.2,"buri":8.1,"sawara":2.6,"hirame":0.3},"9":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/468148.pdf","aji":8.5,"saba":1.9,"iwashi":0.2,"buri":3.5,"sawara":0.3,"hirame":0.2},"10":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/471497.pdf","aji":29.9,"saba":24.1,"iwashi":0.9,"buri":42.8,"sawara":8.9,"hirame":0.4},"11":{"source":"https://www.pref.niigata.lg.jp/uploaded/attachment/474241.pdf","aji":47.3,"saba":60.8,"iwashi":0.8,"buri":66.1,"sawara":10.8,"hirame":0.9}};
 function niigataTargetSuggestions(S,reference,wp){
   const area=String(S?.area||""),name=String(S?.name||"");
@@ -57,14 +107,15 @@ function niigataTargetSuggestions(S,reference,wp){
     {id:"SABA",name:"サバ",tons:p.saba},{id:"SAWARA",name:"サゴシ",tons:p.sawara},
     {id:"IWASHI",name:"イワシ",tons:p.iwashi},{id:"HIRAME",name:"ヒラメ",tons:p.hirame}
   ].filter(x=>Number.isFinite(x.tons)&&x.tons>0);
-  const sst=wp?.current?.sst;
+  const sst=wp?.current?.sst,live=liveRegion(wp,"NIIGATA_JAPAN_SEA"),fresh=live&&sourceMonthAgeDays(live.sourceMonth,reference)<=45,observed=new Set(fresh&&Array.isArray(live.observedSpecies)?live.observedSpecies:[]);
   for(const x of rows){
     x.reasons=[`新潟県定置網の同月5年平均 ${x.tons.toFixed(1)}t`];x.score=Math.log1p(x.tons);x.confidence="B";
     if(x.id==="BURI"&&month>=7&&month<=10){x.score+=.18;x.reasons.push("日本海の季節移動研究と整合");}
     if(x.id==="SABA"&&Number.isFinite(sst)&&sst>=14.72&&sst<=25.72){x.score+=.12;x.reasons.push(`海水温${sst.toFixed(1)}℃は転用研究の漁場水温範囲内`);}
+    if(observed.has(x.id)){x.score+=.25;x.confidence="A";x.reasons.push(`自動更新の公的signal ${live.sourceMonth}で魚種記載を確認`);}
   }
   rows.sort((x,y)=>y.score-x.score||y.tons-x.tons);
-  return{basis:"過去傾向",month,source:p.source,top:rows.slice(0,3),caveat:"新潟県内主要定置網の5年平均を地域・季節のpriorとして使用。遊漁の釣果を数値予測していません。"};
+  return{basis:fresh?"過去傾向＋自動更新公的signal":"過去傾向",month,source:fresh&&live?.source?`${p.source} / ${live.source}`:p.source,top:rows.slice(0,3),context:live?`公的signal自動更新: ${live.sourceMonth}${fresh?"（順位補強対象）":"（鮮度45日超のため順位未反映）"}`:null,caveat:"新潟県内主要定置網の5年平均を地域・季節のpriorとして使用。遊漁の釣果を数値予測していません。"};
 }
 function ibarakiTargetSuggestions(S,reference,wp){
   const area=String(S?.area||""),name=String(S?.name||"");
@@ -78,7 +129,7 @@ function ibarakiTargetSuggestions(S,reference,wp){
     {id:"MAGOCHI",name:"マゴチ",score:1.0,confidence:"C",reasons:["2024同時期の公式週報で小型船漁獲を確認"]}
   ];
   rows.sort((x,y)=>y.score-x.score);
-  const otsu=name.includes("大津");
+  const otsu=name.includes("大津"),live=liveRegion(wp,"IBARAKI_PACIFIC"),bait=live?.freshBaitContext?.rows?.[0];
   return{
     basis:"同時期の公的漁況",
     source:"https://www.pref.ibaraki.jp/nourinsuisan/suishi/gyogyo/data/gyokaikyo/gyokaikyou-sokuhou.html",
@@ -88,7 +139,7 @@ function ibarakiTargetSuggestions(S,reference,wp){
       "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html"
     ],
     top:rows.slice(0,3),
-    context:otsu?"大津では2026/09/25にシラス512kg・8隻（64.0kg/隻）、09/28に335kg・8隻（41.9kg/隻）の公式漁況あり。ベイト状況の参考で、対象魚の順位加点には未使用。":null,
+    context:otsu?(bait?`大津の自動更新ベイト: ${bait.date} シラス${Number(bait.kg).toFixed(0)}kg・${bait.boats}隻（${Number(bait.cpueKgPerBoat).toFixed(1)}kg/隻）。順位加点には未使用。`:"大津のベイトsignalは未取得。順位には影響させません。"):null,
     caveat:"茨城県の同時期公式漁海況速報を地域priorとして使用。商業漁獲を遊漁の釣果確率へ変換していません。"
   };
 }
@@ -98,6 +149,11 @@ function shizuokaTargetSuggestions(S,reference,wp){
   const z=jstDate(reference),month=z.getUTCMonth()+1;
   const eastIzu=area.includes("東伊豆")||["熱海","伊東","川奈","富戸"].some(x=>name.includes(x));
   if(eastIzu&&(month===8||month===9||month===10)){
+    const live=liveRegion(wp,"SHIZUOKA_EAST_IZU"),liveFresh=live&&sourceMonthAgeDays(live.sourceMonth,reference)<=62&&Array.isArray(live.ranking)&&live.ranking.length>=3;
+    if(liveFresh){
+      const top=live.ranking.slice().sort((a,b)=>b.tons-a.tons).slice(0,3).map(x=>({id:x.id,name:x.name,tons:x.tons,confidence:"A",reasons:[`自動更新 ${live.sourceMonth} 伊豆東岸定置網 ${Number(x.tons).toFixed(1)}t`]}));
+      return{basis:"自動更新の公的定置網実績",source:live.source,top,context:`live JSON ${live.sourceMonth}を使用 / ${liveSignalStateText(wp)}`,caveat:"最新公表の定置網商業漁獲を地域来遊signalとして使用。遊漁の釣果確率へ変換していません。"};
+    }
     const rows=[
       {id:"MARUSOUDA",name:"ソウダ",tons:59.6,confidence:"B",reasons:["2026年8月伊豆東岸定置網59.6t・平年比3.0倍"]},
       {id:"KAMASU",name:"カマス",tons:51.3,confidence:"B",reasons:["2026年8月伊豆東岸定置網51.3t・平年比3.1倍"]},
@@ -1040,6 +1096,7 @@ function tideDetail(t,r,wp){
     targets?`主な出典: ${targets.source}`:null,
     targets?.context||null,
     targets?targets.caveat:null,
+    `公的signal JSON: ${liveSignalStateText(wp)}`,
     "信頼度A=最新の公的魚種signalあり / B=公的な複数年地域priorを主根拠 / C=転用・補助根拠のみ。",
     "",
     `気象データ取得: ${sourceTimeText(wp?.weatherMeta)}`,
@@ -1371,7 +1428,8 @@ async function buildCurrent(forceLocation=false){
   if(locationBlockedResult(r))return widget(null,null,r.station,r.badge,r.badgeColor,null,r.distanceKm,r.locationState,r.tideRef);
   let t;
   try{t=await tide(now,r.station)}catch(_){return tideFailureWidget()}
-  const wp=await weather(now,r.station,forceLocation).catch(()=>null);
+  const [wp,live]=await Promise.all([weather(now,r.station,forceLocation).catch(()=>null),liveRegionalSignals(forceLocation).catch(()=>null)]);
+  if(wp&&live)wp.liveSignals=live;
   return widget(t,wp,r.station,r.badge,r.badgeColor,wp?null:"天気・海況取得不可",r.distanceKm,r.locationState,r.tideRef);
 }
 
