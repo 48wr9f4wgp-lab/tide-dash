@@ -1,4 +1,4 @@
-// TIDE DASH v0.20.0-dev.4 | Glance-first presentation; unchanged domain code
+// TIDE DASH v0.20.0-dev.11 | Field conditions: gust + wave period; tide/domain logic unchanged
 const APP_VERSION="0.20.0-dev.11";
 const C={
   refresh:30,
@@ -888,6 +888,8 @@ function tideDetail(t,r,wp){
     `風 (地上10m): ${f1(c?.wind,"m/s")} ${Number.isFinite(c?.windDir)?dir8(c.windDir)+"から":"方向不明"} / 突風 ${f1(c?.windGust,"m/s")}`,
     `有義波高: ${f1(c?.wave,"m")} / 周期 ${f1(c?.wavePeriod,"秒")}`,
     `波向: ${Number.isFinite(c?.waveDir)?dir8(c.waveDir)+"から":"未取得"}`,
+    "突風はOpen-Meteoの地上10m gust予測値で、現地観測値ではありません。モデルや時間間隔で最大値の定義が異なる場合があります。",
+    "波周期は平均波の周期予測です。うねり周期やピーク周期とは別の値です。",
     `降水: ${f1(c?.precip,"mm/1h")} / ${rainInterval(c?.validTime)}`,
     "降水は直前1時間の積算予測 (雪などを含む)。降水確率ではありません。",
     `海面水温予測: ${f1(c?.sst,"℃")}`,
