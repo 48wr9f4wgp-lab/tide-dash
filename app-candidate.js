@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.11 | Field conditions: gust + wave period; tide/domain logic unchanged
-const APP_VERSION="0.20.0-dev.11";
+// TIDE DASH v0.20.0-dev.12 | Field conditions + local astronomical tide-cycle label; tide prediction logic unchanged
+const APP_VERSION="0.20.0-dev.12";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -63,6 +63,53 @@ function hmMinute(s){
 function eventDayWord(e){
   const d=Math.floor((e.absoluteMinute??e.minute)/1440);
   return d===0?"":d===1?"明日 ":d===-1?"昨日 ":`${d}日後 `;
+}
+
+const degNorm=x=>((x%360)+360)%360;
+const degSin=x=>Math.sin(x*Math.PI/180);
+function julianDay(date){return date.getTime()/86400000+2440587.5}
+function sunEclipticLongitude(jd){
+  const T=(jd-2451545.0)/36525;
+  const L0=degNorm(280.46646+36000.76983*T+0.0003032*T*T);
+  const M=degNorm(357.52911+35999.05029*T-0.0001537*T*T);
+  const C=(1.914602-0.004817*T-0.000014*T*T)*degSin(M)
+    +(0.019993-0.000101*T)*degSin(2*M)+0.000289*degSin(3*M);
+  return degNorm(L0+C);
+}
+function moonEclipticLongitude(jd){
+  const T=(jd-2451545.0)/36525,T2=T*T,T3=T2*T,T4=T3*T;
+  const L=degNorm(218.3164477+481267.88123421*T-0.0015786*T2+T3/538841-T4/65194000);
+  const D=degNorm(297.8501921+445267.1114034*T-0.0018819*T2+T3/545868-T4/113065000);
+  const M=degNorm(357.5291092+35999.0502909*T-0.0001536*T2+T3/24490000);
+  const Mp=degNorm(134.9633964+477198.8675055*T+0.0087414*T2+T3/69699-T4/14712000);
+  const F=degNorm(93.2720950+483202.0175233*T-0.0036539*T2-T3/3526000+T4/863310000);
+  return degNorm(L
+    +6.289*degSin(Mp)+1.274*degSin(2*D-Mp)+0.658*degSin(2*D)+0.214*degSin(2*Mp)
+    -0.186*degSin(M)-0.114*degSin(2*F)+0.059*degSin(2*D-2*Mp)
+    +0.057*degSin(2*D-M-Mp)+0.053*degSin(2*D+Mp)+0.046*degSin(2*D-M)
+    +0.041*degSin(M-Mp)-0.035*degSin(D)-0.031*degSin(M+Mp)
+    -0.015*degSin(2*F-2*D)+0.011*degSin(Mp-4*D));
+}
+function tideCycle(reference){
+  const key=dateKey(reference);
+  const midnight=new Date(`${key}T00:00:00+09:00`);
+  const elongation=degNorm(moonEclipticLongitude(julianDay(midnight))-sunEclipticLongitude(julianDay(midnight)));
+  let name;
+  if(elongation>=348||elongation<36)name="大潮";
+  else if(elongation<72)name="中潮";
+  else if(elongation<108)name="小潮";
+  else if(elongation<120)name="長潮";
+  else if(elongation<132)name="若潮";
+  else if(elongation<168)name="中潮";
+  else if(elongation<216)name="大潮";
+  else if(elongation<252)name="中潮";
+  else if(elongation<288)name="小潮";
+  else if(elongation<300)name="長潮";
+  else if(elongation<312)name="若潮";
+  else name="中潮";
+  const boundaries=[0,36,72,108,120,132,168,216,252,288,300,312,348,360];
+  const boundaryDistance=Math.min(...boundaries.map(b=>Math.abs(elongation-b)));
+  return{name,elongation,boundaryNear:boundaryDistance<1};
 }
 
 function scriptURL(action){
@@ -858,7 +905,7 @@ function gridDescription(p){
 }
 function tideReferenceLabel(S,ref){return ref?.name||S?.tideName||S?.name||S?.code||"未確認"}
 function tideDetail(t,r,wp){
-  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp);
+  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt));
   const lines=[
     `TIDE DASH ${APP_VERSION}`,
     `表示基準: ${stampJST(new Date(t.referenceAt))} JST`,
@@ -866,6 +913,8 @@ function tideDetail(t,r,wp){
     `要求座標: ${r.station.lat}, ${r.station.lon}`,
     `潮位基準点: ${tideReferenceLabel(r.station,r.tideRef)} (${r.station.code})`,
     Number.isFinite(r.tideRef?.distanceKm)?`基準点距離: 約${r.tideRef.distanceKm.toFixed(1)}km`:"基準点距離: 未確認",
+    `潮回り: ${cycle.name} / 月-太陽黄経差 約${cycle.elongation.toFixed(1)}° (JST 0時・気象庁方式区分)${cycle.boundaryNear?" / 区分境界付近":""}`,
+    "潮回りは月と太陽の位置関係による一般的な区分です。現地の実際の潮差・潮流速度そのものではありません。",
     "",
     "潮位: 気象庁の天文潮位予測。現地の実測値ではありません。",
     `基準時刻の潮位: ${signedTide(t.current)}cm (毎時予測値の線形補間)`,
@@ -1076,7 +1125,7 @@ function guideSummary(saved){
     when?`${dateKey(when).slice(5).replace("-","/")} ${clockJST(when)}時点`:"表示時刻不明",
     place,
     "",
-    `潮　${view.label}`,
+    `潮　${view.label} / ${tideCycle(new Date(t.referenceAt)).name}`,
     `${next.title.replace("次の","")}　${next.value}`,
     "",
     `風　${wind}`,
@@ -1116,7 +1165,7 @@ async function showGuide(){
 }
 function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="current",tideRef=null){
   const family=config.widgetFamily||"large",small=family==="small",large=family==="large";
-  const w=new ListWidget(),now=new Date(),reference=t?new Date(t.referenceAt):now;
+  const w=new ListWidget(),now=new Date(),reference=t?new Date(t.referenceAt):now,cycle=t?tideCycle(reference):null;
   w.setPadding(small?9:large?9:6,small?10:14,small?8:large?7:5,small?10:14);
   const background=new LinearGradient();background.colors=[new Color(C.t.bg1),new Color(C.t.bg2)];background.locations=[0,1];w.backgroundGradient=background;
   const settingsURL=scriptURL("settings"),refreshURL=scriptURL("refresh");
@@ -1130,7 +1179,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   text(place,S.name,small?13:large?22:14,C.t.fg,true);
   const refName=tideReferenceLabel(S,tideRef);
   const dist=Number.isFinite(tideRef?.distanceKm)&&tideRef.distanceKm>0?`・${Math.round(tideRef.distanceKm)}km先`:"";
-  text(place,blocked?badge:`潮：${refName}${dist}`,small?7:large?10:8,C.t.sub);
+  text(place,blocked?badge:`潮：${refName}${dist}${large&&cycle?` ｜ ${cycle.name}`:""}`,small?7:large?10:8,C.t.sub);
   if(settingsURL)place.url=settingsURL;
   header.addSpacer();
   const dates=header.addStack();dates.layoutVertically();
