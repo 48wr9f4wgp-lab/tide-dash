@@ -68,7 +68,12 @@
           "reason": "Niigata monitors Japanese flounder among principal resources; no current recreational signal.",
           "expires": "2026-10-31"
         }
-      ]
+      ],
+      "sourceAudit": {
+        "checkedAt": "2026-09-29",
+        "official2026ForecastPage": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/2026gyokyoyoho.html",
+        "finding": "The current 2026 Niigata forecast page exposes a Japan Sea common-squid forecast, but does not provide fresh species-level Sep 2026 forecast values for the shore-target set used by TIDE DASH. Do not infer those values."
+      }
     },
     {
       "id": "IBARAKI_PACIFIC",

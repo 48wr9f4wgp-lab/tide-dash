@@ -269,7 +269,7 @@
           "scope": "southern Yatsushiro Sea, commercial gillnet, 1983-1988",
           "transfer": "low_to_medium",
           "text": "Magochi CPUE was high May–August, peaking in June, and catches were mainly from inshore waters shallower than 30 m. Use only as transferred seasonal/habitat context, not a nationwide fixed season.",
-          "source": "https://consensus.app/papers/catches-and-distribution-of-two-flathead-species-of-the-masuda-shinohara/8c68d991818857f6a0b5097b7b0ee5ea12/"
+          "source": "https://consensus.app/papers/catches-and-distribution-of-two-flathead-species-of-the-masuda-shinohara/8c68d991818857f6a0bff8e72dcb4981/"
         }
       ]
     },
@@ -318,8 +318,8 @@
           "support": "taxonomy_guard",
           "scope": "Japan Sebastes inermis complex",
           "transfer": "high",
-          "text": "Do not merge mebaru species and kasago into one environmental score; species-specific evidence is required before adding thermal bonuses.",
-          "source": "https://consensus.app/papers/details/d6d355de616d5488a8c839dac1b879b2/"
+          "text": "The Japanese Sebastes inermis complex contains multiple closely related/cryptic forms; do not collapse mebaru and kasago into one environmental score, and keep species-level evidence separated.",
+          "source": "https://consensus.app/papers/hidden-diversity-in-a-species-complex-of-rockfishes-from-deville-kawai/d6d355de616d5488a8c839dac1b879b2/"
         }
       ]
     },
