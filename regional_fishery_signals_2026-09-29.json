@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-29",
+  "rule": "Signals describe official fishery/ocean information. Commercial/forecast signals are not recreational catch probabilities.",
+  "regions": [
+    {
+      "id": "NIIGATA_JAPAN_SEA",
+      "area": "Niigata / central Sea of Japan",
+      "freshness": "mixed",
+      "environmental": [
+        {
+          "type": "official_temperature",
+          "published": "2026-09-16",
+          "status": "current",
+          "note": "Niigata 2026 water-temperature information includes September products.",
+          "source": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/2026kaikyou.html"
+        },
+        {
+          "type": "fra_temperature",
+          "published": "2026-09-14",
+          "status": "current",
+          "note": "FRA September Japan Sea fishing-ground ocean bulletin includes surface/50/100/200 m temperature and anomaly fields.",
+          "source": "https://www.fra.go.jp/shigen/marine_environment/js_sokuho/2026.html"
+        }
+      ],
+      "species": [
+        {
+          "id": "MA_AJI",
+          "signal": "candidate_present_regionally",
+          "confidence": "C",
+          "reason": "Niigata officially monitors the species; 2026 local forecast exists but species detail has not yet been parsed into this signal layer.",
+          "expires": "2026-10-31"
+        },
+        {
+          "id": "SABA",
+          "signal": "candidate_present_regionally",
+          "confidence": "C",
+          "reason": "Niigata officially monitors mackerels; western Sea of Japan 2026 Apr-Sep official forecast was around prior-year level, but geographic transfer penalty applies.",
+          "expires": "2026-09-30",
+          "source": "https://www.pref.shimane.lg.jp/industry/suisan/shinkou/umi_sakana/tobiuo/index.data/2026no3.pdf"
+        },
+        {
+          "id": "IWASHI",
+          "signal": "candidate_present_regionally",
+          "confidence": "C",
+          "reason": "Niigata officially monitors sardine; western Sea of Japan forecast is only supporting regional context.",
+          "expires": "2026-09-30",
+          "source": "https://www.pref.shimane.lg.jp/industry/suisan/shinkou/umi_sakana/tobiuo/index.data/2026no3.pdf"
+        },
+        {
+          "id": "BURI",
+          "signal": "candidate_present_regionally",
+          "confidence": "C",
+          "reason": "Niigata publishes dedicated yellowtail information; no September species-specific current landing signal parsed yet.",
+          "expires": "2026-10-31"
+        },
+        {
+          "id": "SAWARA",
+          "signal": "candidate_present_regionally",
+          "confidence": "C",
+          "reason": "Niigata monitors Japanese Spanish mackerel among principal resources; no September current quantity parsed.",
+          "expires": "2026-10-31"
+        },
+        {
+          "id": "HIRAME",
+          "signal": "candidate_present_regionally",
+          "confidence": "C",
+          "reason": "Niigata monitors Japanese flounder among principal resources; no current recreational signal.",
+          "expires": "2026-10-31"
+        }
+      ]
+    },
+    {
+      "id": "IBARAKI_PACIFIC",
+      "area": "Kashima-nada / Joban south",
+      "freshness": "current",
+      "environmental": [
+        {
+          "type": "official_weekly_bulletin",
+          "published": "2026-09-25",
+          "status": "current",
+          "note": "Ibaraki weekly fishery/ocean bulletin No.26 is the latest official weekly source.",
+          "source": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/gyogyo/data/gyokaikyo/08nendogyokaisokuhou.html"
+        },
+        {
+          "type": "fra_forecast",
+          "published": "2026-08-03",
+          "status": "valid_through_2026-12",
+          "note": "FRA forecast covers Pacific sardines, anchovy, horse mackerel and mackerels Aug-Dec 2026.",
+          "source": "https://www.fra.go.jp/home/kenkyushokai/press/pr2026/files/20260803_ukiuo-pac-1st.pdf"
+        }
+      ],
+      "species": [
+        {
+          "id": "IWASHI",
+          "signal": "mixed",
+          "confidence": "B",
+          "reason": "For Boso northward, FRA forecasts anchovy above the prior year, while Pacific sardine east of Kumano is broadly below prior year; identify anchovy vs sardine before a stronger recommendation.",
+          "expires": "2026-12-31"
+        },
+        {
+          "id": "SABA",
+          "signal": "low",
+          "confidence": "A",
+          "reason": "FRA states chub and spotted mackerel are low overall; chub mackerel in the main Pacific areas is forecast low/at-or-below prior year.",
+          "expires": "2026-12-31"
+        },
+        {
+          "id": "MA_AJI",
+          "signal": "below_prior_many_areas",
+          "confidence": "B",
+          "reason": "FRA states horse mackerel is below the prior year in many Pacific areas.",
+          "expires": "2026-12-31"
+        }
+      ]
+    },
+    {
+      "id": "SHIZUOKA_PACIFIC",
+      "area": "Shizuoka / Izu / Suruga",
+      "freshness": "current_to_medium",
+      "environmental": [
+        {
+          "type": "fra_forecast",
+          "published": "2026-08-03",
+          "status": "valid_through_2026-12",
+          "note": "FRA Pacific forecast covers Aug-Dec and includes Shizuoka-adjacent areas.",
+          "source": "https://www.fra.go.jp/home/kenkyushokai/press/pr2026/files/20260803_ukiuo-pac-1st.pdf"
+        },
+        {
+          "type": "prefectural_resource_profiles",
+          "published": "2026-06",
+          "status": "current_background",
+          "note": "Shizuoka resource profiles updated June 2026 for 23 principal species.",
+          "source": "https://fish-exp.pref.shizuoka.jp/02fishery/2-5.html"
+        }
+      ],
+      "species": [
+        {
+          "id": "IWASHI",
+          "signal": "below_prior_for_sardine",
+          "confidence": "B",
+          "reason": "FRA Aug-Dec forecast expects Pacific sardine in Ise/Mikawa–Sagami context below prior year; anchovy must be treated separately.",
+          "expires": "2026-12-31"
+        },
+        {
+          "id": "SABA",
+          "signal": "low",
+          "confidence": "A",
+          "reason": "FRA forecast states mackerel low overall; Izu/Suruga mackerel availability is low in the forecast context.",
+          "expires": "2026-12-31"
+        },
+        {
+          "id": "MA_AJI",
+          "signal": "below_prior_many_areas",
+          "confidence": "B",
+          "reason": "FRA states horse mackerel below prior year in many Pacific areas.",
+          "expires": "2026-12-31"
+        },
+        {
+          "id": "AORI_IKA",
+          "signal": "seasonal_context_only",
+          "confidence": "C",
+          "reason": "Izu local life-history evidence supports seasonal presence, but no fresh 2026 official abundance signal has been parsed.",
+          "expires": "2026-10-31"
+        },
+        {
+          "id": "HIRAME",
+          "signal": "resource_profile_only",
+          "confidence": "C",
+          "reason": "Shizuoka updated the flounder resource profile in June 2026, but this is not a current angling signal.",
+          "expires": "2026-12-31"
+        }
+      ]
+    }
+  ]
+}

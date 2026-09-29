@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-09-29",
+  "policy": {
+    "direction": "current_conditions_to_target_species",
+    "output": "relative_target_ranking",
+    "absoluteCatchProbability": false,
+    "primaryEvidence": [
+      "official_current_fishery_signal",
+      "official_resource_assessment",
+      "peer_reviewed_species_specific"
+    ],
+    "genericTideBonus": false,
+    "genericLunarBonus": false,
+    "personalLogsPrimary": false,
+    "rule": "A factor may affect ranking only when a species/context source explicitly supports its use."
+  },
+  "species": [
+    {
+      "id": "MA_AJI",
+      "name": "マアジ",
+      "scientificName": "Trachurus japonicus",
+      "displayGroup": "アジ",
+      "state": "ready_with_limits",
+      "factors": {
+        "currentPresence": "official_signal_required",
+        "seasonality": "supported",
+        "sst": "supporting_ecology_only",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown",
+        "wave": "unknown",
+        "wind": "unknown"
+      },
+      "claims": [
+        {
+          "id": "aji_thermal_recruitment",
+          "support": "positive_context",
+          "scope": "juvenile recruitment, SW Sea of Japan",
+          "transfer": "medium",
+          "text": "Warmer ambient conditions in the eastern survey area were associated with faster juvenile growth and greater juvenile abundance; this is recruitment ecology, not same-day shore catchability.",
+          "source": "https://consensus.app/papers/linking-environmental-drivers-juvenile-growth-and-takahashi-sassa/62f21a52e4b35923b55699157c38198b/"
+        },
+        {
+          "id": "aji_niigata_presence",
+          "support": "presence_background",
+          "scope": "Niigata commercial fisheries",
+          "transfer": "regional",
+          "text": "Niigata officially monitors Japanese jack mackerel among its principal fishery resources.",
+          "source": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/gyomu-sigenseitai.html"
+        }
+      ]
+    },
+    {
+      "id": "SABA",
+      "name": "サバ類",
+      "scientificName": "Scomber japonicus / S. australasicus",
+      "displayGroup": "サバ",
+      "state": "ready_with_limits",
+      "factors": {
+        "currentPresence": "supported_by_regional_forecasts",
+        "seasonality": "supported",
+        "sst": "transferred_habitat_evidence",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown",
+        "wave": "unknown"
+      },
+      "claims": [
+        {
+          "id": "saba_sst_hsi",
+          "support": "habitat_match",
+          "scope": "chub mackerel, South Sea Korea/East-Japan Sea context",
+          "transfer": "medium",
+          "text": "A catch-based habitat model found >80% of chub mackerel catch in SST 14.72–25.72°C in that study; use only as transferred habitat compatibility, not a universal optimum.",
+          "source": "https://consensus.app/papers/spatiotemporal-variability-of-the-habitat-suitability-lee-son/289872bebea15600a6ae9b4105bb42d0/"
+        },
+        {
+          "id": "pacific_2026_saba",
+          "support": "current_regional_signal",
+          "scope": "Pacific Japan, Aug-Dec 2026",
+          "transfer": "regional",
+          "text": "FRA 2026 forecast states both chub and spotted mackerel are at low levels overall, with chub mackerel low and regionally variable.",
+          "source": "https://www.fra.go.jp/home/kenkyushokai/press/pr2026/files/20260803_ukiuo-pac-1st.pdf"
+        }
+      ]
+    },
+    {
+      "id": "IWASHI",
+      "name": "イワシ類",
+      "scientificName": "Sardinops melanostictus / Engraulis japonicus",
+      "displayGroup": "イワシ",
+      "state": "ready_presence_only",
+      "factors": {
+        "currentPresence": "supported_by_regional_forecasts",
+        "seasonality": "supported",
+        "sst": "not_locked_for_same_day_ranking",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown",
+        "wave": "unknown"
+      },
+      "claims": [
+        {
+          "id": "pacific_2026_iwashi",
+          "support": "current_regional_signal",
+          "scope": "Pacific Japan, Aug-Dec 2026",
+          "transfer": "regional",
+          "text": "FRA 2026 forecast separates sardine and anchovy by region; sardine is forecast lower east of Kumano overall, while anchovy north of Boso is forecast above the prior year.",
+          "source": "https://www.fra.go.jp/home/kenkyushokai/press/pr2026/files/20260803_ukiuo-pac-1st.pdf"
+        },
+        {
+          "id": "iwashi_temperature_literature",
+          "support": "background_only",
+          "scope": "North Pacific spawning ecology",
+          "transfer": "low_for_same_day",
+          "text": "Temperature affects anchovy/sardine spawning and early-life ecology, but the current record is not used as a same-day shore catch temperature rule.",
+          "source": "https://consensus.app/papers/contrasting-spawning-temperature-optima-why-are-anchovy-takasuka-oozeki/e495f69a76485e7686bd8f95ce565669/"
+        }
+      ]
+    },
+    {
+      "id": "BURI",
+      "name": "ブリ系",
+      "scientificName": "Seriola quinqueradiata",
+      "displayGroup": "青物",
+      "state": "ready_with_limits",
+      "factors": {
+        "currentPresence": "official_signal_required",
+        "seasonality": "supported",
+        "sst": "qualitative_migration_context",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown",
+        "wave": "unknown"
+      },
+      "claims": [
+        {
+          "id": "buri_movement",
+          "support": "seasonal_context",
+          "scope": "adult yellowtail, NE Sea of Japan",
+          "transfer": "high_for_japan_sea",
+          "text": "Tagged adults moved north in early summer, stayed in the northern Sea of Japan through mid-fall, and began southward movement in late October; they avoided cold offshore water during the southward movement.",
+          "source": "https://consensus.app/papers/horizontal-and-vertical-movement-of-yellowtails-seriola-furukawa-kozuka/2ed9c3b5f1455493bfc3942cbea67b13/"
+        },
+        {
+          "id": "niigata_buri_official",
+          "support": "regional_presence",
+          "scope": "Niigata/Sado",
+          "transfer": "regional",
+          "text": "Niigata publishes dedicated yellowtail fishery information and treats yellowtail as a principal monitored resource.",
+          "source": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/buri.html"
+        }
+      ]
+    },
+    {
+      "id": "SAWARA",
+      "name": "サワラ・サゴシ",
+      "scientificName": "Scomberomorus niphonius",
+      "displayGroup": "青物",
+      "state": "presence_ready",
+      "factors": {
+        "currentPresence": "official_signal_required",
+        "seasonality": "supported",
+        "sst": "pending_same_day_rule",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown",
+        "wave": "unknown"
+      },
+      "claims": [
+        {
+          "id": "sawara_distribution",
+          "support": "distribution_background",
+          "scope": "Yellow Sea/East China Sea/Sea of Japan",
+          "transfer": "medium",
+          "text": "Peer-reviewed work documents spatiotemporal distribution and relative abundance across the Yellow Sea, East China Sea and Sea of Japan; no same-day SST threshold is adopted from the current record.",
+          "source": "https://consensus.app/papers/fluctuations-in-distribution-and-relative-abundance-of-ohshimo-muko/3c19ed5d5d175acc9c84163d4195b3d0/"
+        },
+        {
+          "id": "niigata_sawara_official",
+          "support": "regional_presence_background",
+          "scope": "Niigata",
+          "transfer": "regional",
+          "text": "Niigata includes Japanese Spanish mackerel among principal monitored fishery resources.",
+          "source": "https://www.pref.niigata.lg.jp/site/suisan-kenkyu/gyokakudoko.html"
+        }
+      ]
+    },
+    {
+      "id": "SEABASS",
+      "name": "シーバス",
+      "scientificName": "Lateolabrax japonicus",
+      "displayGroup": "シーバス",
+      "state": "presence_only_adult_rule_pending",
+      "factors": {
+        "currentPresence": "official_or_local_signal_required",
+        "seasonality": "partial",
+        "sst": "pending",
+        "tide": "juvenile_only_not_for_adult_ranking",
+        "light": "juvenile_only_not_for_adult_ranking",
+        "lunar": "unknown",
+        "wave": "unknown"
+      },
+      "claims": [
+        {
+          "id": "seabass_juvenile_tide_light",
+          "support": "juvenile_ecology_only",
+          "scope": "juveniles, Ariake surf zone",
+          "transfer": "do_not_apply_to_adult_catchability",
+          "text": "Juvenile abundance and feeding varied with daylight and tide, with highest juvenile abundance around high tide and increased gut fullness in morning/flood tide. This must not be converted into an adult shore-angling bonus.",
+          "source": "https://consensus.app/papers/diel-and-tidal-changes-in-the-distribution-and-feeding-hibino-ohta/2ea81c11ff7e5921927a0b5097b28eaa/"
+        }
+      ]
+    },
+    {
+      "id": "HIRAME",
+      "name": "ヒラメ",
+      "scientificName": "Paralichthys olivaceus",
+      "displayGroup": "フラット",
+      "state": "ready_with_limits",
+      "factors": {
+        "currentPresence": "official_signal_required",
+        "seasonality": "supported",
+        "sst": "not_direct_proxy",
+        "bottomTemperature": "supported",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "claims": [
+        {
+          "id": "hirame_bottom_temp",
+          "support": "habitat_context",
+          "scope": "adult flounder, NE Japan Pacific",
+          "transfer": "medium",
+          "text": "Adults were mainly in <100 m habitat and experienced roughly 4.6–21.0°C in the study; this refers to habitat/bottom thermal conditions, not the widget's surface SST.",
+          "source": "https://consensus.app/papers/seasonal-changes-in-depth-and-temperature-of-habitat-for-kurita-sakuma/b2c8afbfc1c15c568c54a6300de51dfa/"
+        },
+        {
+          "id": "shizuoka_hirame",
+          "support": "regional_resource_profile",
+          "scope": "Shizuoka",
+          "transfer": "regional",
+          "text": "Shizuoka's 2026 prefectural resource profiles include Japanese flounder among the principal assessed species.",
+          "source": "https://fish-exp.pref.shizuoka.jp/02fishery/2-5.html"
+        }
+      ]
+    },
+    {
+      "id": "MAGOCHI",
+      "name": "マゴチ",
+      "scientificName": "Platycephalus sp.1",
+      "displayGroup": "フラット",
+      "state": "season_habitat_ready_transferred",
+      "factors": {
+        "currentPresence": "local_signal_required",
+        "seasonality": "transferred_supported",
+        "habitat": "inshore_shallow_supported",
+        "sst": "pending",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "claims": [
+        {
+          "id": "magochi_yatsushiro_cpue",
+          "support": "season_habitat_context",
+          "scope": "southern Yatsushiro Sea, commercial gillnet, 1983-1988",
+          "transfer": "low_to_medium",
+          "text": "Magochi CPUE was high May–August, peaking in June, and catches were mainly from inshore waters shallower than 30 m. Use only as transferred seasonal/habitat context, not a nationwide fixed season.",
+          "source": "https://consensus.app/papers/catches-and-distribution-of-two-flathead-species-of-the-masuda-shinohara/8c68d991818857f6a0b5097b7b0ee5ea12/"
+        }
+      ]
+    },
+    {
+      "id": "KASAGO",
+      "name": "カサゴ",
+      "scientificName": "Sebastiscus marmoratus",
+      "displayGroup": "根魚",
+      "state": "thermal_context_only",
+      "factors": {
+        "currentPresence": "local_signal_required",
+        "seasonality": "pending",
+        "sst": "not_direct_proxy_lab_preference",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "claims": [
+        {
+          "id": "kasago_temp_pref",
+          "support": "physiology_context",
+          "scope": "laboratory thermal preference",
+          "transfer": "low_for_catchability",
+          "text": "Marbled rockfish final preferred temperature was 20.7±1.5°C in laboratory tests. This is physiology, not a catch-probability curve, and should not create a hard field threshold.",
+          "source": "https://consensus.app/papers/temperature-preference-and-tolerance-and-oxygen-kita-tsuchida/3a95e9733cbe59568e745779bc8ac4d0/"
+        }
+      ]
+    },
+    {
+      "id": "MEBARU",
+      "name": "メバル類",
+      "scientificName": "Sebastes inermis complex",
+      "displayGroup": "根魚",
+      "state": "presence_only",
+      "factors": {
+        "currentPresence": "local_signal_required",
+        "seasonality": "pending",
+        "sst": "pending_species_specific",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "claims": [
+        {
+          "id": "mebaru_split_rule",
+          "support": "taxonomy_guard",
+          "scope": "Japan Sebastes inermis complex",
+          "transfer": "high",
+          "text": "Do not merge mebaru species and kasago into one environmental score; species-specific evidence is required before adding thermal bonuses.",
+          "source": "https://consensus.app/papers/details/d6d355de616d5488a8c839dac1b879b2/"
+        }
+      ]
+    },
+    {
+      "id": "AORI_IKA",
+      "name": "アオリイカ",
+      "scientificName": "Sepioteuthis lessoniana complex",
+      "displayGroup": "イカ",
+      "state": "ready_with_limits",
+      "factors": {
+        "currentPresence": "official_or_local_signal_required",
+        "seasonality": "strong_local_context",
+        "sst": "recruitment_support_only",
+        "salinity": "recruitment_support_only",
+        "tide": "unknown",
+        "lunar": "unknown",
+        "light": "unknown"
+      },
+      "claims": [
+        {
+          "id": "aori_izu_season",
+          "support": "local_seasonality",
+          "scope": "Izu/Shizuoka",
+          "transfer": "high_for_izu",
+          "text": "Shizuoka Izu research reports local spawning season in May–July and autumn growth of that year's cohort; use as Izu seasonal context.",
+          "source": "https://fish-exp.pref.shizuoka.jp/izu/0005/08aori.html"
+        },
+        {
+          "id": "aori_recruitment_temp",
+          "support": "recruitment_context",
+          "scope": "Tokushima year-class landings",
+          "transfer": "medium",
+          "text": "Year-class abundance was associated with 10 m water temperature and salinity during April–September; this is recruitment, not same-day bite probability.",
+          "source": "https://consensus.app/papers/relationship-between-yearclass-abundance-of-the-oval-ueta-tokai/712d27d1806a5a34a3a0ec933a60ba8f/"
+        }
+      ]
+    }
+  ]
+}
