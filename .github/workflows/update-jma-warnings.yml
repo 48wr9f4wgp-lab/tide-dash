@@ -7,6 +7,7 @@ on:
       - "scripts/update_jma_warnings.py"
       - ".github/workflows/update-jma-warnings.yml"
       - "spots.json"
+      - "app-candidate.js"
   schedule:
     # Every 15 minutes. GitHub-hosted schedules may be delayed.
     - cron: "3,18,33,48 * * * *"
@@ -61,6 +62,24 @@ jobs:
                   assert "解除" not in str(warning.get("status",""))
           print("Validated JMA areas:", len(expected))
           print("Source report:", o["source"].get("reportDatetime"))
+          PY
+
+      - name: Validate Scriptable warning integration
+        run: |
+          node --check app-candidate.js
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("app-candidate.js").read_text(encoding="utf-8")
+          assert 'jmaWarningSignalsURL' in s
+          assert 'jma_warning_signals.json' in s
+          assert 'source?.product!=="VPWS50"' in s
+          assert 'bosai/warning/data/warning' not in s
+          assert 'payload?.areas' in s
+          assert '公式XML期限超過' in s
+          assert 'const JMA_SAFETY_CODES=' in s
+          for code in ('"37"','"07"','"16"','"14"'):
+              assert code in s
+          print("Scriptable JMA integration contract: PASS")
           PY
 
       - name: Commit meaningful warning changes
