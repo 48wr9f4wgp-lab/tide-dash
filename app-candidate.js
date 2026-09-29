@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.21 | Midnight date integrated into graph; reserved safety row space
-const APP_VERSION="0.20.0-dev.21";
+// TIDE DASH v0.20.0-dev.22 | JMA VPWS50 warning-source migration; dev.21 layout retained
+const APP_VERSION="0.20.0-dev.22";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -13,10 +13,10 @@ const C={
   liveSignalsURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/live_regional_signals.json",
   liveSignalsCacheMin:120,
   liveSignalsFallbackDays:7,
-  jmaWarningBaseURL:"https://www.jma.go.jp/bosai/warning/data/warning",
+  jmaWarningSignalsURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/jma_warning_signals.json",
   jmaWarningCacheMin:10,
   jmaWarningFallbackMin:60,
-  jmaWarningReportMaxHours:36,
+  jmaWarningSourceMaxMin:120,
   farKm:50,
   maxFavorites:10,
   weatherFallbackMaxMin:180,
@@ -38,8 +38,8 @@ const catPath=fm.joinPath(fm.documentsDirectory(),C.catalog);
 const spotPath=fm.joinPath(fm.documentsDirectory(),C.spotCatalog);
 const portPath=fm.joinPath(fm.documentsDirectory(),C.portCatalog);
 const liveSignalsPath=fm.joinPath(cacheDir,"live_regional_signals_v1.json");
-const warningCachePath=pref=>fm.joinPath(cacheDir,`jma_warning_${pref}.json`);
-const NET={fallbacks:[]}; // Legacy JMA cache path; forecast caching is isolated below.
+const warningSignalsPath=fm.joinPath(cacheDir,"jma_warning_signals_v2.json");
+const NET={fallbacks:[]}; // Forecast fallback tracking is isolated from JMA warning snapshot caching.
 
 const p2=n=>String(n).padStart(2,"0");
 const JST_OFFSET_MS=9*3600000;
@@ -102,84 +102,113 @@ function jmaSpotWarningRef(S){
   if(/^\d{2}$/.test(pc)&&/^\d{5}$/.test(admin))return{pref:pc+"0000",codes:[admin+"00"],names:[S?.prefecture||S?.name||admin]};
   return null;
 }
-function jmaWarningPayloadFresh(payload,now=Date.now()){
-  const at=Date.parse(payload?.reportDatetime||"");
-  return Number.isFinite(at)&&at<=now+3600000&&now-at<=C.jmaWarningReportMaxHours*3600000;
+function validJmaWarningSignalsPayload(payload,now=Date.now()){
+  if(payload?.schemaVersion!==2||payload?.policy?.officialSourcesOnly!==true||
+     payload?.policy?.aggregateCurrentState!==true||payload?.source?.product!=="VPWS50"||
+     !payload?.areas||typeof payload.areas!=="object")return false;
+  const at=Date.parse(payload?.source?.reportDatetime||"");
+  return Number.isFinite(at)&&at<=now+15*60000&&now-at<=C.jmaWarningSourceMaxMin*60000;
 }
-function readJmaWarningCache(pref){
+function readJmaWarningCache(){
   try{
-    const p=warningCachePath(pref);
-    if(!fm.fileExists(p))return null;
-    const e=JSON.parse(fm.readString(p));
-    if(e?.schema!==1||!Number.isFinite(e.fetchedAt)||!e.payload?.areaTypes||!jmaWarningPayloadFresh(e.payload))return null;
+    if(!fm.fileExists(warningSignalsPath))return null;
+    const e=JSON.parse(fm.readString(warningSignalsPath));
+    if(e?.schema!==2||!Number.isFinite(e.fetchedAt)||!validJmaWarningSignalsPayload(e.payload))return null;
     return e;
   }catch(_){return null}
 }
 function parseJmaSafety(payload,ref){
-  const target=new Set(ref?.codes||[]),found=new Map(),matchedAreas=new Set();
-  for(const group of payload?.areaTypes||[]){
-    for(const area of group?.areas||[]){
-      const code=String(area?.code||"");
-      if(!target.has(code))continue;
-      matchedAreas.add(code);
-      for(const warning of area?.warnings||[]){
-        const code2=String(warning?.code||""),meta=JMA_SAFETY_CODES[code2];
-        if(!meta)continue;
-        const status=String(warning?.status||"");
-        if(status.includes("解除"))continue;
-        const prev=found.get(code2);
-        if(!prev||meta.severity>prev.severity)found.set(code2,{code:code2,status,...meta});
-      }
+  const found=new Map(),matchedAreas=new Set(),matchedNames=[];
+  for(const code of ref?.codes||[]){
+    const area=payload?.areas?.[String(code)];
+    if(!area)continue;
+    matchedAreas.add(String(code));
+    if(area?.name)matchedNames.push(String(area.name));
+    for(const warning of area?.warnings||[]){
+      const code2=String(warning?.code||""),meta=JMA_SAFETY_CODES[code2];
+      if(!meta)continue;
+      const status=String(warning?.status||"");
+      if(status.includes("解除"))continue;
+      const prev=found.get(code2);
+      if(!prev||meta.severity>prev.severity)found.set(code2,{
+        code:code2,status,name:String(warning?.name||meta.name),label:meta.label,severity:meta.severity
+      });
     }
   }
   return{
-    reportDatetime:payload?.reportDatetime||null,
-    publishingOffice:payload?.publishingOffice||null,
-    headlineText:payload?.headlineText||null,
+    reportDatetime:payload?.source?.reportDatetime||null,
+    publishingOffice:payload?.source?.publishingOffice||null,
+    headlineText:payload?.source?.controlTitle||null,
+    sourceProduct:payload?.source?.product||null,
     areaMatched:matchedAreas.size>0,
     areaCodes:[...matchedAreas],
-    areaNames:ref?.names||[],
+    areaNames:[...new Set(matchedNames.length?matchedNames:(ref?.names||[]))],
     items:[...found.values()].sort((a,b)=>b.severity-a.severity)
   };
 }
 async function jmaSafetyWarnings(S,force=false){
   const ref=jmaSpotWarningRef(S);
   if(!ref)return{state:"unsupported",items:[],areaMatched:false,fetchedAt:Date.now()};
-  const cached=readJmaWarningCache(ref.pref),now=Date.now();
-  const pack=(e,state)=>({...parseJmaSafety(e.payload,ref),state,fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`});
+  const cached=readJmaWarningCache(),now=Date.now();
+  const pack=(e,state)=>({
+    ...parseJmaSafety(e.payload,ref),
+    state,
+    fetchedAt:e.fetchedAt,
+    sourceURL:e.payload?.source?.entryURL||C.jmaWarningSignalsURL,
+    transportURL:C.jmaWarningSignalsURL
+  });
   if(!force&&cached&&now-cached.fetchedAt<C.jmaWarningCacheMin*60000)return pack(cached,"cached");
   let stalePayload=null;
   try{
-    const r=new Request(`${C.jmaWarningBaseURL}/${ref.pref}.json?t=${Date.now()}`);
+    const r=new Request(C.jmaWarningSignalsURL+(C.jmaWarningSignalsURL.includes("?")?"&":"?")+"t="+Date.now());
     r.timeoutInterval=7;r.headers={"Cache-Control":"no-cache"};
     const payload=JSON.parse(await r.loadString());
-    if(!payload?.areaTypes||!payload?.reportDatetime)throw Error("invalid JMA warning payload");
-    if(!jmaWarningPayloadFresh(payload,now)){stalePayload=payload;throw Error("stale JMA warning payload");}
+    if(payload?.schemaVersion!==2||!payload?.areas)throw Error("invalid JMA warning snapshot");
+    if(!validJmaWarningSignalsPayload(payload,now)){stalePayload=payload;throw Error("stale JMA VPWS50 snapshot");}
     const parsed=parseJmaSafety(payload,ref);
-    const e={schema:1,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
-    try{fm.writeString(warningCachePath(ref.pref),raw);}catch(_){}
-    return{...parsed,state:"network",fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
+    if(!parsed.areaMatched)throw Error("JMA warning area missing from current VPWS50 snapshot");
+    const e={schema:2,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
+    try{
+      fm.writeString(warningSignalsPath,raw);
+      if(fm.readString(warningSignalsPath)!==raw)throw Error("JMA warning cache readback mismatch");
+    }catch(_){}
+    return{
+      ...parsed,state:"network",fetchedAt:e.fetchedAt,
+      sourceURL:payload?.source?.entryURL||C.jmaWarningSignalsURL,
+      transportURL:C.jmaWarningSignalsURL
+    };
   }catch(_){
     if(cached&&now-cached.fetchedAt<=C.jmaWarningFallbackMin*60000)return pack(cached,"fallback");
-    if(stalePayload)return{...parseJmaSafety(stalePayload,ref),state:"stale",fetchedAt:Date.now(),sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
-    return{state:"unavailable",items:[],areaMatched:false,fetchedAt:Date.now(),sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
+    if(stalePayload)return{
+      ...parseJmaSafety(stalePayload,ref),state:"stale",fetchedAt:Date.now(),
+      sourceURL:stalePayload?.source?.entryURL||C.jmaWarningSignalsURL,
+      transportURL:C.jmaWarningSignalsURL
+    };
+    return{
+      state:"unavailable",items:[],areaMatched:false,fetchedAt:Date.now(),
+      sourceURL:C.jmaWarningSignalsURL,transportURL:C.jmaWarningSignalsURL
+    };
   }
 }
 function jmaSafetyFace(safety){
   if(!safety)return null;
+  if(safety.state==="stale")return"⚠ 気象庁警報データが古い";
+  if(safety.state==="unavailable")return"⚠ 気象庁警報を確認できません";
+  if(safety.state==="unsupported")return"⚠ 気象庁警報区域が未対応";
   if((safety.items||[]).length){
     const body=safety.items.map(x=>x.label).join(" / ");
     return safety.state==="fallback"?`${body}（保存）`:body;
   }
   if(safety.state==="fallback")return"⚠ 気象庁警報は保存情報";
-  if(safety.state==="stale")return"⚠ 気象庁警報データが古い";
-  if(safety.state==="unavailable")return"⚠ 気象庁警報を確認できません";
-  if(safety.state==="unsupported")return"⚠ 気象庁警報区域が未対応";
   return null;
 }
 function jmaSafetyStateText(safety){
   if(!safety)return"未取得";
-  const state=safety.state==="network"?"通信取得":safety.state==="cached"?"キャッシュ":safety.state==="fallback"?"保存情報":safety.state==="stale"?"旧電文":safety.state==="unsupported"?"区域未対応":"取得不可";
+  const state=safety.state==="network"?"通信取得":
+    safety.state==="cached"?"キャッシュ":
+    safety.state==="fallback"?"保存情報":
+    safety.state==="stale"?"公式XML期限超過":
+    safety.state==="unsupported"?"区域未対応":"取得不可";
   return`${stampJST(new Date(safety.fetchedAt||Date.now()))} JST (${state})`;
 }
 function sourceMonthAgeDays(month,reference){
