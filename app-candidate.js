@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.22 | JMA VPWS50 warning-source migration; dev.21 layout retained
-const APP_VERSION="0.20.0-dev.22";
+// TIDE DASH v0.20.0-dev.23 | Remove redundant tide forecast-range label; dev.22 behavior retained
+const APP_VERSION="0.20.0-dev.23";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1521,8 +1521,9 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   w.addSpacer(large?6:3);
   const hero=w.addStack();hero.layoutHorizontally();hero.centerAlignContent();
   const tideBox=hero.addStack();tideBox.layoutVertically();
-  const range=Number.isFinite(state.from)?`${glanceHour(state.from)}〜${glanceHour(state.to)}時の予測`:"潮の予測";
-  text(tideBox,range,small?7:large?10:8,C.t.sub);
+  // The range label duplicated the visible reference time / graph context.
+  // Preserve vertical alignment with the next-event block without showing redundant copy.
+  tideBox.addSpacer(small?9:large?12:10);
   text(tideBox,small?view.short:view.label,small?13:large?(state.kind==="turning"?22:25):16,view.known?C.t.fg:C.t.warn,true);
   hero.addSpacer();
   const nextBox=hero.addStack();nextBox.layoutVertically();
