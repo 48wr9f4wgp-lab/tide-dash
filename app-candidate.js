@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.15 | Region-aware evidence-backed target suggestions; tide/field logic unchanged
-const APP_VERSION="0.20.0-dev.15";
+// TIDE DASH v0.20.0-dev.16 | Shizuoka/Izu target suggestions; tide/field logic unchanged
+const APP_VERSION="0.20.0-dev.16";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -92,8 +92,42 @@ function ibarakiTargetSuggestions(S,reference,wp){
     caveat:"茨城県の同時期公式漁海況速報を地域priorとして使用。商業漁獲を遊漁の釣果確率へ変換していません。"
   };
 }
+function shizuokaTargetSuggestions(S,reference,wp){
+  const area=String(S?.area||""),name=String(S?.name||"");
+  if(!area.includes("静岡"))return null;
+  const z=jstDate(reference),month=z.getUTCMonth()+1;
+  const eastIzu=area.includes("東伊豆")||["熱海","伊東","川奈","富戸"].some(x=>name.includes(x));
+  if(eastIzu&&(month===8||month===9||month===10)){
+    const rows=[
+      {id:"MARUSOUDA",name:"ソウダ",tons:59.6,confidence:"B",reasons:["2026年8月伊豆東岸定置網59.6t・平年比3.0倍"]},
+      {id:"KAMASU",name:"カマス",tons:51.3,confidence:"B",reasons:["2026年8月伊豆東岸定置網51.3t・平年比3.1倍"]},
+      {id:"SABA",name:"サバ",tons:34.6,confidence:"B",reasons:["2026年8月伊豆東岸定置網34.6t"]},
+      {id:"MA_AJI",name:"アジ",tons:12.0,confidence:"B",reasons:["2026年8月伊豆東岸定置網12.0t"]},
+      {id:"BURI",name:"ブリ",tons:5.6,confidence:"B",reasons:["2026年8月伊豆東岸定置網5.6t・わかし主体"]}
+    ];
+    rows.sort((x,y)=>y.tons-x.tons);
+    return{
+      basis:"直近の公的定置網実績",
+      source:"https://fish-exp.pref.shizuoka.jp/02fishery/2-1-1.html",
+      top:rows.slice(0,3),
+      context:"最新公表の令和8年8月伊豆東岸大型定置網7か統。対象月より約1か月前の地域来遊実績として使用。",
+      caveat:"定置網の商業漁獲を遊漁の釣果確率へ変換していません。9月の実際の来遊は変化し得ます。"
+    };
+  }
+  const izu=area.includes("伊豆")||area.includes("沼津");
+  if(izu&&(month===9||month===10)){
+    return{
+      basis:"伊豆固有の季節生態",
+      source:"https://fish-exp.pref.shizuoka.jp/izu/0005/08aori.html",
+      top:[{id:"AORI_IKA",name:"アオリイカ",confidence:"C",reasons:["伊豆の公的研究で産卵期5〜7月、その年生まれが10月に約13cmまで成長"]}],
+      context:"東伊豆以外では最新の魚種別定置網実績を直接転用せず、伊豆固有の季節生態だけを候補化。",
+      caveat:"季節性の根拠であり、当日の個体数や遊漁釣果を示すものではありません。"
+    };
+  }
+  return null;
+}
 function targetSuggestions(S,reference,wp){
-  return ibarakiTargetSuggestions(S,reference,wp)||niigataTargetSuggestions(S,reference,wp);
+  return shizuokaTargetSuggestions(S,reference,wp)||ibarakiTargetSuggestions(S,reference,wp)||niigataTargetSuggestions(S,reference,wp);
 }
 
 function validDateKey(s){
