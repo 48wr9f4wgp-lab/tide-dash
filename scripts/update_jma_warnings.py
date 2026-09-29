@@ -217,6 +217,7 @@ def parse_vpws50(xml_bytes: bytes, targets: dict[str, str]):
 
     areas = {code: {"name": name, "warnings": []} for code, name in targets.items()}
     matched = set()
+    observed_areas = {}
 
     for warning in root.iter():
         if lname(warning.tag) != "Warning":
@@ -229,10 +230,13 @@ def parse_vpws50(xml_bytes: bytes, targets: dict[str, str]):
             if area is None:
                 continue
             code = text_of(area, "Code")
+            area_name_raw = text_of(area, "Name")
+            if code:
+                observed_areas[code] = area_name_raw or code
             if code not in targets:
                 continue
             matched.add(code)
-            area_name = text_of(area, "Name") or targets[code]
+            area_name = area_name_raw or targets[code]
             current = {}
             for kind in children(item, "Kind"):
                 code2 = text_of(kind, "Code")
@@ -257,7 +261,17 @@ def parse_vpws50(xml_bytes: bytes, targets: dict[str, str]):
 
     missing = sorted(set(targets) - matched)
     if missing:
-        raise RuntimeError(f"VPWS50 target coverage incomplete: {len(missing)} missing; first={missing[:10]}")
+        nearby = {
+            m: sorted(
+                (c, n) for c, n in observed_areas.items()
+                if c[:4] == m[:4] or c[:3] == m[:3]
+            )[:30]
+            for m in missing[:10]
+        }
+        raise RuntimeError(
+            f"VPWS50 target coverage incomplete: {len(missing)} missing; "
+            f"first={missing[:10]}; nearby={nearby}"
+        )
 
     return {
         "controlTitle": control_title,
