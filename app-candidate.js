@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.18 | Live/static target evidence labels; ranking logic unchanged
-const APP_VERSION="0.20.0-dev.18";
+// TIDE DASH v0.20.0-dev.19 | JMA thunder/wave safety layer; target/tide logic unchanged
+const APP_VERSION="0.20.0-dev.19";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -13,6 +13,9 @@ const C={
   liveSignalsURL:"https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/live_regional_signals.json",
   liveSignalsCacheMin:120,
   liveSignalsFallbackDays:7,
+  jmaWarningBaseURL:"https://www.jma.go.jp/bosai/warning/data/warning",
+  jmaWarningCacheMin:10,
+  jmaWarningFallbackMin:60,
   farKm:50,
   maxFavorites:10,
   weatherFallbackMaxMin:180,
@@ -34,6 +37,7 @@ const catPath=fm.joinPath(fm.documentsDirectory(),C.catalog);
 const spotPath=fm.joinPath(fm.documentsDirectory(),C.spotCatalog);
 const portPath=fm.joinPath(fm.documentsDirectory(),C.portCatalog);
 const liveSignalsPath=fm.joinPath(cacheDir,"live_regional_signals_v1.json");
+const warningCachePath=pref=>fm.joinPath(cacheDir,`jma_warning_${pref}.json`);
 const NET={fallbacks:[]}; // Legacy JMA cache path; forecast caching is isolated below.
 
 const p2=n=>String(n).padStart(2,"0");
@@ -82,6 +86,94 @@ async function liveRegionalSignals(force=false){
   }
 }
 function liveRegion(wp,id){return wp?.liveSignals?.payload?.regions?.[id]||null}
+
+const JMA_SAFETY_CODES={
+  "37":{name:"波浪特別警報",label:"🟥 波浪特別警報",severity:4},
+  "07":{name:"波浪警報",label:"🟥 波浪警報",severity:3},
+  "16":{name:"波浪注意報",label:"🌊 波浪注意報",severity:2},
+  "14":{name:"雷注意報",label:"⚡ 雷注意報",severity:1}
+};
+function jmaSpotWarningRef(S){
+  const pref=String(S?.jmaPrefCode||"");
+  const explicit=(S?.jmaWarningAreaCodes||[]).map(String).filter(x=>/^\d{7}$/.test(x));
+  if(/^\d{6}$/.test(pref)&&explicit.length)return{pref,codes:explicit,names:S?.jmaWarningAreaNames||[]};
+  const pc=String(S?.prefectureCode||"").padStart(2,"0"),admin=String(S?.adminCode||"");
+  if(/^\d{2}$/.test(pc)&&/^\d{5}$/.test(admin))return{pref:pc+"0000",codes:[admin+"00"],names:[S?.prefecture||S?.name||admin]};
+  return null;
+}
+function readJmaWarningCache(pref){
+  try{
+    const p=warningCachePath(pref);
+    if(!fm.fileExists(p))return null;
+    const e=JSON.parse(fm.readString(p));
+    if(e?.schema!==1||!Number.isFinite(e.fetchedAt)||!e.payload?.areaTypes)return null;
+    return e;
+  }catch(_){return null}
+}
+function parseJmaSafety(payload,ref){
+  const target=new Set(ref?.codes||[]),found=new Map(),matchedAreas=new Set();
+  for(const group of payload?.areaTypes||[]){
+    for(const area of group?.areas||[]){
+      const code=String(area?.code||"");
+      if(!target.has(code))continue;
+      matchedAreas.add(code);
+      for(const warning of area?.warnings||[]){
+        const code2=String(warning?.code||""),meta=JMA_SAFETY_CODES[code2];
+        if(!meta)continue;
+        const status=String(warning?.status||"");
+        if(status.includes("解除"))continue;
+        const prev=found.get(code2);
+        if(!prev||meta.severity>prev.severity)found.set(code2,{code:code2,status,...meta});
+      }
+    }
+  }
+  return{
+    reportDatetime:payload?.reportDatetime||null,
+    publishingOffice:payload?.publishingOffice||null,
+    headlineText:payload?.headlineText||null,
+    areaMatched:matchedAreas.size>0,
+    areaCodes:[...matchedAreas],
+    areaNames:ref?.names||[],
+    items:[...found.values()].sort((a,b)=>b.severity-a.severity)
+  };
+}
+async function jmaSafetyWarnings(S,force=false){
+  const ref=jmaSpotWarningRef(S);
+  if(!ref)return{state:"unsupported",items:[],areaMatched:false,fetchedAt:Date.now()};
+  const cached=readJmaWarningCache(ref.pref),now=Date.now();
+  const pack=(e,state)=>({...parseJmaSafety(e.payload,ref),state,fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`});
+  if(!force&&cached&&now-cached.fetchedAt<C.jmaWarningCacheMin*60000)return pack(cached,"cached");
+  try{
+    const r=new Request(`${C.jmaWarningBaseURL}/${ref.pref}.json?t=${Date.now()}`);
+    r.timeoutInterval=7;r.headers={"Cache-Control":"no-cache"};
+    const payload=JSON.parse(await r.loadString());
+    if(!payload?.areaTypes||!payload?.reportDatetime)throw Error("invalid JMA warning payload");
+    const parsed=parseJmaSafety(payload,ref);
+    if(!parsed.areaMatched)throw Error("JMA warning area not matched");
+    const e={schema:1,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
+    try{fm.writeString(warningCachePath(ref.pref),raw);}catch(_){}
+    return{...parsed,state:"network",fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
+  }catch(_){
+    if(cached&&now-cached.fetchedAt<=C.jmaWarningFallbackMin*60000)return pack(cached,"fallback");
+    return{state:"unavailable",items:[],areaMatched:false,fetchedAt:Date.now(),sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
+  }
+}
+function jmaSafetyFace(safety){
+  if(!safety)return null;
+  if((safety.items||[]).length){
+    const body=safety.items.map(x=>x.label).join(" / ");
+    return safety.state==="fallback"?`${body}（保存）`:body;
+  }
+  if(safety.state==="fallback")return"⚠ 気象庁警報は保存情報";
+  if(safety.state==="unavailable")return"⚠ 気象庁警報を確認できません";
+  if(safety.state==="unsupported")return"⚠ 気象庁警報区域が未対応";
+  return null;
+}
+function jmaSafetyStateText(safety){
+  if(!safety)return"未取得";
+  const state=safety.state==="network"?"通信取得":safety.state==="cached"?"キャッシュ":safety.state==="fallback"?"保存情報":safety.state==="unsupported"?"区域未対応":"取得不可";
+  return`${stampJST(new Date(safety.fetchedAt||Date.now()))} JST (${state})`;
+}
 function sourceMonthAgeDays(month,reference){
   if(!/^\d{4}-\d{2}$/.test(month||""))return Infinity;
   const [y,m]=month.split("-").map(Number),end=new Date(Date.UTC(y,m,0,15));
@@ -1046,7 +1138,7 @@ function gridDescription(p){
 }
 function tideReferenceLabel(S,ref){return ref?.name||S?.tideName||S?.name||S?.code||"未確認"}
 function tideDetail(t,r,wp){
-  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt)),targets=targetSuggestions(r.station,new Date(t.referenceAt),wp),targetEvidenceLabel=targets&&String(targets.basis||"").includes("自動更新")?"自動更新":"過去傾向";
+  const state=tideRead(t),event=tideEventSummary(t),c=wp?.current,solar=solarEvents(t,wp),cycle=tideCycle(new Date(t.referenceAt)),targets=targetSuggestions(r.station,new Date(t.referenceAt),wp),targetEvidenceLabel=targets&&String(targets.basis||"").includes("自動更新")?"自動更新":"過去傾向",safety=wp?.jmaSafety;
   const lines=[
     `TIDE DASH ${APP_VERSION}`,
     `表示基準: ${stampJST(new Date(t.referenceAt))} JST`,
@@ -1089,6 +1181,16 @@ function tideDetail(t,r,wp){
     "海流は港内・磯際の局所的な流れや、潮止まり時刻を保証しません。",
     "有義波高は最大波高ではありません。実際にはこれより高い波もあります。",
     "安全・釣行可否の判定ではありません。現地状況と公的な警報・規制を確認してください。",
+    "",
+    "安全情報: 気象庁の雷・波浪警報/注意報",
+    safety?.areaNames?.length?`対象区域: ${safety.areaNames.join(" / ")}`:"対象区域: 未確認",
+    (safety?.items||[]).length?`発表中: ${safety.items.map(x=>x.name).join(" / ")}`:"発表中: 対象の雷・波浪警報/注意報なし",
+    safety?.reportDatetime?`気象庁発表: ${String(safety.reportDatetime).replace("T"," ").slice(0,16)} JST / ${safety.publishingOffice||"発表官署不明"}`:null,
+    `安全情報取得: ${jmaSafetyStateText(safety)}`,
+    safety?.sourceURL?`安全情報出典: ${safety.sourceURL}`:null,
+    "雷注意報は落雷だけでなく、積乱雲に伴う急な強雨・突風・ひょう等への注意情報です。",
+    "波浪注意報・警報・特別警報は高波による災害のおそれに対する気象庁情報です。",
+    "安全情報は釣行可否を保証しません。現地状況・立入規制・最新の気象庁情報を優先してください。",
     "",
     targets?`狙い目（${targetEvidenceLabel}）: ${targets.top.map((x,i)=>`${i+1}.${x.name}[${x.confidence}]`).join(" / ")}`:"狙い目（過去傾向）: 対応する公的月別データなし",
     ...(targets?.top||[]).map(x=>`${x.name}[${x.confidence}]: ${x.reasons.join(" / ")}`),
@@ -1347,7 +1449,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     text(w,"タップして設定",small?8:11,C.t.fg,true);return w;
   }
 
-  const c=wp?.current,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),targets=targetSuggestions(S,reference,wp);
+  const c=wp?.current,state=tideRead(t),view=glanceState(state),next=tideEventSummary(t),targets=targetSuggestions(S,reference,wp),safety=wp?.jmaSafety,safetyFace=jmaSafetyFace(safety);
   w.addSpacer(large?6:3);
   const hero=w.addStack();hero.layoutHorizontally();hero.centerAlignContent();
   const tideBox=hero.addStack();tideBox.layoutVertically();
@@ -1404,6 +1506,10 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     text(fieldRow,f1(c?.precip),17,C.t.fg,true);fieldRow.addSpacer(2);text(fieldRow,"mm",10,C.t.sub);
   }
 
+  if(safetyFace){
+    const hazard=text(w,safetyFace,small?7:large?10:8,C.t.warn,true);hazard.lineLimit=large?2:1;if(guideURL)hazard.url=guideURL;
+    w.addSpacer(large?2:1);
+  }
   const issues=[...(wp?.issues||[])];
   if(t.hasGaps)issues.push("潮位に欠測");
   if(snapshot&&!snapshot.saved)issues.push("表示根拠の保存不可");
@@ -1428,9 +1534,11 @@ async function buildCurrent(forceLocation=false){
   if(locationBlockedResult(r))return widget(null,null,r.station,r.badge,r.badgeColor,null,r.distanceKm,r.locationState,r.tideRef);
   let t;
   try{t=await tide(now,r.station)}catch(_){return tideFailureWidget()}
-  const [wp,live]=await Promise.all([weather(now,r.station,forceLocation).catch(()=>null),liveRegionalSignals(forceLocation).catch(()=>null)]);
-  if(wp&&live)wp.liveSignals=live;
-  return widget(t,wp,r.station,r.badge,r.badgeColor,wp?null:"天気・海況取得不可",r.distanceKm,r.locationState,r.tideRef);
+  const [weatherPack,live,safety]=await Promise.all([weather(now,r.station,forceLocation).catch(()=>null),liveRegionalSignals(forceLocation).catch(()=>null),jmaSafetyWarnings(r.station,forceLocation).catch(()=>({state:"unavailable",items:[],areaMatched:false,fetchedAt:Date.now()}))]);
+  const weatherFailed=!weatherPack,wp=weatherPack||{current:null,issues:[]};
+  if(live)wp.liveSignals=live;
+  if(safety)wp.jmaSafety=safety;
+  return widget(t,wp,r.station,r.badge,r.badgeColor,weatherFailed?"天気・海況取得不可":null,r.distanceKm,r.locationState,r.tideRef);
 }
 
 async function present(w){
