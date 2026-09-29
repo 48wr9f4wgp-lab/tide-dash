@@ -1521,9 +1521,6 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   w.addSpacer(large?6:3);
   const hero=w.addStack();hero.layoutHorizontally();hero.centerAlignContent();
   const tideBox=hero.addStack();tideBox.layoutVertically();
-  // The range label duplicated the visible reference time / graph context.
-  // Preserve vertical alignment with the next-event block without showing redundant copy.
-  tideBox.addSpacer(small?9:large?12:10);
   text(tideBox,small?view.short:view.label,small?13:large?(state.kind==="turning"?22:25):16,view.known?C.t.fg:C.t.warn,true);
   hero.addSpacer();
   const nextBox=hero.addStack();nextBox.layoutVertically();
