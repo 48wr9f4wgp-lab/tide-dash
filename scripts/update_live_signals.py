@@ -64,15 +64,14 @@ def parse_ibaraki(previous_region):
     soup = BeautifulSoup(html, "html.parser")
     rows = []
     current_date = None
-    for node in soup.find_all(["h2", "table"]):
-        if node.name == "h2":
-            d = parse_jp_date(node.get_text(" ", strip=True))
-            if d:
-                current_date = d
-            continue
+    for h2 in soup.find_all("h2"):
+        current_date = parse_jp_date(h2.get_text(" ", strip=True))
         if not current_date:
             continue
-        for tr in node.find_all("tr"):
+        table = h2.find_next("table")
+        if not table:
+            continue
+        for tr in table.find_all("tr"):
             cells = [re.sub(r"\s+", " ", x.get_text(" ", strip=True)).strip() for x in tr.find_all(["th", "td"])]
             if "大津" not in cells:
                 continue
@@ -117,7 +116,7 @@ def parse_ibaraki(previous_region):
 def parse_shizuoka(previous_region):
     html, _ = fetch(SHIZUOKA_COASTAL)
     text = compact_text(html)
-    mm = re.search(r"定置網（(\d{1,2})月）", text)
+    mm = re.search(r"定置網\s*[（(]\s*(\d{1,2})\s*月\s*[）)]", text)
     if not mm:
         raise ValueError("Shizuoka: set-net month not found")
     month = int(mm.group(1))
@@ -163,7 +162,7 @@ def parse_niigata(previous_region):
     pdf_by_month = {}
     for a in soup.find_all("a", href=True):
         label = re.sub(r"\s+", "", a.get_text("", strip=True))
-        m = re.fullmatch(r"(\d{1,2})月", label)
+        m = re.match(r"^(\d{1,2})月.*PDF", label, flags=re.I)
         if not m:
             continue
         href = urllib.parse.urljoin(base, a["href"])
