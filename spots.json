@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-27",
+  "updatedAt": "2026-09-29",
   "note": "代表座標は天気・波の参照用。立入可否・釣り可否は現地ルールを確認してください。",
   "sources": [
     "茨城県・静岡県・千葉県・新潟県などの公開港湾情報",
@@ -20,6 +20,10 @@
       "keywords": [
         "平潟港",
         "北茨城"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "北茨城市"
       ]
     },
     {
@@ -34,6 +38,10 @@
       "keywords": [
         "大津港",
         "北茨城"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "北茨城市"
       ]
     },
     {
@@ -48,6 +56,10 @@
       "keywords": [
         "久慈港",
         "日立"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "日立市"
       ]
     },
     {
@@ -61,6 +73,10 @@
       "tideName": "日立",
       "keywords": [
         "日立港"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "日立市"
       ]
     },
     {
@@ -75,6 +91,10 @@
       "keywords": [
         "那珂湊港",
         "ひたちなか"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "ひたちなか市"
       ]
     },
     {
@@ -89,6 +109,10 @@
       "keywords": [
         "大洗港",
         "大洗サンビーチ"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "大洗町"
       ]
     },
     {
@@ -103,6 +127,10 @@
       "keywords": [
         "鹿島港",
         "鹿嶋"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "鹿嶋市"
       ]
     },
     {
@@ -117,6 +145,10 @@
       "keywords": [
         "波崎港",
         "神栖"
+      ],
+      "jmaPrefCode": "080000",
+      "jmaAreaAliases": [
+        "神栖市"
       ]
     },
     {
@@ -131,6 +163,10 @@
       "keywords": [
         "銚子港",
         "銚子漁港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "銚子市"
       ]
     },
     {
@@ -144,6 +180,10 @@
       "tideName": "銚子漁港",
       "keywords": [
         "外川港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "銚子市"
       ]
     },
     {
@@ -158,6 +198,10 @@
       "keywords": [
         "飯岡港",
         "旭"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "旭市"
       ]
     },
     {
@@ -172,6 +216,10 @@
       "keywords": [
         "片貝港",
         "九十九里"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "九十九里町"
       ]
     },
     {
@@ -185,6 +233,10 @@
       "tideName": "勝浦",
       "keywords": [
         "勝浦港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "勝浦市"
       ]
     },
     {
@@ -198,6 +250,10 @@
       "tideName": "勝浦",
       "keywords": [
         "興津港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "勝浦市"
       ]
     },
     {
@@ -211,6 +267,10 @@
       "tideName": "勝浦",
       "keywords": [
         "鴨川港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "鴨川市"
       ]
     },
     {
@@ -225,6 +285,10 @@
       "keywords": [
         "千倉港",
         "南房総"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "南房総市"
       ]
     },
     {
@@ -239,6 +303,10 @@
       "keywords": [
         "白浜",
         "野島崎"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "南房総市"
       ]
     },
     {
@@ -252,6 +320,10 @@
       "tideName": "館山",
       "keywords": [
         "館山港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "館山市"
       ]
     },
     {
@@ -266,6 +338,10 @@
       "keywords": [
         "浜金谷港",
         "金谷"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "富津市"
       ]
     },
     {
@@ -280,6 +356,10 @@
       "keywords": [
         "富津岬",
         "富津"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "富津市"
       ]
     },
     {
@@ -293,6 +373,10 @@
       "tideName": "木更津",
       "keywords": [
         "木更津港"
+      ],
+      "jmaPrefCode": "120000",
+      "jmaAreaAliases": [
+        "木更津市"
       ]
     },
     {
@@ -307,6 +391,10 @@
       "keywords": [
         "本牧海づり施設",
         "横浜"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "横浜市"
       ]
     },
     {
@@ -320,6 +408,10 @@
       "tideName": "横浜",
       "keywords": [
         "横浜港"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "横浜市"
       ]
     },
     {
@@ -333,6 +425,10 @@
       "tideName": "横須賀",
       "keywords": [
         "横須賀港"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "横須賀市"
       ]
     },
     {
@@ -346,6 +442,10 @@
       "tideName": "横須賀",
       "keywords": [
         "久里浜港"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "横須賀市"
       ]
     },
     {
@@ -360,6 +460,10 @@
       "keywords": [
         "三崎港",
         "三浦"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "三浦市"
       ]
     },
     {
@@ -373,6 +477,10 @@
       "tideName": "油壺",
       "keywords": [
         "城ヶ島"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "三浦市"
       ]
     },
     {
@@ -387,6 +495,10 @@
       "keywords": [
         "江ノ島",
         "湘南港"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "藤沢市"
       ]
     },
     {
@@ -401,6 +513,10 @@
       "keywords": [
         "小田原漁港",
         "早川港"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "小田原市"
       ]
     },
     {
@@ -414,6 +530,10 @@
       "tideName": "小田原",
       "keywords": [
         "真鶴港"
+      ],
+      "jmaPrefCode": "140000",
+      "jmaAreaAliases": [
+        "真鶴町"
       ]
     },
     {
@@ -427,6 +547,10 @@
       "tideName": "伊東",
       "keywords": [
         "熱海港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "熱海市"
       ]
     },
     {
@@ -440,6 +564,10 @@
       "tideName": "伊東",
       "keywords": [
         "伊東港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "伊東市"
       ]
     },
     {
@@ -453,6 +581,10 @@
       "tideName": "伊東",
       "keywords": [
         "川奈港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "伊東市"
       ]
     },
     {
@@ -466,6 +598,10 @@
       "tideName": "伊東",
       "keywords": [
         "富戸港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "伊東市"
       ]
     },
     {
@@ -479,6 +615,10 @@
       "tideName": "下田",
       "keywords": [
         "稲取港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "東伊豆町"
       ]
     },
     {
@@ -492,6 +632,10 @@
       "tideName": "下田",
       "keywords": [
         "下田港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "下田市"
       ]
     },
     {
@@ -505,6 +649,10 @@
       "tideName": "下田",
       "keywords": [
         "須崎港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "下田市"
       ]
     },
     {
@@ -519,6 +667,10 @@
       "keywords": [
         "弓ヶ浜",
         "南伊豆"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "南伊豆町"
       ]
     },
     {
@@ -532,6 +684,10 @@
       "tideName": "石廊崎",
       "keywords": [
         "石廊崎"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "南伊豆町"
       ]
     },
     {
@@ -545,6 +701,10 @@
       "tideName": "田子",
       "keywords": [
         "松崎港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "松崎町"
       ]
     },
     {
@@ -558,6 +718,10 @@
       "tideName": "田子",
       "keywords": [
         "田子港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "西伊豆町"
       ]
     },
     {
@@ -571,6 +735,10 @@
       "tideName": "田子",
       "keywords": [
         "土肥港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "伊豆市"
       ]
     },
     {
@@ -584,6 +752,10 @@
       "tideName": "内浦",
       "keywords": [
         "戸田港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "沼津市"
       ]
     },
     {
@@ -597,6 +769,10 @@
       "tideName": "内浦",
       "keywords": [
         "内浦"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "沼津市"
       ]
     },
     {
@@ -610,6 +786,10 @@
       "tideName": "内浦",
       "keywords": [
         "沼津港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "沼津市"
       ]
     },
     {
@@ -623,6 +803,10 @@
       "tideName": "内浦",
       "keywords": [
         "静浦港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "沼津市"
       ]
     },
     {
@@ -636,6 +820,10 @@
       "tideName": "清水港",
       "keywords": [
         "清水港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "静岡市"
       ]
     },
     {
@@ -649,6 +837,10 @@
       "tideName": "焼津",
       "keywords": [
         "焼津港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "焼津市"
       ]
     },
     {
@@ -662,6 +854,10 @@
       "tideName": "御前崎",
       "keywords": [
         "御前崎港"
+      ],
+      "jmaPrefCode": "220000",
+      "jmaAreaAliases": [
+        "御前崎市"
       ]
     },
     {
@@ -676,6 +872,10 @@
       "keywords": [
         "岩船港",
         "村上"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "村上市"
       ]
     },
     {
@@ -689,6 +889,11 @@
       "tideName": "新潟東港",
       "keywords": [
         "新潟東港"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "聖籠町",
+        "新潟市"
       ]
     },
     {
@@ -702,6 +907,10 @@
       "tideName": "新潟西港",
       "keywords": [
         "新潟西港"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "新潟市"
       ]
     },
     {
@@ -716,6 +925,10 @@
       "keywords": [
         "間瀬漁港",
         "西蒲"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "新潟市"
       ]
     },
     {
@@ -730,6 +943,10 @@
       "keywords": [
         "寺泊港",
         "寺泊"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "長岡市"
       ]
     },
     {
@@ -743,6 +960,10 @@
       "tideName": "柏崎",
       "keywords": [
         "柏崎港"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "柏崎市"
       ]
     },
     {
@@ -756,6 +977,10 @@
       "tideName": "直江津",
       "keywords": [
         "直江津港"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "上越市"
       ]
     },
     {
@@ -770,6 +995,10 @@
       "keywords": [
         "能生漁港",
         "糸魚川"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "糸魚川市"
       ]
     },
     {
@@ -784,6 +1013,10 @@
       "keywords": [
         "姫川港",
         "糸魚川"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "糸魚川市"
       ]
     },
     {
@@ -798,6 +1031,10 @@
       "keywords": [
         "両津港",
         "佐渡"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "佐渡市"
       ]
     },
     {
@@ -812,7 +1049,16 @@
       "keywords": [
         "小木港",
         "佐渡"
+      ],
+      "jmaPrefCode": "150000",
+      "jmaAreaAliases": [
+        "佐渡市"
       ]
     }
-  ]
+  ],
+  "jmaWarningMapping": {
+    "source": "JMA area.json",
+    "mode": "class20 alias resolution",
+    "status": "ALIASES_READY"
+  }
 }
