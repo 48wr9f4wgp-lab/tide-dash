@@ -66,7 +66,7 @@ jobs:
 
       - name: Validate Scriptable warning integration
         run: |
-          node --check app-candidate.js
+          node --input-type=module --check < app-candidate.js
           python - <<'PY'
           from pathlib import Path
           s=Path("app-candidate.js").read_text(encoding="utf-8")
