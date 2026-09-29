@@ -149,7 +149,6 @@ async function jmaSafetyWarnings(S,force=false){
     const payload=JSON.parse(await r.loadString());
     if(!payload?.areaTypes||!payload?.reportDatetime)throw Error("invalid JMA warning payload");
     const parsed=parseJmaSafety(payload,ref);
-    if(!parsed.areaMatched)throw Error("JMA warning area not matched");
     const e={schema:1,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
     try{fm.writeString(warningCachePath(ref.pref),raw);}catch(_){}
     return{...parsed,state:"network",fetchedAt:e.fetchedAt,sourceURL:`${C.jmaWarningBaseURL}/${ref.pref}.json`};
