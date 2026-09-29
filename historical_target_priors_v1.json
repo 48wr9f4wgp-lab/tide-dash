@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-29",
+  "region": "NIIGATA_JAPAN_SEA",
+  "authority": "新潟県水産海洋研究所",
+  "sourceType": "県内主要定置網・同月5年平均",
+  "units": "t",
+  "interpretation": "地域・季節のhistorical prior。遊漁の釣果を数値予測するものではない。",
+  "supportedMonths": [
+    1,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "months": {
+    "1": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/449179.pdf",
+      "aji": 21,
+      "saba": 94,
+      "iwashi": 0.1,
+      "buri": 82.3,
+      "sawara": 4.7,
+      "hirame": 0.2
+    },
+    "4": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/451323.pdf",
+      "aji": 50.8,
+      "saba": 10.3,
+      "iwashi": 32.8,
+      "buri": 37.8,
+      "sawara": 7,
+      "hirame": 1.2
+    },
+    "5": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/455461.pdf",
+      "aji": 115.7,
+      "saba": 43.9,
+      "iwashi": 19.3,
+      "buri": 143.4,
+      "sawara": 11.5,
+      "hirame": 6.6
+    },
+    "6": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/466455.pdf",
+      "aji": 93.7,
+      "saba": 68,
+      "iwashi": 4.6,
+      "buri": 47.8,
+      "sawara": 6.7,
+      "hirame": 3.6
+    },
+    "7": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/466457.pdf",
+      "aji": 39.3,
+      "saba": 9.1,
+      "iwashi": 1.1,
+      "buri": 15.7,
+      "sawara": 5.7,
+      "hirame": 0.7
+    },
+    "8": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/466261.pdf",
+      "aji": 8.7,
+      "saba": 1.9,
+      "iwashi": 0.2,
+      "buri": 8.1,
+      "sawara": 2.6,
+      "hirame": 0.3
+    },
+    "9": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/468148.pdf",
+      "aji": 8.5,
+      "saba": 1.9,
+      "iwashi": 0.2,
+      "buri": 3.5,
+      "sawara": 0.3,
+      "hirame": 0.2
+    },
+    "10": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/471497.pdf",
+      "aji": 29.9,
+      "saba": 24.1,
+      "iwashi": 0.9,
+      "buri": 42.8,
+      "sawara": 8.9,
+      "hirame": 0.4
+    },
+    "11": {
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/474241.pdf",
+      "aji": 47.3,
+      "saba": 60.8,
+      "iwashi": 0.8,
+      "buri": 66.1,
+      "sawara": 10.8,
+      "hirame": 0.9
+    }
+  },
+  "missingMonths": [
+    2,
+    3,
+    12
+  ],
+  "aggregation": {
+    "buri": "イナダ+小ブリ+中ブリ+大ブリ"
+  },
+  "safeguards": [
+    "同一の定置網表だけをspecies priorに使用",
+    "底びき・まき網の値は混ぜない",
+    "未確認月は推定しない"
+  ]
+}
