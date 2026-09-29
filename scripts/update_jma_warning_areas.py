@@ -34,11 +34,19 @@ for spot in spots.get("spots",[]):
     aliases=[norm(x) for x in spot.get("jmaAreaAliases",[]) if norm(x)]
     codes=[]
     names=[]
-    for c in spot.get("jmaWarningAreaCodes",[]) or []:
+    explicit_names=[norm(x) for x in spot.get("jmaWarningAreaNames",[]) if norm(x)]
+    for i,c in enumerate(spot.get("jmaWarningAreaCodes",[]) or []):
         c=str(c)
-        if c in class20 and c not in codes:
+        if not (len(c)==7 and c.isdigit()):
+            continue
+        if c not in codes:
             codes.append(c)
-            names.append(norm(class20[c].get("name")))
+            if c in class20:
+                names.append(norm(class20[c].get("name")))
+            elif i < len(explicit_names):
+                names.append(explicit_names[i])
+            else:
+                names.append(c)
     for alias in aliases:
         exact=name_to_codes.get(alias,[])
         if exact:
