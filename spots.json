@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-29",
+  "updatedAt": "2026-09-30",
   "note": "代表座標は天気・波の参照用。立入可否・釣り可否は現地ルールを確認してください。",
   "sources": [
     "茨城県・静岡県・千葉県・新潟県などの公開港湾情報",
@@ -520,13 +520,14 @@
       ],
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
+        "横浜市南部",
         "横浜市"
       ],
       "jmaWarningAreaCodes": [
-        "1410000"
+        "1410012"
       ],
       "jmaWarningAreaNames": [
-        "横浜市"
+        "横浜市南部"
       ]
     },
     {
@@ -543,13 +544,14 @@
       ],
       "jmaPrefCode": "140000",
       "jmaAreaAliases": [
+        "横浜市南部",
         "横浜市"
       ],
       "jmaWarningAreaCodes": [
-        "1410000"
+        "1410012"
       ],
       "jmaWarningAreaNames": [
-        "横浜市"
+        "横浜市南部"
       ]
     },
     {
