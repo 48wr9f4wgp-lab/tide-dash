@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.19 | JMA thunder/wave safety layer; target/tide logic unchanged
-const APP_VERSION="0.20.0-dev.19";
+// TIDE DASH v0.20.0-dev.20 | Hydrate JMA area metadata for saved fixed spots; safety logic unchanged
+const APP_VERSION="0.20.0-dev.20";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -445,27 +445,41 @@ async function stationCatalog(){
     {code:"SM",name:"清水港",lat:35.0167,lon:138.5167,area:"清水"}
   ];
 }
+function validSpotCatalogForSafety(o){
+  return o?.schemaVersion===1&&Array.isArray(o.spots)&&o.spots.length>=40&&
+    o.spots.every(x=>Array.isArray(x.jmaWarningAreaCodes)&&x.jmaWarningAreaCodes.length>0);
+}
 async function fishingSpotCatalog(){
   let local=null;
   try{
     if(fm.fileExists(spotPath)){
       const o=JSON.parse(fm.readString(spotPath));
       if(Array.isArray(o.spots)&&o.spots.length>=40)local=o;
-      if(local?.savedAt&&Date.now()-local.savedAt<7*86400000)return local.spots.map(x=>({...x,kind:"spot"}));
+      if(validSpotCatalogForSafety(local)&&local?.savedAt&&Date.now()-local.savedAt<7*86400000)
+        return local.spots.map(x=>({...x,kind:"spot"}));
     }
   }catch(_){}
   try{
     const r=new Request(C.spotCatalogURL+(C.spotCatalogURL.includes("?")?"&":"?")+"t="+Date.now());
     r.timeoutInterval=12;r.headers={"Cache-Control":"no-cache"};
     const remote=JSON.parse(await r.loadString());
-    if(remote?.schemaVersion===1&&Array.isArray(remote.spots)&&remote.spots.length>=40){
+    if(validSpotCatalogForSafety(remote)){
       const packed={...remote,savedAt:Date.now()};
       fm.writeString(spotPath,JSON.stringify(packed));
       return remote.spots.map(x=>({...x,kind:"spot"}));
     }
   }catch(_){}
-  if(local?.spots?.length>=40)return local.spots.map(x=>({...x,kind:"spot"}));
+  if(validSpotCatalogForSafety(local))return local.spots.map(x=>({...x,kind:"spot"}));
   return [];
+}
+async function hydrateSavedSpotMetadata(station){
+  if(!station)return station;
+  if((station.jmaWarningAreaCodes||[]).length||station.adminCode)return station;
+  const spots=await fishingSpotCatalog().catch(()=>[]);
+  const match=spots.find(x=>x.id&&station.id&&x.id===station.id)||
+    spots.find(x=>x.name===station.name&&Math.abs((x.lat??999)-(station.lat??-999))<.02&&Math.abs((x.lon??999)-(station.lon??-999))<.02);
+  if(!match)return station;
+  return{...station,...match,kind:station.kind||match.kind||"spot"};
 }
 async function fishingPortCatalog(){
   let local=null;
@@ -637,7 +651,14 @@ async function currentLocation(){Location.setAccuracyToKilometer();return await 
 async function resolveStation(force=false){
   const p=loadPrefs(),stations=await stationCatalog();
   if(p.mode==="fixed"){
-    const fixed=p.fixedStation||p.favorites[0]||C.defaultFav;
+    let fixed=p.fixedStation||p.favorites[0]||C.defaultFav;
+    const hydrated=await hydrateSavedSpotMetadata(fixed);
+    if(hydrated!==fixed&&Array.isArray(hydrated?.jmaWarningAreaCodes)&&hydrated.jmaWarningAreaCodes.length){
+      fixed=hydrated;
+      p.fixedStation=fixed;
+      p.favorites=uniqueStations([fixed,...p.favorites]);
+      savePrefs(p);
+    }
     return{
       station:fixed,prefs:p,badge:"★ 固定",badgeColor:C.t.a,distanceKm:null,
       locationState:"fixed",tideRef:tideReferenceFor(fixed,stations)
