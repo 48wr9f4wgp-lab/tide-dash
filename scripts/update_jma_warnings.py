@@ -26,6 +26,11 @@ JST = dt.timezone(dt.timedelta(hours=9))
 # JMA Pull-type Atom feeds. The long feed is required because the high-frequency
 # feed only contains a short recent window and absence there is not "no warning".
 FEEDS = (
+    # VPWS50 is a periodic aggregate, so JMA can surface it in the regular feed.
+    # Keep extra feeds too because product routing may change and the telegram
+    # itself remains the authority.
+    "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
+    "https://www.data.jma.go.jp/developer/xml/feed/regular.xml",
     "https://www.data.jma.go.jp/developer/xml/feed/extra_l.xml",
     "https://www.data.jma.go.jp/developer/xml/feed/extra.xml",
 )
