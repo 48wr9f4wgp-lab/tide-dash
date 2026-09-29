@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-29T07:21:30+00:00",
+  "generatedAt": "2026-09-29T07:25:08+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -43,9 +43,40 @@
       ],
       "explicitAbsentSpecies": [],
       "note": "最新月PDFの定置網節から魚種の記載有無を抽出。数量ランキングはhistorical priorを維持し、fresh signalは補強に限定。"
+    },
+    "SHIZUOKA_EAST_IZU": {
+      "regionId": "SHIZUOKA_EAST_IZU",
+      "sourceType": "official_recent_monthly_set_net",
+      "source": "https://fish-exp.pref.shizuoka.jp/02fishery/2-1-1.html",
+      "sourceMonth": "2026-08",
+      "ranking": [
+        {
+          "id": "MARUSOUDA",
+          "name": "ソウダ",
+          "tons": 59.6
+        },
+        {
+          "id": "KAMASU",
+          "name": "カマス",
+          "tons": 51.3
+        },
+        {
+          "id": "SABA",
+          "name": "サバ",
+          "tons": 34.6
+        },
+        {
+          "id": "MA_AJI",
+          "name": "アジ",
+          "tons": 12.0
+        },
+        {
+          "id": "BURI",
+          "name": "ブリ",
+          "tons": 5.6
+        }
+      ],
+      "note": "伊豆東岸大型定置網の最新公表月実績。商業漁獲を遊漁釣果確率へ変換しない。"
     }
-  },
-  "errors": {
-    "SHIZUOKA_EAST_IZU": "Shizuoka: set-net month not found"
   }
 }
