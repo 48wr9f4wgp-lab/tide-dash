@@ -1241,6 +1241,7 @@ function tideDetail(t,r,wp){
     "安全・釣行可否の判定ではありません。現地状況と公的な警報・規制を確認してください。",
     "",
     "安全情報: 気象庁の雷・波浪警報/注意報",
+    safety?.sourceProduct?`安全情報電文: ${safety.sourceProduct}（集約通報）`:null,
     safety?.areaNames?.length?`対象区域: ${safety.areaNames.join(" / ")}`:"対象区域: 未確認",
     (safety?.items||[]).length?`発表中: ${safety.items.map(x=>x.name).join(" / ")}`:"発表中: 対象の雷・波浪警報/注意報なし",
     safety?.reportDatetime?`気象庁発表: ${String(safety.reportDatetime).replace("T"," ").slice(0,16)} JST / ${safety.publishingOffice||"発表官署不明"}`:null,
