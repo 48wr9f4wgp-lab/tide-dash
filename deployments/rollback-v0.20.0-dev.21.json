@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "stableVersion": "0.12.0",
+  "stableURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/main/app-stable.js",
+  "candidateVersion": "0.20.0-dev.21",
+  "candidateURL": "https://raw.githubusercontent.com/48wr9f4wgp-lab/tide-dash/32309f51cdd75659f1095e33c6294d26522932ad/app-candidate.js",
+  "candidateEnabled": true,
+  "updatedAt": "2026-09-30",
+  "candidateSourceCommit": "32309f51cdd75659f1095e33c6294d26522932ad",
+  "candidateSHA256": "4bd07690a6907f7a26a72e476911d1e10f7b743de0d64f58dc012ca41e979b46",
+  "validationStatus": "DEVICE_LAYOUT_PASS_JMA_LEGACY_FAILSAFE",
+  "previousCandidateVersion": "0.20.0-dev.20",
+  "rollbackManifestPath": "deployments/rollback-v0.20.0-dev.20.json"
+}
