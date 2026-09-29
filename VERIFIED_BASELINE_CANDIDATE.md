@@ -5,7 +5,9 @@ Candidate version: **v0.20.0-dev.18**
 State: **VERIFIED_BASELINE_CANDIDATE**  
 Current confirmed VERIFIED_BASELINE: **v0.20.0-dev.10**  
 Stable recovery: **v0.12.0**  
-Release status: **Not released / no RELEASE_APPROVAL**
+Release status: **Not released / no RELEASE_APPROVAL**  
+Promotion readiness: **PROMOTION_READY**  
+Readiness record: `BASELINE_PROMOTION_READINESS.md`
 
 ## 1. Immutable app artifact
 
