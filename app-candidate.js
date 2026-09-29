@@ -93,7 +93,7 @@ function ibarakiTargetSuggestions(S,reference,wp){
   };
 }
 function targetSuggestions(S,reference,wp){
-  return ibarakiTargetSuggestions(S,reference,wp)||targetSuggestions(S,reference,wp);
+  return ibarakiTargetSuggestions(S,reference,wp)||niigataTargetSuggestions(S,reference,wp);
 }
 
 function validDateKey(s){
