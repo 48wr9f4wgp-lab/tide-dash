@@ -1,0 +1,54 @@
+name: Resolve JMA warning areas
+
+on:
+  push:
+    paths:
+      - "spots.json"
+      - "scripts/update_jma_warning_areas.py"
+      - ".github/workflows/update-jma-warning-areas.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tide-dash-jma-warning-areas
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve official JMA warning-area codes
+        run: python scripts/update_jma_warning_areas.py
+
+      - name: Validate all curated spots
+        run: |
+          python - <<'PY'
+          import json
+          o=json.load(open("spots.json",encoding="utf-8"))
+          spots=o.get("spots",[])
+          assert len(spots)>=40
+          missing=[x.get("id") for x in spots if not x.get("jmaWarningAreaCodes")]
+          assert not missing, missing
+          assert o.get("jmaWarningMapping",{}).get("status")=="RESOLVED"
+          print("Resolved spots:",len(spots))
+          PY
+
+      - name: Commit mapping changes
+        run: |
+          if [ -z "$(git status --porcelain -- spots.json)" ]; then
+            echo "No warning-area mapping changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add spots.json
+          git commit -m "data: resolve JMA warning areas"
+          git push
