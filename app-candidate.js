@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.12 | Field conditions + local astronomical tide-cycle label; tide prediction logic unchanged
-const APP_VERSION="0.20.0-dev.12";
+// TIDE DASH v0.20.0-dev.13 | Field conditions: SST + wave direction + swell evidence; tide logic unchanged
+const APP_VERSION="0.20.0-dev.13";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -702,7 +702,7 @@ function forecastRequest(kind,S){
   if(![S?.lat,S?.lon].every(Number.isFinite)||Math.abs(S.lat)>90||Math.abs(S.lon)>180)throw Error("invalid forecast location");
   const units=kind==="weather"?{
     temperature_2m:"°C",precipitation:"mm",weather_code:"wmo code",wind_speed_10m:"m/s",wind_direction_10m:"°",wind_gusts_10m:"m/s"
-  }:{wave_height:"m",wave_direction:"°",wave_period:"s",sea_surface_temperature:"°C",ocean_current_velocity:"km/h",ocean_current_direction:"°"};
+  }:{wave_height:"m",wave_direction:"°",wave_period:"s",wave_peak_period:"s",swell_wave_height:"m",swell_wave_direction:"°",swell_wave_period:"s",swell_wave_peak_period:"s",sea_surface_temperature:"°C",ocean_current_velocity:"km/h",ocean_current_direction:"°"};
   if(!["weather","marine"].includes(kind))throw Error("invalid forecast kind");
   const base=kind==="weather"?"https://api.open-meteo.com/v1/forecast":"https://marine-api.open-meteo.com/v1/marine";
   const query=`latitude=${S.lat}&longitude=${S.lon}&hourly=${Object.keys(units).join(",")}&timezone=Asia%2FTokyo&forecast_days=2`;
@@ -716,7 +716,7 @@ function forecastValue(o,name,index,unit){
   const v=o?.hourly?.[name]?.[index];
   if(!Number.isFinite(v))return null;
   if(/direction/.test(name)&&(v<0||v>360))return null;
-  if(["wind_speed_10m","wind_gusts_10m","precipitation","wave_height","wave_period","ocean_current_velocity"].includes(name)&&v<0)return null;
+  if(["wind_speed_10m","wind_gusts_10m","precipitation","wave_height","wave_period","wave_peak_period","swell_wave_height","swell_wave_period","swell_wave_peak_period","ocean_current_velocity"].includes(name)&&v<0)return null;
   return v;
 }
 function validForecast(o,req,now){
@@ -809,7 +809,8 @@ async function weather(now,S,force=false){
     validTime:key,
     temp:val(wp,wi,"temperature_2m","°C"),precip:val(wp,wi,"precipitation","mm"),
     weatherCode:val(wp,wi,"weather_code","wmo code"),wind:val(wp,wi,"wind_speed_10m","m/s"),windDir:val(wp,wi,"wind_direction_10m","°"),windGust:val(wp,wi,"wind_gusts_10m","m/s"),
-    wave:val(mp,mi,"wave_height","m"),waveDir:val(mp,mi,"wave_direction","°"),wavePeriod:val(mp,mi,"wave_period","s"),
+    wave:val(mp,mi,"wave_height","m"),waveDir:val(mp,mi,"wave_direction","°"),wavePeriod:val(mp,mi,"wave_period","s"),wavePeakPeriod:val(mp,mi,"wave_peak_period","s"),
+    swell:val(mp,mi,"swell_wave_height","m"),swellDir:val(mp,mi,"swell_wave_direction","°"),swellPeriod:val(mp,mi,"swell_wave_period","s"),swellPeakPeriod:val(mp,mi,"swell_wave_peak_period","s"),
     sst:val(mp,mi,"sea_surface_temperature","°C"),currentVelocity:val(mp,mi,"ocean_current_velocity","km/h"),currentDir:val(mp,mi,"ocean_current_direction","°"),
     sunrise:dailySolar(wp,todayKey,"sunrise"),sunset:dailySolar(wp,todayKey,"sunset"),
     sunriseNext:dailySolar(wp,nextKey,"sunrise"),sunsetNext:dailySolar(wp,nextKey,"sunset")
@@ -935,13 +936,15 @@ function tideDetail(t,r,wp){
     "",
     `風・海況の予報対象: ${c?.validTime?.replace("T"," ")||"未取得"} JST`,
     `風 (地上10m): ${f1(c?.wind,"m/s")} ${Number.isFinite(c?.windDir)?dir8(c.windDir)+"から":"方向不明"} / 突風 ${f1(c?.windGust,"m/s")}`,
-    `有義波高: ${f1(c?.wave,"m")} / 周期 ${f1(c?.wavePeriod,"秒")}`,
+    `有義波高: ${f1(c?.wave,"m")} / 平均周期 ${f1(c?.wavePeriod,"秒")} / ピーク周期 ${f1(c?.wavePeakPeriod,"秒")}`,
     `波向: ${Number.isFinite(c?.waveDir)?dir8(c.waveDir)+"から":"未取得"}`,
+    `うねり: ${f1(c?.swell,"m")} ${Number.isFinite(c?.swellDir)?dir8(c.swellDir)+"から":"方向不明"} / 平均周期 ${f1(c?.swellPeriod,"秒")} / ピーク周期 ${f1(c?.swellPeakPeriod,"秒")}`,
     "突風はOpen-Meteoの地上10m gust予測値で、現地観測値ではありません。モデルや時間間隔で最大値の定義が異なる場合があります。",
-    "波周期は平均波の周期予測です。うねり周期やピーク周期とは別の値です。",
+    "波周期は平均波、ピーク周期はスペクトル上の卓越周期、うねり周期はうねり成分の周期予測です。",
     `降水: ${f1(c?.precip,"mm/1h")} / ${rainInterval(c?.validTime)}`,
     "降水は直前1時間の積算予測 (雪などを含む)。降水確率ではありません。",
     `海面水温予測: ${f1(c?.sst,"℃")}`,
+    "海面水温は数値モデルの海面付近予測で、足元の実測水温ではありません。",
     `広域海流モデル: ${f1(c?.currentVelocity,"km/h")} ${Number.isFinite(c?.currentDir)?dir8(c.currentDir)+"へ":"方向不明"}`,
     "海流は港内・磯際の局所的な流れや、潮止まり時刻を保証しません。",
     "有義波高は最大波高ではありません。実際にはこれより高い波もあります。",
@@ -1119,8 +1122,9 @@ function guideSummary(saved){
   const when=Number.isFinite(t?.referenceAt)?new Date(t.referenceAt):null;
   const place=r?.station?.name||"地点不明";
   const wind=Number.isFinite(c?.wind)?`${f1(c.wind,"m/s")}${Number.isFinite(c?.windDir)?` ${dir8(c.windDir)}から`:""}${Number.isFinite(c?.windGust)?` / 突風 ${f1(c.windGust,"m/s")}`:""}`:"--";
-  const wave=Number.isFinite(c?.wave)?`${f1(c.wave,"m")}${Number.isFinite(c?.wavePeriod)?` / 周期 ${f1(c.wavePeriod,"秒")}`:""}`:"--";
+  const wave=Number.isFinite(c?.wave)?`${f1(c.wave,"m")}${Number.isFinite(c?.waveDir)?` ${dir8(c.waveDir)}から`:""}${Number.isFinite(c?.wavePeriod)?` / 周期 ${f1(c.wavePeriod,"秒")}`:""}`:"--";
   const rain=Number.isFinite(c?.precip)?`${f1(c.precip,"mm")} (${glanceRainTime(c?.validTime)})`:"--";
+  const sst=Number.isFinite(c?.sst)?f1(c.sst,"℃"):"--";
   return [
     when?`${dateKey(when).slice(5).replace("-","/")} ${clockJST(when)}時点`:"表示時刻不明",
     place,
@@ -1130,6 +1134,7 @@ function guideSummary(saved){
     "",
     `風　${wind}`,
     `波　${wave}`,
+    `海水温　${sst}`,
     `雨　${rain}`,
     "",
     "この表示を作った時の情報です。"
@@ -1239,11 +1244,14 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
       if(guideURL)box.url=guideURL;
     };
     card("風",c?.wind,"m/s",[Number.isFinite(c?.windDir)?`${dir8(c.windDir)}から`:"向き不明",Number.isFinite(c?.windGust)?`突風 ${f1(c.windGust)}m/s`:null].filter(Boolean).join("・"));row.addSpacer(5);
-    card("波",c?.wave,"m",Number.isFinite(c?.wavePeriod)?`周期 ${f1(c.wavePeriod)}秒`:"周期不明");
+    card("波",c?.wave,"m",[Number.isFinite(c?.waveDir)?`${dir8(c.waveDir)}から`:null,Number.isFinite(c?.wavePeriod)?`周期 ${f1(c.wavePeriod)}秒`:"周期不明"].filter(Boolean).join("・"));
     w.addSpacer(3);
-    const rainRow=w.addStack();rainRow.layoutHorizontally();rainRow.centerAlignContent();if(guideURL)rainRow.url=guideURL;
-    text(rainRow,`${rainTime}の雨`,11,C.t.sub);rainRow.addSpacer(7);
-    text(rainRow,f1(c?.precip),18,C.t.fg,true);rainRow.addSpacer(2);text(rainRow,"mm",11,C.t.sub);
+    const fieldRow=w.addStack();fieldRow.layoutHorizontally();fieldRow.centerAlignContent();if(guideURL)fieldRow.url=guideURL;
+    text(fieldRow,"海水温",11,C.t.sub);fieldRow.addSpacer(5);
+    text(fieldRow,f1(c?.sst),18,C.t.fg,true);fieldRow.addSpacer(2);text(fieldRow,"℃",11,C.t.sub);
+    fieldRow.addSpacer();
+    text(fieldRow,`${rainTime}の雨`,10,C.t.sub);fieldRow.addSpacer(5);
+    text(fieldRow,f1(c?.precip),17,C.t.fg,true);fieldRow.addSpacer(2);text(fieldRow,"mm",10,C.t.sub);
   }
 
   const issues=[...(wp?.issues||[])];
