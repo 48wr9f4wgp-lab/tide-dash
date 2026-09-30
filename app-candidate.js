@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.27 | Clear tide plot with separate solar/event label lanes
-const APP_VERSION="0.20.0-dev.27";
+// TIDE DASH v0.20.0-dev.28 | Separate tide-event labels from time-axis labels
+const APP_VERSION="0.20.0-dev.28";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1303,8 +1303,8 @@ function tideScale(series){
 }
 function graphLayout(width,height,compact){
   const small=width<=420;
-  // Large keeps the same 220px plot height; only the old below-axis date gutter is reduced.
-  const L=small?52:50,R=14,T=compact?26:50,B=compact?44:54;
+  // Large reserves 12px more below the plot to separate event and time-axis rows.
+  const L=small?52:50,R=14,T=compact?26:50,B=compact?44:66;
   return{L,R,T,B,W:width-L-R,H:height-T-B,small};
 }
 function graph(t,width=650,height=348,wp=null,compact=false){
@@ -1578,7 +1578,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   header.addSpacer();
   const dates=header.addStack();dates.layoutVertically();
   text(dates,dateKey(reference).slice(5).replace("-","/"),small?8:large?12:9,C.t.fg,true);
-  text(dates,`${clockJST(reference)}時点${large?" · dev.27":""}`,small?7:large?9:8,C.t.sub);
+  text(dates,`${clockJST(reference)}時点${large?" · dev.28":""}`,small?7:large?9:8,C.t.sub);
   if(!small){header.addSpacer(6);const refresh=header.addStack();if(large){refresh.size=new Size(44,44);refresh.setPadding(5,9,5,9);refresh.centerAlignContent();}text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
   if(blocked){
     w.addSpacer(9);text(w,"釣り地点を選ぶ",small?12:large?18:14,C.t.warn,true);
