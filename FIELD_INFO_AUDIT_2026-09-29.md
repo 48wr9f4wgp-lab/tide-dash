@@ -48,9 +48,13 @@ Caveat:
 - Open-Meteo SST is modelled sea-surface temperature close to the surface, not a sensor reading at the angler's feet.
 
 ### Rain
+Decision updated 2026-09-30: **remove preceding-hour rain from the Large face; retain in Detail / Full Evidence**.
+
 Reason:
-- immediate field comfort / runoff / visibility context;
-- existing display already makes the preceding-hour semantics explicit.
+- the Large face is a glance surface for immediate field decisions;
+- the currently available value is the preceding-hour accumulation, so it is backward-looking at glance time;
+- its incremental value is lower than tide / wind / wave / SST / official safety information on the constrained Large face;
+- runoff / turbidity context may still matter, so the value remains available in Detail / Full Evidence rather than being discarded.
 
 ## Fetch and retain in Detail, but do not permanently occupy the face
 
@@ -128,11 +132,12 @@ Large face:
 - wind: speed + direction + gust
 - wave: significant height + direction + mean period
 - sea-surface temperature
-- rain
 - existing tide / tide-cycle / solar markers
+- preceding-hour rain removed from face on 2026-09-30
 
 Detail:
-- all of the above
+- all Large-face information
+- preceding-hour rain
 - wave peak period
 - primary swell height / direction / mean period / peak period
 - broad current model with coastal-accuracy caveat
