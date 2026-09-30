@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.25 | Tide graph hierarchy pass; preserve full field information
-const APP_VERSION="0.20.0-dev.25";
+// TIDE DASH v0.20.0-dev.26 | Direct current/event graph labels; visible candidate identity
+const APP_VERSION="0.20.0-dev.26";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1368,7 +1368,7 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     area.addLine(new Point(X(segment[segment.length-1].minute),T+H));area.closeSubpath();
     c.addPath(area);c.setFillColor(new Color(C.t.a,compact?.10:.07));c.fillPath();
     const line=new Path();segment.forEach((p,i)=>i?line.addLine(new Point(X(p.minute),Y(p.level))):line.move(new Point(X(p.minute),Y(p.level))));
-    c.addPath(line);c.setStrokeColor(new Color(C.t.a,compact?1:.58));c.setLineWidth(compact?4:4);c.strokePath();
+    c.addPath(line);c.setStrokeColor(new Color(C.t.a,compact?1:.45));c.setLineWidth(compact?4:3);c.strokePath();
   }
 
   // Large face: keep the same next-two extrema and make the first one visually primary.
@@ -1385,7 +1385,7 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   const solar=solarEvents(t,wp).filter(e=>e.minute>=t.graphStart&&e.minute<=t.graphEnd);
   const usedSolar=[[],[]];
   for(const e of solar){
-    const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,compact?.52:.24,compact?1:1);
+    const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,compact?.52:.12,compact?1:1);
     if(!compact){c.setFillColor(new Color(C.t.warn,.88));c.fillEllipse(new Rect(x-2.5,T-2.5,5,5));}
     if(small)continue;
     const day=Math.floor(e.minute/1440),prefix=day===1?"翌日 ":day===-1?"前日 ":day===0?"":`${day}日後 `;
@@ -1400,7 +1400,8 @@ function graph(t,width=650,height=348,wp=null,compact=false){
 
   // Large only: emphasize the continuous tide path from "now" to the very next
   // high/low. No data is removed; only hierarchy changes.
-  const focusEvent=!compact?visibleEvents[0]:null;
+  // Use the same continuous next event as the hero; never highlight across missing tide data.
+  const focusEvent=!compact&&t.nextEvent&&visibleEvents.some(e=>e.absoluteMinute===t.nextEvent.absoluteMinute)?t.nextEvent:null;
   let focusEndLevel=null;
   if(focusEvent&&Number.isFinite(t.current)&&
      focusEvent.absoluteMinute>t.nowMin&&focusEvent.absoluteMinute<=t.graphEnd&&
@@ -1417,8 +1418,8 @@ function graph(t,width=650,height=348,wp=null,compact=false){
         const pt=new Point(X(p.minute),Y(p.level));
         if(i){glow.addLine(pt);line.addLine(pt)}else{glow.move(pt);line.move(pt)}
       });
-      c.addPath(glow);c.setStrokeColor(new Color(C.t.a,.18));c.setLineWidth(12);c.strokePath();
-      c.addPath(line);c.setStrokeColor(new Color(C.t.a,.98));c.setLineWidth(7);c.strokePath();
+      c.addPath(glow);c.setStrokeColor(new Color(C.t.a,.15));c.setLineWidth(16);c.strokePath();
+      c.addPath(line);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(10);c.strokePath();
     }
   }
 
@@ -1427,6 +1428,8 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     for(const [idx,e] of visibleEvents.entries()){
       const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2)),cx=lx+lw/2;
       if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
+      // The first event gets a direct curve label below; retain the secondary event lane.
+      if(idx===0&&focusEvent&&Number.isFinite(focusEndLevel))continue;
       c.setFillColor(new Color(idx===0?C.t.a:C.t.sub,idx===0?.95:.72));c.fillEllipse(new Rect(x-3,T+H-3,6,6));
       drawLine(x,T+H,cx,eventY-2,idx===0?C.t.a:C.t.sub,idx===0?.66:.48,1.1);
       drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,cx,eventY,lw,18,idx===0?C.t.fg:C.t.sub);
@@ -1446,7 +1449,31 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     c.setFillColor(new Color(C.t.a));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
     c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(ex-2.5,ey-2.5,5,5));
   }
-  if(!compact)drawLabel("今",x,T+H-24,42,16,C.t.fg);
+  if(!compact){
+    // Bounded tags beside actual plotted points. Labels communicate identity without color.
+    const occupied=[];
+    const tag=(labels,px,py,w,h)=>{
+      const candidates=[
+        [px-w/2,py-h-16],[px+16,py-h-12],
+        [px-w-16,py-h-12],[px+16,py+16],[px-w-16,py+16],
+        ...occupied.flatMap(a=>[[a.x+a.w+12,py-h/2],[a.x-w-12,py-h/2],[px-w/2,a.y+a.h+12],[px-w/2,a.y-h-12]])
+      ].map(([tx,ty])=>({
+        x:Math.max(L+4,Math.min(L+W-w-4,tx)),
+        y:Math.max(T+24,Math.min(T+H-h-6,ty)),w,h
+      }));
+      const overlap=b=>occupied.some(a=>b.x<a.x+a.w+8&&b.x+b.w>a.x-8&&b.y<a.y+a.h+8&&b.y+b.h>a.y-8);
+      const box=candidates.find(b=>!overlap(b))||candidates[0];
+      occupied.push(box);
+      drawLine(px,py,Math.max(box.x,Math.min(box.x+w,px)),Math.max(box.y,Math.min(box.y+h,py)),C.t.fg,.55,1.2);
+      c.setFillColor(new Color(C.t.bg1,.96));c.fillRect(new Rect(box.x,box.y,w,h));
+      c.setTextColor(new Color(C.t.fg));c.setFont(Font.boldSystemFont(21));
+      labels.forEach((label,i)=>c.drawTextInRect(label,new Rect(box.x+7,box.y+4+i*24,w-14,25)));
+    };
+    if(focusEvent&&Number.isFinite(focusEndLevel)){
+      tag([`次の${focusEvent.type==="high"?"満潮":"干潮"}`,eventClock(focusEvent)],X(focusEvent.absoluteMinute),Y(focusEndLevel),116,55);
+    }
+    if(Number.isFinite(t.current))tag(["現在"],x,Y(t.current),62,31);
+  }
   if(t.hasGaps)drawLabel("欠測あり",width-62,T+H-25,110,font,C.t.warn);
   return c.getImage();
 }
@@ -1557,7 +1584,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   header.addSpacer();
   const dates=header.addStack();dates.layoutVertically();
   text(dates,dateKey(reference).slice(5).replace("-","/"),small?8:large?12:9,C.t.fg,true);
-  text(dates,`${clockJST(reference)}時点`,small?7:large?10:8,C.t.sub);
+  text(dates,`${clockJST(reference)}時点${large?" · dev.26":""}`,small?7:large?9:8,C.t.sub);
   if(!small){header.addSpacer(6);const refresh=header.addStack();if(large){refresh.size=new Size(44,44);refresh.setPadding(5,9,5,9);refresh.centerAlignContent();}text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
   if(blocked){
     w.addSpacer(9);text(w,"釣り地点を選ぶ",small?12:large?18:14,C.t.warn,true);
