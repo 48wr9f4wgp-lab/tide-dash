@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.28 | Separate tide-event labels from time-axis labels
-const APP_VERSION="0.20.0-dev.28";
+// TIDE DASH v0.20.0-dev.29 | Fail closed on incomplete JMA data and unknown safety evidence
+const APP_VERSION="0.20.0-dev.29";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -102,18 +102,32 @@ function jmaSpotWarningRef(S){
   if(/^\d{2}$/.test(pc)&&/^\d{5}$/.test(admin))return{pref:pc+"0000",codes:[admin+"00"],names:[S?.prefecture||S?.name||admin]};
   return null;
 }
-function validJmaWarningSignalsPayload(payload,now=Date.now()){
+function validJmaWarningArea(area){
+  return area&&typeof area==="object"&&!Array.isArray(area)&&
+    typeof area.name==="string"&&area.name.trim().length>0&&Array.isArray(area.warnings)&&
+    area.warnings.every(w=>w&&typeof w==="object"&&!Array.isArray(w)&&
+      typeof w.code==="string"&&Object.prototype.hasOwnProperty.call(JMA_SAFETY_CODES,w.code)&&
+      typeof w.status==="string"&&w.status.trim().length>0&&
+      (w.name==null||typeof w.name==="string"));
+}
+function validJmaWarningSignalsStructure(payload){
   if(payload?.schemaVersion!==2||payload?.policy?.officialSourcesOnly!==true||
      payload?.policy?.aggregateCurrentState!==true||payload?.source?.product!=="VPWS50"||
-     !payload?.areas||typeof payload.areas!=="object")return false;
-  const at=Date.parse(payload?.source?.reportDatetime||"");
-  return Number.isFinite(at)&&at<=now+15*60000&&now-at<=C.jmaWarningSourceMaxMin*60000;
+     !payload?.areas||typeof payload.areas!=="object"||Array.isArray(payload.areas))return false;
+  const entries=Object.entries(payload.areas);
+  return entries.length>0&&entries.every(([code,area])=>/^\d{7}$/.test(code)&&validJmaWarningArea(area))&&
+    Number.isFinite(Date.parse(payload?.source?.reportDatetime||""));
+}
+function validJmaWarningSignalsPayload(payload,now=Date.now()){
+  if(!validJmaWarningSignalsStructure(payload))return false;
+  const at=Date.parse(payload.source.reportDatetime);
+  return at<=now+15*60000&&now-at<=C.jmaWarningSourceMaxMin*60000;
 }
 function readJmaWarningCache(){
   try{
     if(!fm.fileExists(warningSignalsPath))return null;
     const e=JSON.parse(fm.readString(warningSignalsPath));
-    if(e?.schema!==2||!Number.isFinite(e.fetchedAt)||!validJmaWarningSignalsPayload(e.payload))return null;
+    if(e?.schema!==2||!Number.isFinite(e.fetchedAt)||e.fetchedAt>Date.now()||!validJmaWarningSignalsPayload(e.payload))return null;
     return e;
   }catch(_){return null}
 }
@@ -121,7 +135,7 @@ function parseJmaSafety(payload,ref){
   const found=new Map(),matchedAreas=new Set(),matchedNames=[];
   for(const code of ref?.codes||[]){
     const area=payload?.areas?.[String(code)];
-    if(!area)continue;
+    if(!validJmaWarningArea(area))continue;
     matchedAreas.add(String(code));
     if(area?.name)matchedNames.push(String(area.name));
     for(const warning of area?.warnings||[]){
@@ -140,7 +154,7 @@ function parseJmaSafety(payload,ref){
     publishingOffice:payload?.source?.publishingOffice||null,
     headlineText:payload?.source?.controlTitle||null,
     sourceProduct:payload?.source?.product||null,
-    areaMatched:matchedAreas.size>0,
+    areaMatched:matchedAreas.size>0&&matchedAreas.size===new Set(ref?.codes||[]).size,
     areaCodes:[...matchedAreas],
     areaNames:[...new Set(matchedNames.length?matchedNames:(ref?.names||[]))],
     items:[...found.values()].sort((a,b)=>b.severity-a.severity)
@@ -149,7 +163,8 @@ function parseJmaSafety(payload,ref){
 async function jmaSafetyWarnings(S,force=false){
   const ref=jmaSpotWarningRef(S);
   if(!ref)return{state:"unsupported",items:[],areaMatched:false,fetchedAt:Date.now()};
-  const cached=readJmaWarningCache(),now=Date.now();
+  const cachedEntry=readJmaWarningCache(),now=Date.now();
+  const cached=cachedEntry&&parseJmaSafety(cachedEntry.payload,ref).areaMatched?cachedEntry:null;
   const pack=(e,state)=>({
     ...parseJmaSafety(e.payload,ref),
     state,
@@ -163,10 +178,14 @@ async function jmaSafetyWarnings(S,force=false){
     const r=new Request(C.jmaWarningSignalsURL+(C.jmaWarningSignalsURL.includes("?")?"&":"?")+"t="+Date.now());
     r.timeoutInterval=7;r.headers={"Cache-Control":"no-cache"};
     const payload=JSON.parse(await r.loadString());
-    if(payload?.schemaVersion!==2||!payload?.areas)throw Error("invalid JMA warning snapshot");
-    if(!validJmaWarningSignalsPayload(payload,now)){stalePayload=payload;throw Error("stale JMA VPWS50 snapshot");}
+    if(!validJmaWarningSignalsStructure(payload))throw Error("invalid JMA warning snapshot");
     const parsed=parseJmaSafety(payload,ref);
     if(!parsed.areaMatched)throw Error("JMA warning area missing from current VPWS50 snapshot");
+    const checkedAt=Date.now(),reportAt=Date.parse(payload.source.reportDatetime);
+    if(!validJmaWarningSignalsPayload(payload,checkedAt)){
+      if(checkedAt-reportAt>C.jmaWarningSourceMaxMin*60000)stalePayload=payload;
+      throw Error("invalid JMA VPWS50 source time");
+    }
     const e={schema:2,fetchedAt:Date.now(),payload},raw=JSON.stringify(e);
     try{
       fm.writeString(warningSignalsPath,raw);
@@ -178,7 +197,8 @@ async function jmaSafetyWarnings(S,force=false){
       transportURL:C.jmaWarningSignalsURL
     };
   }catch(_){
-    if(cached&&now-cached.fetchedAt<=C.jmaWarningFallbackMin*60000)return pack(cached,"fallback");
+    if(cached&&Date.now()-cached.fetchedAt<=C.jmaWarningFallbackMin*60000&&
+       validJmaWarningSignalsPayload(cached.payload))return pack(cached,"fallback");
     if(stalePayload)return{
       ...parseJmaSafety(stalePayload,ref),state:"stale",fetchedAt:Date.now(),
       sourceURL:stalePayload?.source?.entryURL||C.jmaWarningSignalsURL,
@@ -195,12 +215,24 @@ function jmaSafetyFace(safety){
   if(safety.state==="stale")return"⚠ 気象庁警報データが古い";
   if(safety.state==="unavailable")return"⚠ 気象庁警報を確認できません";
   if(safety.state==="unsupported")return"⚠ 気象庁警報区域が未対応";
+  if(!safety.areaMatched)return"⚠ 気象庁警報区域を確認できません";
   if((safety.items||[]).length){
     const body=safety.items.map(x=>x.label).join(" / ");
     return safety.state==="fallback"?`${body}（保存）`:body;
   }
   if(safety.state==="fallback")return"⚠ 気象庁警報は保存情報";
   return null;
+}
+function jmaSafetyEvidence(safety){
+  const body=(safety?.items||[]).map(x=>x.name).join(" / ")||"対象の雷・波浪警報/注意報なし";
+  if(safety?.state==="stale")return safety.areaMatched?
+    `過去記録（期限超過）: ${body} / 最新の発表状況は確認できません`:
+    "発表状況: 確認できません（期限超過・区域未確認）";
+  if(safety?.state==="unsupported")return"発表状況: 確認できません（区域未対応）";
+  if(!safety?.areaMatched||!["network","cached","fallback"].includes(safety.state))
+    return"発表状況: 確認できません（未取得・取得不可・区域未確認）";
+  if(safety.state==="fallback")return`保存情報: ${body} / 最新の発表状況は確認できません`;
+  return`発表中: ${body}`;
 }
 function jmaSafetyStateText(safety){
   if(!safety)return"未取得";
@@ -1243,7 +1275,7 @@ function tideDetail(t,r,wp){
     "安全情報: 気象庁の雷・波浪警報/注意報",
     safety?.sourceProduct?`安全情報電文: ${safety.sourceProduct}（集約通報）`:null,
     safety?.areaNames?.length?`対象区域: ${safety.areaNames.join(" / ")}`:"対象区域: 未確認",
-    (safety?.items||[]).length?`発表中: ${safety.items.map(x=>x.name).join(" / ")}`:"発表中: 対象の雷・波浪警報/注意報なし",
+    jmaSafetyEvidence(safety),
     safety?.reportDatetime?`気象庁発表: ${String(safety.reportDatetime).replace("T"," ").slice(0,16)} JST / ${safety.publishingOffice||"発表官署不明"}`:null,
     `安全情報取得: ${jmaSafetyStateText(safety)}`,
     safety?.sourceURL?`安全情報出典: ${safety.sourceURL}`:null,
@@ -1578,7 +1610,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   header.addSpacer();
   const dates=header.addStack();dates.layoutVertically();
   text(dates,dateKey(reference).slice(5).replace("-","/"),small?8:large?12:9,C.t.fg,true);
-  text(dates,`${clockJST(reference)}時点${large?" · dev.28":""}`,small?7:large?9:8,C.t.sub);
+  text(dates,`${clockJST(reference)}時点${large?" · dev.29":""}`,small?7:large?9:8,C.t.sub);
   if(!small){header.addSpacer(6);const refresh=header.addStack();if(large){refresh.size=new Size(44,44);refresh.setPadding(5,9,5,9);refresh.centerAlignContent();}text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
   if(blocked){
     w.addSpacer(9);text(w,"釣り地点を選ぶ",small?12:large?18:14,C.t.warn,true);
