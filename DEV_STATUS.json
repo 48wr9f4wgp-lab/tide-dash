@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "dev.24 Large直前1時間雨表示削除 candidate配信 / 実機確認待ち",
+  "phase": "dev.25 graph hierarchy candidate / Large実機確認待ち（main反映後）",
   "checks": {
     "boot": "pass",
     "test": "pass",
@@ -10,19 +10,19 @@
     "performance": "warn",
     "release": "warn"
   },
-  "next": "伊東Largeでdev.24を↻更新し、直前1時間雨表示が消え、海水温・安全行・狙い目・詳細・下段余白が崩れず、timeoutなしを確認する。",
-  "note": "dev.10大サイズ通常表示は実機で正常表示を確認。dev.6のScriptable timeoutはdev.7以降で再発していない。dev.10 exact artifactをローカル再構成しSHA256 189e6b432c2539dfb35a26eec5118d06b6056873bf053d4f1ab5dae1ae29cfeb / Git blob 99500300173aabc2e67430435d85dc917a29589fで配信ソースと一致確認。異常系22ケースをAsia/Tokyo・UTC・America/Los_Angelesで各22/22 PASS。通信断時の保存予報上限180分、海況単独失敗、天気単独失敗、座標別キャッシュ、破損キャッシュ、保存失敗、強制更新フォールバック、潮位欠測、潮位全失敗、欠測跨ぎ禁止、far/previous/missing位置ブロック、スナップショット破損/保存失敗、詳細閲覧無通信、固定地点起動、グラフ有限座標を検証。dev.10模擬大サイズ描画は300回平均約5.00ms、dev.6は約6.24ms（Nodeモックであり実機性能値ではない）。 2026-09-28 22:51 JSTの実機機内モード試験で、ウィジェットは表示継続し、下部に『⚠ 天気は古い予報 / 波は古い予報』を明示。風5.7m/s・波0.9m・雨0.9mmは保存予報として提示され、通信断を最新予報として偽装しないことを確認。潮位表示も継続。タイムアウトなし。これはScriptable内での実機表示確認であり、iOSバックグラウンド自動更新そのものの保証ではない。 2026-09-28 23:01 JST、機内モード解除後にScriptableを終了・再起動して正常表示へ復帰したことを実機確認。22:52時点の通常ウィジェットが表示され、機内モード時の『天気は古い予報 / 波は古い予報』警告は消失。潮位・風・波・雨表示が復帰し、タイムアウトなし。これにより通信断→保存予報警告→通信復帰の一連を実機PASSとする。 2026-09-28、ユーザー選択によりdev.10を次期VERIFIED_BASELINE候補として固定。確定VERIFIED_BASELINE v0.19.4は上書きせず保持。候補の検証済み範囲・未検証範囲・復旧経路はVERIFIED_BASELINE_CANDIDATE.mdに記録。 2026-09-29、baseline promotion readiness監査完了。大サイズ現行運用について残存未検証項目はHard Blockerではなく、検証済みscopeを限定して明示すれば昇格可能と判定。BASELINE_PROMOTION_READINESS.mdに根拠・waiver候補を記録。 2026-09-29、ユーザーの『続行』によりPROMOTION_READYのdev.10を確定VERIFIED_BASELINEへ明示昇格。旧v0.19.4 baselineと候補記録はarchiveへ保存。未検証項目はwaiverとしてVERIFIED_BASELINE.mdに明記。コード・manifest・stable recovery・release approvalは変更なし。 2026-09-29 dev.11実機Large確認PASS。突風5.4m/s・波周期7.5秒が表示され、文字切れ・タイムアウトなし。続いてdev.12で潮回り表示を追加。 2026-09-29 11:35 JST dev.12実機Large確認PASS。ヘッダーに『｜ 大潮』表示、文字切れなし。dev.11由来の突風・波周期も維持。次機能は個人ログではなく高信頼ソースを引用する現況→狙い目魚種方式へ方針転換。 2026-09-29 field-information audit実施。large常時表示へ海面水温と波向を追加。うねり・ピーク周期は取得してDetailへ。海流は沿岸精度制約からDetailのみ、気圧・気温は常時表示しない。 2026-09-29 12:13 JST dev.13実機Large確認PASS。海水温25.4℃、波1.5m 北西から・周期7.7秒、風3.1m/s・突風5.2m/s、大潮表示が同時に収まり、文字切れ・タイムアウトなし。 2026-09-29 historical-prior方式でdev.14実装。新潟県内主要定置網の同月5年平均を地域・季節priorとして使い、魚種別根拠がある補正だけ許可。9月・SST25.4℃の例はアジB→ブリB→サバB。絶対的な遊漁釣果確率は表示しない。 2026-09-29 dev.14大津実機では地域未対応のため狙い目非表示。dev.15で茨城専用の同時期公式週報ロジックを追加し、新潟方式の横展開を回避。大津9月下旬はヒラメB→イナダB→サワラC。直近シラス漁況はDetailのベイト参考のみで順位加点なし。 2026-09-29 15:43 JST、大津周辺の実機Largeでdev.15を確認。フッターに『狙い目 ヒラメB・イナダB・サワラC』が表示され、詳細リンクと干渉なし。風1.6m/s・突風2.8m/s、波0.9m南東から・周期8.4秒、海水温22.6℃、大潮表示、潮グラフも正常。タイムアウトなし。 2026-09-29 15:52 JST、大津周辺で詳細根拠画面を実機確認。『狙い目（過去傾向）: 1.ヒラメ[B] / 2.イナダ[B] / 3.サワラ[C]』、魚種別根拠、同時期公式漁況の主出典URL、2026/09/25・09/28大津シラス漁況の参考注記、商業漁獲を遊漁釣果確率へ変換しない注意書き、A/B/C信頼度定義が表示。ターゲット機能は茨城Large＋Detailで一周PASS。 2026-09-29 dev.16で静岡/伊豆対応を追加。東伊豆は2026年8月の最新公表大型定置網実績を使用し、ソウダB→カマスB→サバB。南/西伊豆・沼津へ東伊豆実績を横展開せず、9-10月は伊豆固有研究に基づくアオリイカCのみ。絶対釣果確率・大潮/月齢一律加点なし。 2026-09-29 16:06-16:07 JST、伊東周辺の実機Large＋Detailでdev.16を確認。Largeに『狙い目 ソウダB・カマスB・サバB』表示、詳細リンクと干渉なし。詳細には各魚種の2026年8月伊豆東岸定置網実績、直近の公的定置網実績という根拠、公式出典URL、対象月より約1か月前の来遊実績として使う注意、商業漁獲を遊漁釣果確率へ変換しない注意、A/B/C信頼度定義を確認。潮グラフ・風・突風・波・海水温・雨・大潮表示も正常、タイムアウトなし。 2026-09-29 dev.17で公的漁況の自動更新パイプラインを接続。GitHub Actionsが1日4回、茨城/新潟/静岡の公式情報を解析してlive_regional_signals.jsonを更新。初回パイプラインは3地域すべて生成成功。アプリは2時間キャッシュ、7日fallback、さらにdev.16静的priorへ退避。静岡liveは鮮度62日以内でA、新潟は45日以内のみ補強、茨城シラスはcontextのみ。 2026-09-29 16:43 JST、伊東周辺の実機Largeでdev.17 live auto-update反映を確認。フッターがdev.16のソウダB・カマスB・サバBから『狙い目 ソウダA・カマスA・サバA』へ自動昇格。潮グラフ、風2.4m/s・突風3.4m/s、波0.9m南から・周期8.6秒、海水温25.5℃、雨6.5mm、大潮表示、詳細リンクも正常。タイムアウトなし。 2026-09-29 16:43表示のDetail要約を実機確認。保存snapshotに『狙い目 ソウダA / カマスA / サバA』が保持され、潮・満潮時刻・風・突風・波・周期・海水温・雨も同じ表示時点の値として提示。live signal込みの表示状態がsnapshotに保存されていることを確認。Full Evidenceは未確認。 2026-09-29 16:57 JST、伊東周辺のFull Evidenceを実機確認。ソウダA/カマスA/サバA、各魚種の自動更新2026-08伊豆東岸定置網実績、狙い目根拠『自動更新の公的定置網実績』、公式出典URL、live JSON使用状態、公的signal JSON取得状態、商業漁獲≠遊漁釣果確率の注意、A/B/C信頼度定義を確認。公式情報→Actions→live JSON→iPhone→snapshot→Full Evidenceの全経路PASS。唯一、Full Evidence上段ラベル『狙い目（過去傾向）』がlive内容と意味不整合。 2026-09-29 dev.18でFull Evidence見出しのみ修正。targets.basisに『自動更新』を含む場合は『狙い目（自動更新）』、それ以外は『狙い目（過去傾向）』。dev.17との差分は4行、ランキング・live updater・キャッシュ・潮/海況ロジック不変。14/14 targeted PASS。 2026-09-29 18:24 JST、伊東周辺のFull Evidence実機でdev.18文言修正を確認。見出しが『狙い目（自動更新）』へ正しく切り替わり、ソウダA/カマスA/サバA、自動更新2026-08伊豆東岸定置網実績、公式出典URL、live JSON使用状態、公的signal JSON取得状態、商業漁獲≠遊漁釣果確率の注意、A/B/C信頼度定義を維持。既知文言不整合は解消。 2026-09-29 22:46 JST、dev.21 Large実機PASS。外側09/30行消失、グラフ内9/30、潮曲線可読性、1行安全表示、狙い目/詳細、timeoutなしを確認。 2026-09-30、JMA現行Pull XMLのVPWS50集約通報へsource migration。現行VPWS50で旧横浜市コード1410000が分割済みと判明し、本牧/横浜港を1410012横浜市南部へ更新。41 unique target areasのlive coverage PASS。dev.22 appは旧warning JSON URLを除去しcompact schema v2を使用。GitHub Actions run 36642953609でupdater/schema/Scriptable integration PASS。dev.22実機は未確認。 2026-09-30 08:29 JST、dev.22 Large main-face実機PASS。旧『気象庁警報データが古い』行は現行VPWS50無警報時に消失し、潮・風・波・SST・雨・狙い目・詳細・timeoutなしを確認。Full EvidenceのVPWS50/伊東市/XML出典は未確認。 同日、ユーザー指示で上段の『8〜9時の予測』を削除。08:00予報と雨時間帯表示は維持。dev.23としてcandidate配信、実機確認待ち。 2026-09-30 08:45 JST、dev.23 Large実機PASS。『8〜9時の予測』削除を確認し、潮状態・次の干潮・グラフ・08:00予報・7〜8時の雨・風波SST・狙い目・詳細を維持。clipping/timeoutなし。次はFull EvidenceでVPWS50/伊東市/現行JMA XML出典を確認。 2026-09-30 08:51 JST、Full Evidence実機でVPWS50（集約通報）・対象区域 伊東市・現行JMA XML出典を確認し、無警報時JMA migration E2E PASS。実警報状態は自然発生未観測。 2026-09-30、ユーザー指示によりLargeメイン画面の直前1時間雨表示を削除し、降水データ自体はDetail/Full Evidenceへ保持。dev.24 candidate配信、実機確認待ち。",
+  "next": "main配信設定反映後、伊東Largeを↻更新してdev.25の現在点→次の満干潮の視認性、24h曲線・日の出入・日付、風波SST・狙い目・詳細、clipping/timeoutなしをスクショ1枚で確認する。",
+  "note": "dev.10大サイズ通常表示は実機で正常表示を確認。dev.6のScriptable timeoutはdev.7以降で再発していない。dev.10 exact artifactをローカル再構成しSHA256 189e6b432c2539dfb35a26eec5118d06b6056873bf053d4f1ab5dae1ae29cfeb / Git blob 99500300173aabc2e67430435d85dc917a29589fで配信ソースと一致確認。異常系22ケースをAsia/Tokyo・UTC・America/Los_Angelesで各22/22 PASS。通信断時の保存予報上限180分、海況単独失敗、天気単独失敗、座標別キャッシュ、破損キャッシュ、保存失敗、強制更新フォールバック、潮位欠測、潮位全失敗、欠測跨ぎ禁止、far/previous/missing位置ブロック、スナップショット破損/保存失敗、詳細閲覧無通信、固定地点起動、グラフ有限座標を検証。dev.10模擬大サイズ描画は300回平均約5.00ms、dev.6は約6.24ms（Nodeモックであり実機性能値ではない）。 2026-09-28 22:51 JSTの実機機内モード試験で、ウィジェットは表示継続し、下部に『⚠ 天気は古い予報 / 波は古い予報』を明示。風5.7m/s・波0.9m・雨0.9mmは保存予報として提示され、通信断を最新予報として偽装しないことを確認。潮位表示も継続。タイムアウトなし。これはScriptable内での実機表示確認であり、iOSバックグラウンド自動更新そのものの保証ではない。 2026-09-28 23:01 JST、機内モード解除後にScriptableを終了・再起動して正常表示へ復帰したことを実機確認。22:52時点の通常ウィジェットが表示され、機内モード時の『天気は古い予報 / 波は古い予報』警告は消失。潮位・風・波・雨表示が復帰し、タイムアウトなし。これにより通信断→保存予報警告→通信復帰の一連を実機PASSとする。 2026-09-28、ユーザー選択によりdev.10を次期VERIFIED_BASELINE候補として固定。確定VERIFIED_BASELINE v0.19.4は上書きせず保持。候補の検証済み範囲・未検証範囲・復旧経路はVERIFIED_BASELINE_CANDIDATE.mdに記録。 2026-09-29、baseline promotion readiness監査完了。大サイズ現行運用について残存未検証項目はHard Blockerではなく、検証済みscopeを限定して明示すれば昇格可能と判定。BASELINE_PROMOTION_READINESS.mdに根拠・waiver候補を記録。 2026-09-29、ユーザーの『続行』によりPROMOTION_READYのdev.10を確定VERIFIED_BASELINEへ明示昇格。旧v0.19.4 baselineと候補記録はarchiveへ保存。未検証項目はwaiverとしてVERIFIED_BASELINE.mdに明記。コード・manifest・stable recovery・release approvalは変更なし。 2026-09-29 dev.11実機Large確認PASS。突風5.4m/s・波周期7.5秒が表示され、文字切れ・タイムアウトなし。続いてdev.12で潮回り表示を追加。 2026-09-29 11:35 JST dev.12実機Large確認PASS。ヘッダーに『｜ 大潮』表示、文字切れなし。dev.11由来の突風・波周期も維持。次機能は個人ログではなく高信頼ソースを引用する現況→狙い目魚種方式へ方針転換。 2026-09-29 field-information audit実施。large常時表示へ海面水温と波向を追加。うねり・ピーク周期は取得してDetailへ。海流は沿岸精度制約からDetailのみ、気圧・気温は常時表示しない。 2026-09-29 12:13 JST dev.13実機Large確認PASS。海水温25.4℃、波1.5m 北西から・周期7.7秒、風3.1m/s・突風5.2m/s、大潮表示が同時に収まり、文字切れ・タイムアウトなし。 2026-09-29 historical-prior方式でdev.14実装。新潟県内主要定置網の同月5年平均を地域・季節priorとして使い、魚種別根拠がある補正だけ許可。9月・SST25.4℃の例はアジB→ブリB→サバB。絶対的な遊漁釣果確率は表示しない。 2026-09-29 dev.14大津実機では地域未対応のため狙い目非表示。dev.15で茨城専用の同時期公式週報ロジックを追加し、新潟方式の横展開を回避。大津9月下旬はヒラメB→イナダB→サワラC。直近シラス漁況はDetailのベイト参考のみで順位加点なし。 2026-09-29 15:43 JST、大津周辺の実機Largeでdev.15を確認。フッターに『狙い目 ヒラメB・イナダB・サワラC』が表示され、詳細リンクと干渉なし。風1.6m/s・突風2.8m/s、波0.9m南東から・周期8.4秒、海水温22.6℃、大潮表示、潮グラフも正常。タイムアウトなし。 2026-09-29 15:52 JST、大津周辺で詳細根拠画面を実機確認。『狙い目（過去傾向）: 1.ヒラメ[B] / 2.イナダ[B] / 3.サワラ[C]』、魚種別根拠、同時期公式漁況の主出典URL、2026/09/25・09/28大津シラス漁況の参考注記、商業漁獲を遊漁釣果確率へ変換しない注意書き、A/B/C信頼度定義が表示。ターゲット機能は茨城Large＋Detailで一周PASS。 2026-09-29 dev.16で静岡/伊豆対応を追加。東伊豆は2026年8月の最新公表大型定置網実績を使用し、ソウダB→カマスB→サバB。南/西伊豆・沼津へ東伊豆実績を横展開せず、9-10月は伊豆固有研究に基づくアオリイカCのみ。絶対釣果確率・大潮/月齢一律加点なし。 2026-09-29 16:06-16:07 JST、伊東周辺の実機Large＋Detailでdev.16を確認。Largeに『狙い目 ソウダB・カマスB・サバB』表示、詳細リンクと干渉なし。詳細には各魚種の2026年8月伊豆東岸定置網実績、直近の公的定置網実績という根拠、公式出典URL、対象月より約1か月前の来遊実績として使う注意、商業漁獲を遊漁釣果確率へ変換しない注意、A/B/C信頼度定義を確認。潮グラフ・風・突風・波・海水温・雨・大潮表示も正常、タイムアウトなし。 2026-09-29 dev.17で公的漁況の自動更新パイプラインを接続。GitHub Actionsが1日4回、茨城/新潟/静岡の公式情報を解析してlive_regional_signals.jsonを更新。初回パイプラインは3地域すべて生成成功。アプリは2時間キャッシュ、7日fallback、さらにdev.16静的priorへ退避。静岡liveは鮮度62日以内でA、新潟は45日以内のみ補強、茨城シラスはcontextのみ。 2026-09-29 16:43 JST、伊東周辺の実機Largeでdev.17 live auto-update反映を確認。フッターがdev.16のソウダB・カマスB・サバBから『狙い目 ソウダA・カマスA・サバA』へ自動昇格。潮グラフ、風2.4m/s・突風3.4m/s、波0.9m南から・周期8.6秒、海水温25.5℃、雨6.5mm、大潮表示、詳細リンクも正常。タイムアウトなし。 2026-09-29 16:43表示のDetail要約を実機確認。保存snapshotに『狙い目 ソウダA / カマスA / サバA』が保持され、潮・満潮時刻・風・突風・波・周期・海水温・雨も同じ表示時点の値として提示。live signal込みの表示状態がsnapshotに保存されていることを確認。Full Evidenceは未確認。 2026-09-29 16:57 JST、伊東周辺のFull Evidenceを実機確認。ソウダA/カマスA/サバA、各魚種の自動更新2026-08伊豆東岸定置網実績、狙い目根拠『自動更新の公的定置網実績』、公式出典URL、live JSON使用状態、公的signal JSON取得状態、商業漁獲≠遊漁釣果確率の注意、A/B/C信頼度定義を確認。公式情報→Actions→live JSON→iPhone→snapshot→Full Evidenceの全経路PASS。唯一、Full Evidence上段ラベル『狙い目（過去傾向）』がlive内容と意味不整合。 2026-09-29 dev.18でFull Evidence見出しのみ修正。targets.basisに『自動更新』を含む場合は『狙い目（自動更新）』、それ以外は『狙い目（過去傾向）』。dev.17との差分は4行、ランキング・live updater・キャッシュ・潮/海況ロジック不変。14/14 targeted PASS。 2026-09-29 18:24 JST、伊東周辺のFull Evidence実機でdev.18文言修正を確認。見出しが『狙い目（自動更新）』へ正しく切り替わり、ソウダA/カマスA/サバA、自動更新2026-08伊豆東岸定置網実績、公式出典URL、live JSON使用状態、公的signal JSON取得状態、商業漁獲≠遊漁釣果確率の注意、A/B/C信頼度定義を維持。既知文言不整合は解消。 2026-09-29 22:46 JST、dev.21 Large実機PASS。外側09/30行消失、グラフ内9/30、潮曲線可読性、1行安全表示、狙い目/詳細、timeoutなしを確認。 2026-09-30、JMA現行Pull XMLのVPWS50集約通報へsource migration。現行VPWS50で旧横浜市コード1410000が分割済みと判明し、本牧/横浜港を1410012横浜市南部へ更新。41 unique target areasのlive coverage PASS。dev.22 appは旧warning JSON URLを除去しcompact schema v2を使用。GitHub Actions run 36642953609でupdater/schema/Scriptable integration PASS。dev.22実機は未確認。 2026-09-30 08:29 JST、dev.22 Large main-face実機PASS。旧『気象庁警報データが古い』行は現行VPWS50無警報時に消失し、潮・風・波・SST・雨・狙い目・詳細・timeoutなしを確認。Full EvidenceのVPWS50/伊東市/XML出典は未確認。 同日、ユーザー指示で上段の『8〜9時の予測』を削除。08:00予報と雨時間帯表示は維持。dev.23としてcandidate配信、実機確認待ち。 2026-09-30 08:45 JST、dev.23 Large実機PASS。『8〜9時の予測』削除を確認し、潮状態・次の干潮・グラフ・08:00予報・7〜8時の雨・風波SST・狙い目・詳細を維持。clipping/timeoutなし。次はFull EvidenceでVPWS50/伊東市/現行JMA XML出典を確認。 2026-09-30 08:51 JST、Full Evidence実機でVPWS50（集約通報）・対象区域 伊東市・現行JMA XML出典を確認し、無警報時JMA migration E2E PASS。実警報状態は自然発生未観測。 2026-09-30、ユーザー指示によりLargeメイン画面の直前1時間雨表示を削除し、降水データ自体はDetail/Full Evidenceへ保持。dev.24 candidate配信、実機確認待ち。 2026-09-30 14:00 JST、dev.24 Large実機PASS（IMG_3135.jpeg）。雨削除・SST・下段余白・潮グラフ・風波・狙い目・詳細・clipping/timeoutなしを確認。dev.25 graph hierarchy app commit f9177127c069a1a6be99e1ee00f71208c48927dcのidentityとActions run 36672870029 successを再確認。配信設定はレビューbranchに準備し、main反映後にdev.25 Largeを検証する。",
   "updated_at": "2026-09-30",
-  "candidate_version": "0.20.0-dev.24",
-  "candidate_source_commit": "ba215f18d1249baee22fc5cc6c0c9509aa81d554",
-  "candidate_git_blob": "7cceafaba1de63818d26e6c36e5990ee3afe71d0",
-  "candidate_sha256": "49e4618900e38c4c4e4610a565de23e4cb85026d0a3190ec74649a4b26d60e20",
+  "candidate_version": "0.20.0-dev.25",
+  "candidate_source_commit": "f9177127c069a1a6be99e1ee00f71208c48927dc",
+  "candidate_git_blob": "d425be92a2f265a7ea45b3b011b4e0fc78655b17",
+  "candidate_sha256": "acd4e996cc9bff6ccc2c2714a917cd137d4ea575fbab83041ff48755d41e8fb2",
   "delivery_state": "WORKING_HEAD_CANDIDATE_ENABLED_DEVICE_PENDING",
   "release_approval_scope": null,
   "previous_device_baseline_record": "0.19.4",
   "new_device_baseline": "0.20.0-dev.18",
   "stable_recovery_version": "0.12.0",
-  "evidence": "deployments/v0.20.0-dev.10-abnormal-audit.md",
+  "evidence": "deployments/v0.20.0-dev.25.md",
   "baseline_candidate": {
     "version": "0.20.0-dev.18",
     "app_source_commit": "fa7292f48fc02c35ccdea1cbb12d03dfec954da7",
@@ -100,17 +100,18 @@
     "app_code_state": "ACTIVE_DELTA",
     "app_artifact_equals_verified_baseline": false,
     "verified_baseline_app_source_commit": "fa7292f48fc02c35ccdea1cbb12d03dfec954da7",
-    "app_source_commit": "ba215f18d1249baee22fc5cc6c0c9509aa81d554",
-    "candidate_version": "0.20.0-dev.24",
+    "app_source_commit": "f9177127c069a1a6be99e1ee00f71208c48927dc",
+    "candidate_version": "0.20.0-dev.25",
     "validation_status": "PARTIAL",
     "changed_scope": [
-      "remove preceding-hour rain label/value from Large Home Screen face",
-      "retain precipitation data in Detail / Full Evidence",
-      "retain dev.23 JMA VPWS50 behavior unchanged"
+      "Large graph presentation hierarchy: emphasize now-to-next-extremum path",
+      "retain full 24h tide information, solar/date markers and plot height",
+      "preserve Small/Medium compact graph styling",
+      "no tide calculation, ranking or JMA semantics changes"
     ],
-    "automated_validation": "JMA updater + compact schema + Scriptable integration workflow PASS; targeted Large rain-removal diff verified",
-    "device_validation": "PENDING_DEV24",
-    "known_issue": "dev.24 Large lower-row spacing after rain removal needs native confirmation; real active-warning state remains naturally unobserved"
+    "automated_validation": "Exact source SHA256/Git blob reverified; Actions run 36672870029 SUCCESS for source commit; packaging consistency PASS",
+    "device_validation": "PENDING_DEV25",
+    "known_issue": "dev.25 Large graph clarity is not device-verified; naturally occurring active-warning path remains unobserved"
   },
   "milestone_closeout": {
     "state": "REOPENED",
@@ -227,7 +228,7 @@
     "verified_baseline_remains": "0.20.0-dev.18"
   },
   "safety_layer": {
-    "state": "JMA_VPWS50_CANDIDATE_DEVICE_PENDING",
+    "state": "JMA_VPWS50_NO_WARNING_NATIVE_E2E_PASS",
     "products": {
       "thunder_advisory": "14",
       "wave_advisory": "16",
@@ -238,7 +239,7 @@
     "warning_cache_minutes": 10,
     "warning_fallback_minutes": 60,
     "custom_safety_score": false,
-    "native_validation": "PENDING_DEV22",
+    "native_validation": "PASS_NO_WARNING_SCOPE",
     "spot_mapping_blob": "1f39a0fa618047d4661321357684da9a858a5fae",
     "incident": "legacy warning JSON was stale after May-2026 transition; dev.22 candidate uses current VPWS50 adapter",
     "source_migration_required": false,
@@ -257,7 +258,9 @@
     "updater_script": "scripts/update_jma_warnings.py",
     "compact_signal_file": "jma_warning_signals.json",
     "last_workflow_run": 36642953609,
-    "last_workflow_result": "success"
+    "last_workflow_result": "success",
+    "native_evidence": "IMG_3123.jpeg / IMG_3126.jpeg",
+    "active_warning_native_validation": "NATURALLY_UNOBSERVED"
   },
   "release_approval": "NOT_REQUESTED",
   "dev21_layout_validation": {
@@ -285,11 +288,8 @@
       "target footer and Detail remained visible",
       "no Scriptable timeout observed"
     ],
-    "pending": [
-      "Full Evidence VPWS50 label",
-      "Full Evidence 伊東市 area",
-      "Full Evidence current official JMA XML source"
-    ]
+    "pending": [],
+    "full_evidence_followup": "PASS via dev23_full_evidence_validation; active-warning state remains unobserved"
   },
   "dev23_large_validation": {
     "state": "PASS",
@@ -319,5 +319,32 @@
     ],
     "e2e_scope": "current no-warning JMA path",
     "still_unobserved": "naturally occurring active-warning Home Screen state"
+  },
+  "dev24_large_validation": {
+    "state": "PASS",
+    "verified_at": "2026-09-30 14:00 JST",
+    "evidence": "IMG_3135.jpeg",
+    "evidence_access_this_chat": "handoff and existing deployment record; image not inspected in this chat",
+    "findings": [
+      "preceding-hour rain absent on Large",
+      "SST and lower spacing intact",
+      "tide state / next high-low / graph intact",
+      "wind / wave / target footer / Detail intact",
+      "no clipping / timeout"
+    ]
+  },
+  "dev25_graph_validation": {
+    "state": "DEVICE_PENDING",
+    "app_source_commit": "f9177127c069a1a6be99e1ee00f71208c48927dc",
+    "automated_workflow_run": 36672870029,
+    "automated_workflow_result": "success",
+    "visual_evidence": null,
+    "small_medium_native_validation": "UNVERIFIED"
+  },
+  "candidate_packaging": {
+    "record": "deployments/v0.20.0-dev.25.md",
+    "rollback_manifest": "deployments/rollback-v0.20.0-dev.24.json",
+    "state": "PREPARED_FOR_MAIN_MERGE",
+    "activation_condition": "These settings become delivered only after merging to main; no release or baseline promotion."
   }
 }
