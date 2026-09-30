@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.23 | Remove redundant tide forecast-range label; dev.22 behavior retained
-const APP_VERSION="0.20.0-dev.23";
+// TIDE DASH v0.20.0-dev.24 | Remove preceding-hour rain from Large face; keep Detail evidence
+const APP_VERSION="0.20.0-dev.24";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1567,9 +1567,6 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
     const fieldRow=w.addStack();fieldRow.layoutHorizontally();fieldRow.centerAlignContent();if(guideURL)fieldRow.url=guideURL;
     text(fieldRow,"海水温",11,C.t.sub);fieldRow.addSpacer(5);
     text(fieldRow,f1(c?.sst),18,C.t.fg,true);fieldRow.addSpacer(2);text(fieldRow,"℃",11,C.t.sub);
-    fieldRow.addSpacer();
-    text(fieldRow,`${rainTime}の雨`,10,C.t.sub);fieldRow.addSpacer(5);
-    text(fieldRow,f1(c?.precip),17,C.t.fg,true);fieldRow.addSpacer(2);text(fieldRow,"mm",10,C.t.sub);
   }
 
   if(safetyFace){
