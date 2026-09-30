@@ -1333,7 +1333,7 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   const gridTimes=[];
   for(let minute=Math.ceil(t.graphStart/360)*360;minute<=t.graphEnd;minute+=360){
     gridTimes.push(minute);const x=X(minute);
-    drawLine(x,T,x,T+H,C.t.grid,.34);
+    drawLine(x,T,x,T+H,C.t.grid,compact?.42:.34);
     const axisY=compact?height-(small?47:44):height-23;
     if(!small||minute%720===0)drawLabel(clockFromAbs(minute),Math.max(L+(small?34:38),x),axisY,small?68:76,font);
     if(minute%1440===0){
@@ -1354,7 +1354,7 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   const ticks=compact?[scale.ticks[0],scale.ticks[scale.ticks.length-1]]:scale.ticks;
   drawLabel("cm",L/2,compact?1:26,L-4,font,C.t.fg);
   for(const value of ticks){
-    const y=Y(value);drawLine(L,y,L+W,y,C.t.grid,.42);
+    const y=Y(value);drawLine(L,y,L+W,y,C.t.grid,compact?.5:.42);
     const label=String(value).replace("-","−");
     drawLabel(label,L/2,Math.max(T,y-font/2),L-4,font,C.t.fg);
   }
@@ -1376,8 +1376,8 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   const visibleEvents=compact?(t.graphEvents||[]):(t.graphEvents||[]).filter(e=>e.absoluteMinute>=t.nowMin).slice(0,2);
   for(const [idx,e] of visibleEvents.entries()){
     const x=X(e.absoluteMinute);
-    const alpha=compact?.5:(idx===0?.42:.24),lw=compact?1.3:(idx===0?1.5:1.1);
-    for(let y=T;y<T+H;y+=10)drawLine(x,y,x,Math.min(y+4,T+H),idx===0?C.t.a:C.t.sub,alpha,lw);
+    const alpha=compact?.5:(idx===0?.42:.24),lw=compact?1.3:(idx===0?1.5:1.1),col=compact?C.t.sub:(idx===0?C.t.a:C.t.sub);
+    for(let y=T;y<T+H;y+=10)drawLine(x,y,x,Math.min(y+4,T+H),col,alpha,lw);
   }
 
   // Solar information stays on the graph, but its vertical guide is deliberately
