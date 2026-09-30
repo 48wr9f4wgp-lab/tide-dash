@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.26 | Direct current/event graph labels; visible candidate identity
-const APP_VERSION="0.20.0-dev.26";
+// TIDE DASH v0.20.0-dev.27 | Clear tide plot with separate solar/event label lanes
+const APP_VERSION="0.20.0-dev.27";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1308,6 +1308,78 @@ function graphLayout(width,height,compact){
   return{L,R,T,B,W:width-L-R,H:height-T-B,small};
 }
 function graph(t,width=650,height=348,wp=null,compact=false){
+  return compact?compactGraph(t,width,height,wp,true):largeGraph(t,width,height,wp);
+}
+function largeGraph(t,width=650,height=324,wp=null){
+  const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
+  const {L,R,T,W,H}=graphLayout(width,height,false),bottom=T+H;
+  const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W;
+  const segments=splitTideSeries(t.graphSeries),series=segments.flat();
+  const label=(txt,x,y,w,size=20,color=C.t.sub,bold=false)=>{
+    c.setFont(bold?Font.boldSystemFont(size):Font.systemFont(size));c.setTextColor(new Color(color));
+    c.drawTextInRect(txt,new Rect(x,y,w,size+4));
+  };
+  const line=(x1,y1,x2,y2,color,alpha=1,lw=1)=>{
+    const p=new Path();p.move(new Point(x1,y1));p.addLine(new Point(x2,y2));
+    c.addPath(p);c.setStrokeColor(new Color(color,alpha));c.setLineWidth(lw);c.strokePath();
+  };
+  // Solar facts have one dedicated row; no text or solar guides cover the curve.
+  const solar=solarEvents(t,wp).filter(e=>e.minute>=t.graphStart&&e.minute<=t.graphEnd);
+  const sw=W/Math.max(1,solar.length);
+  solar.forEach((e,i)=>{
+    const day=Math.floor(e.minute/1440),prefix=day===1?"翌日 ":day===-1?"前日 ":"";
+    label(`${prefix}${e.label==="日の入り"?"日没":"日の出"} ${clockFromAbs(e.minute)}`,L+i*sw,0,sw-6,18,C.t.warn);
+  });
+  if(!series.length){label("潮位データなし",L,T+H/2,W,22,C.t.warn);return c.getImage();}
+  const scale=tideScale(series),Y=v=>T+(1-(v-scale.min)/(scale.max-scale.min))*H;
+  label("cm",1,T-24,L-4,18,C.t.sub);
+  for(const v of scale.ticks){
+    const y=Y(v);line(L,y,L+W,y,C.t.grid,.5);
+    label(String(v).replace("-","−"),1,Math.max(T,y-10),L-5,18,C.t.sub);
+  }
+  for(let m=Math.ceil(t.graphStart/360)*360;m<=t.graphEnd;m+=360){
+    const x=X(m),midnight=m%1440===0;
+    line(x,T,x,bottom,midnight?C.t.sub:C.t.grid,midnight?.42:.32,midnight?1.2:1);
+    const date=midnight?dateKey(addDay(new Date(t.referenceAt),Math.floor(m/1440))).slice(5).replace(/^0/,"").replace("-0","/").replace("-","/")+" ":"";
+    const txt=date+clockFromAbs(m),tw=midnight?120:72;
+    label(txt,Math.max(L,Math.min(L+W-tw,x-tw/2)),height-24,tw,18,C.t.sub);
+  }
+  for(const segment of segments){
+    if(segment.length<2)continue;
+    const area=new Path();area.move(new Point(X(segment[0].minute),bottom));
+    segment.forEach(p=>area.addLine(new Point(X(p.minute),Y(p.level))));
+    area.addLine(new Point(X(segment[segment.length-1].minute),bottom));area.closeSubpath();
+    c.addPath(area);c.setFillColor(new Color(C.t.a,.08));c.fillPath();
+    const p=new Path();segment.forEach((a,i)=>i?p.addLine(new Point(X(a.minute),Y(a.level))):p.move(new Point(X(a.minute),Y(a.level))));
+    c.addPath(p);c.setStrokeColor(new Color(C.t.a,.95));c.setLineWidth(4.5);c.strokePath();
+  }
+  const nowX=X(t.nowMin);line(nowX,T,nowX,bottom,C.t.fg,.95,2.5);
+  label("今",Math.max(L,Math.min(L+W-36,nowX-18)),T-24,36,18,C.t.fg,true);
+  if(Number.isFinite(t.current)){
+    c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(nowX-5,Y(t.current)-5,10,10));
+  }
+  // Events stay on the curve as dots; all event text stays in the bottom lane.
+  const events=(t.graphEvents||[]).filter(e=>e.absoluteMinute>=t.nowMin).slice(0,2);
+  const boxes=[],tw=132;
+  for(const [i,e] of events.entries()){
+    const x=X(e.absoluteMinute),v=interpolateHourly(t.hourly,e.absoluteMinute);
+    if(Number.isFinite(v)){
+      c.setFillColor(new Color(i===0?C.t.fg:C.t.a));c.fillEllipse(new Rect(x-4,Y(v)-4,8,8));
+      for(let y=Y(v)+8;y<bottom;y+=12)line(x,y,x,Math.min(y+4,bottom),C.t.sub,.35);
+    }
+    let lx=Math.max(L,Math.min(L+W-tw,x-tw/2));
+    if(boxes.length&&lx<boxes[0]+tw+10){
+      if(boxes[0]+2*tw+10<=L+W)lx=boxes[0]+tw+10;
+      else{boxes[0]=Math.max(L,lx-tw-10);lx=boxes[0]+tw+10;}
+    }
+    boxes.push(lx);
+  }
+  events.forEach((e,i)=>label(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,boxes[i],bottom+3,tw,20,C.t.fg,i===0));
+  if(t.hasGaps)label("欠測あり",L+W-100,T+6,100,18,C.t.warn);
+  return c.getImage();
+}
+// Compact rendering is preserved independently of the rejected Large tag layout.
+function compactGraph(t,width=650,height=348,wp=null,compact=true){
   const c=new DrawContext();c.size=new Size(width,height);c.opaque=false;c.respectScreenScale=true;
   const {L,R,T,B,W,H,small}=graphLayout(width,height,compact);
   const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W;
@@ -1321,14 +1393,6 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     const path=new Path();path.move(new Point(x1,y1));path.addLine(new Point(x2,y2));
     c.addPath(path);c.setStrokeColor(new Color(col,alpha));c.setLineWidth(lineWidth);c.strokePath();
   };
-
-  // Large only: a very light next-day field makes the midnight boundary readable
-  // without removing any time, date, tide or solar information.
-  if(!compact&&t.graphStart<1440&&t.graphEnd>1440){
-    const mx=Math.max(L,X(1440));
-    c.setFillColor(new Color(C.t.fg,.035));
-    c.fillRect(new Rect(mx,T,Math.max(0,L+W-mx),H));
-  }
 
   const gridTimes=[];
   for(let minute=Math.ceil(t.graphStart/360)*360;minute<=t.graphEnd;minute+=360){
@@ -1398,81 +1462,11 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     }
   }
 
-  // Large only: emphasize the continuous tide path from "now" to the very next
-  // high/low. No data is removed; only hierarchy changes.
-  // Use the same continuous next event as the hero; never highlight across missing tide data.
-  const focusEvent=!compact&&t.nextEvent&&visibleEvents.some(e=>e.absoluteMinute===t.nextEvent.absoluteMinute)?t.nextEvent:null;
-  let focusEndLevel=null;
-  if(focusEvent&&Number.isFinite(t.current)&&
-     focusEvent.absoluteMinute>t.nowMin&&focusEvent.absoluteMinute<=t.graphEnd&&
-     continuousTide(t.hourly,t.nowMin,focusEvent.absoluteMinute)){
-    const focusPoints=[{minute:t.nowMin,level:t.current}];
-    for(const p of t.graphSeries||[]){
-      if(p.minute>t.nowMin&&p.minute<focusEvent.absoluteMinute&&Number.isFinite(p.level))focusPoints.push(p);
-    }
-    focusEndLevel=interpolateHourly(t.hourly,focusEvent.absoluteMinute);
-    if(Number.isFinite(focusEndLevel))focusPoints.push({minute:focusEvent.absoluteMinute,level:focusEndLevel});
-    if(focusPoints.length>=2&&Number.isFinite(focusEndLevel)){
-      const glow=new Path(),line=new Path();
-      focusPoints.forEach((p,i)=>{
-        const pt=new Point(X(p.minute),Y(p.level));
-        if(i){glow.addLine(pt);line.addLine(pt)}else{glow.move(pt);line.move(pt)}
-      });
-      c.addPath(glow);c.setStrokeColor(new Color(C.t.a,.15));c.setLineWidth(16);c.strokePath();
-      c.addPath(line);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(10);c.strokePath();
-    }
-  }
-
-  if(!compact){
-    const accepted=[];
-    for(const [idx,e] of visibleEvents.entries()){
-      const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2)),cx=lx+lw/2;
-      if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
-      // The first event gets a direct curve label below; retain the secondary event lane.
-      if(idx===0&&focusEvent&&Number.isFinite(focusEndLevel))continue;
-      c.setFillColor(new Color(idx===0?C.t.a:C.t.sub,idx===0?.95:.72));c.fillEllipse(new Rect(x-3,T+H-3,6,6));
-      drawLine(x,T+H,cx,eventY-2,idx===0?C.t.a:C.t.sub,idx===0?.66:.48,1.1);
-      drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,cx,eventY,lw,18,idx===0?C.t.fg:C.t.sub);
-      accepted.push([lx,lx+lw]);
-    }
-  }
-
   const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.94,compact?2:2.8);
   if(Number.isFinite(t.current)){
     const y=Y(t.current);
     if(!compact){c.setFillColor(new Color(C.t.a,.24));c.fillEllipse(new Rect(x-9,y-9,18,18));}
     c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-(compact?5:5),y-(compact?5:5),compact?10:10,compact?10:10));
-  }
-  if(!compact&&focusEvent&&Number.isFinite(focusEndLevel)){
-    const ex=X(focusEvent.absoluteMinute),ey=Y(focusEndLevel);
-    c.setFillColor(new Color(C.t.a,.26));c.fillEllipse(new Rect(ex-9,ey-9,18,18));
-    c.setFillColor(new Color(C.t.a));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
-    c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(ex-2.5,ey-2.5,5,5));
-  }
-  if(!compact){
-    // Bounded tags beside actual plotted points. Labels communicate identity without color.
-    const occupied=[];
-    const tag=(labels,px,py,w,h)=>{
-      const candidates=[
-        [px-w/2,py-h-16],[px+16,py-h-12],
-        [px-w-16,py-h-12],[px+16,py+16],[px-w-16,py+16],
-        ...occupied.flatMap(a=>[[a.x+a.w+12,py-h/2],[a.x-w-12,py-h/2],[px-w/2,a.y+a.h+12],[px-w/2,a.y-h-12]])
-      ].map(([tx,ty])=>({
-        x:Math.max(L+4,Math.min(L+W-w-4,tx)),
-        y:Math.max(T+24,Math.min(T+H-h-6,ty)),w,h
-      }));
-      const overlap=b=>occupied.some(a=>b.x<a.x+a.w+8&&b.x+b.w>a.x-8&&b.y<a.y+a.h+8&&b.y+b.h>a.y-8);
-      const box=candidates.find(b=>!overlap(b))||candidates[0];
-      occupied.push(box);
-      drawLine(px,py,Math.max(box.x,Math.min(box.x+w,px)),Math.max(box.y,Math.min(box.y+h,py)),C.t.fg,.55,1.2);
-      c.setFillColor(new Color(C.t.bg1,.96));c.fillRect(new Rect(box.x,box.y,w,h));
-      c.setTextColor(new Color(C.t.fg));c.setFont(Font.boldSystemFont(21));
-      labels.forEach((label,i)=>c.drawTextInRect(label,new Rect(box.x+7,box.y+4+i*24,w-14,25)));
-    };
-    if(focusEvent&&Number.isFinite(focusEndLevel)){
-      tag([`次の${focusEvent.type==="high"?"満潮":"干潮"}`,eventClock(focusEvent)],X(focusEvent.absoluteMinute),Y(focusEndLevel),116,55);
-    }
-    if(Number.isFinite(t.current))tag(["現在"],x,Y(t.current),62,31);
   }
   if(t.hasGaps)drawLabel("欠測あり",width-62,T+H-25,110,font,C.t.warn);
   return c.getImage();
@@ -1584,7 +1578,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   header.addSpacer();
   const dates=header.addStack();dates.layoutVertically();
   text(dates,dateKey(reference).slice(5).replace("-","/"),small?8:large?12:9,C.t.fg,true);
-  text(dates,`${clockJST(reference)}時点${large?" · dev.26":""}`,small?7:large?9:8,C.t.sub);
+  text(dates,`${clockJST(reference)}時点${large?" · dev.27":""}`,small?7:large?9:8,C.t.sub);
   if(!small){header.addSpacer(6);const refresh=header.addStack();if(large){refresh.size=new Size(44,44);refresh.setPadding(5,9,5,9);refresh.centerAlignContent();}text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
   if(blocked){
     w.addSpacer(9);text(w,"釣り地点を選ぶ",small?12:large?18:14,C.t.warn,true);
