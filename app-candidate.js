@@ -1,5 +1,5 @@
-// TIDE DASH v0.20.0-dev.24 | Remove preceding-hour rain from Large face; keep Detail evidence
-const APP_VERSION="0.20.0-dev.24";
+// TIDE DASH v0.20.0-dev.25 | Tide graph hierarchy pass; preserve full field information
+const APP_VERSION="0.20.0-dev.25";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1321,10 +1321,19 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     const path=new Path();path.move(new Point(x1,y1));path.addLine(new Point(x2,y2));
     c.addPath(path);c.setStrokeColor(new Color(col,alpha));c.setLineWidth(lineWidth);c.strokePath();
   };
+
+  // Large only: a very light next-day field makes the midnight boundary readable
+  // without removing any time, date, tide or solar information.
+  if(!compact&&t.graphStart<1440&&t.graphEnd>1440){
+    const mx=Math.max(L,X(1440));
+    c.setFillColor(new Color(C.t.fg,.035));
+    c.fillRect(new Rect(mx,T,Math.max(0,L+W-mx),H));
+  }
+
   const gridTimes=[];
   for(let minute=Math.ceil(t.graphStart/360)*360;minute<=t.graphEnd;minute+=360){
     gridTimes.push(minute);const x=X(minute);
-    drawLine(x,T,x,T+H,C.t.grid,.42);
+    drawLine(x,T,x,T+H,C.t.grid,.34);
     const axisY=compact?height-(small?47:44):height-23;
     if(!small||minute%720===0)drawLabel(clockFromAbs(minute),Math.max(L+(small?34:38),x),axisY,small?68:76,font);
     if(minute%1440===0){
@@ -1333,9 +1342,9 @@ function graph(t,width=650,height=348,wp=null,compact=false){
         // Preserve the already-verified small/medium date layout.
         drawLabel(rawDate,Math.max(L+(small?33:35),x),height-22,small?66:70,small?18:font-1);
       }else{
-        // Large: make midnight a date boundary inside the plot instead of a second x-axis row.
+        // Large: midnight remains an in-plot date boundary.
         const date=rawDate.replace(/^0/,"").replace("/0","/");
-        drawLine(x,T,x,T+H,C.t.sub,.58,1.25);
+        drawLine(x,T,x,T+H,C.t.sub,.48,1.2);
         drawLabel(date,x+29,T+6,58,14,C.t.sub);
       }
     }
@@ -1345,33 +1354,39 @@ function graph(t,width=650,height=348,wp=null,compact=false){
   const ticks=compact?[scale.ticks[0],scale.ticks[scale.ticks.length-1]]:scale.ticks;
   drawLabel("cm",L/2,compact?1:26,L-4,font,C.t.fg);
   for(const value of ticks){
-    const y=Y(value);drawLine(L,y,L+W,y,C.t.grid,.5);
+    const y=Y(value);drawLine(L,y,L+W,y,C.t.grid,.42);
     const label=String(value).replace("-","−");
     drawLabel(label,L/2,Math.max(T,y-font/2),L-4,font,C.t.fg);
   }
-  // Missing segments are never connected, including the filled area below each curve.
+
+  // Full curve remains available, but Large gives it a quieter baseline so the
+  // immediate "now -> next extremum" path can become the first-read layer.
   for(const segment of segments){
     if(segment.length<2)continue;
     const area=new Path();area.move(new Point(X(segment[0].minute),T+H));
     for(const p of segment)area.addLine(new Point(X(p.minute),Y(p.level)));
     area.addLine(new Point(X(segment[segment.length-1].minute),T+H));area.closeSubpath();
-    c.addPath(area);c.setFillColor(new Color(C.t.a,.10));c.fillPath();
+    c.addPath(area);c.setFillColor(new Color(C.t.a,compact?.10:.07));c.fillPath();
     const line=new Path();segment.forEach((p,i)=>i?line.addLine(new Point(X(p.minute),Y(p.level))):line.move(new Point(X(p.minute),Y(p.level))));
-    c.addPath(line);c.setStrokeColor(new Color(C.t.a));c.setLineWidth(compact?4:5);c.strokePath();
+    c.addPath(line);c.setStrokeColor(new Color(C.t.a,compact?1:.58));c.setLineWidth(compact?4:4);c.strokePath();
   }
-  // Large face: keep only the same next-two extrema that receive labels.
+
+  // Large face: keep the same next-two extrema and make the first one visually primary.
   // Compact faces preserve the prior full marker behavior.
   const visibleEvents=compact?(t.graphEvents||[]):(t.graphEvents||[]).filter(e=>e.absoluteMinute>=t.nowMin).slice(0,2);
-  for(const e of visibleEvents){
+  for(const [idx,e] of visibleEvents.entries()){
     const x=X(e.absoluteMinute);
-    for(let y=T;y<T+H;y+=10)drawLine(x,y,x,Math.min(y+4,T+H),C.t.sub,.5,1.3);
+    const alpha=compact?.5:(idx===0?.42:.24),lw=compact?1.3:(idx===0?1.5:1.1);
+    for(let y=T;y<T+H;y+=10)drawLine(x,y,x,Math.min(y+4,T+H),idx===0?C.t.a:C.t.sub,alpha,lw);
   }
+
+  // Solar information stays on the graph, but its vertical guide is deliberately
+  // lighter than the tide path. The text remains in the top tag lane.
   const solar=solarEvents(t,wp).filter(e=>e.minute>=t.graphStart&&e.minute<=t.graphEnd);
   const usedSolar=[[],[]];
   for(const e of solar){
-    const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,.52);
-    if(!compact){c.setFillColor(new Color(C.t.warn,.95));c.fillEllipse(new Rect(x-3,T-3,6,6));}
-    // Small charts use the readable text summary below the chart instead of tiny overlays.
+    const x=X(e.minute);drawLine(x,T,x,T+H,C.t.warn,compact?.52:.24,compact?1:1);
+    if(!compact){c.setFillColor(new Color(C.t.warn,.88));c.fillEllipse(new Rect(x-2.5,T-2.5,5,5));}
     if(small)continue;
     const day=Math.floor(e.minute/1440),prefix=day===1?"翌日 ":day===-1?"前日 ":day===0?"":`${day}日後 `;
     const label=`${prefix}${e.label==="日の入り"?"日没":"日の出"} ${clockFromAbs(e.minute)}`;
@@ -1379,24 +1394,57 @@ function graph(t,width=650,height=348,wp=null,compact=false){
     const lanes=compact?1:2;
     for(let lane=0;lane<lanes;lane++){
       if(usedSolar[lane].some(b=>lx<b[1]+8&&lx+lw>b[0]-8))continue;
-      drawLabel(label,lx+lw/2,1+lane*22,lw,font,C.t.warn);usedSolar[lane].push([lx,lx+lw]);break;
+      drawLabel(label,lx+lw/2,1+lane*22,lw,compact?font:16,C.t.warn);usedSolar[lane].push([lx,lx+lw]);break;
     }
   }
+
+  // Large only: emphasize the continuous tide path from "now" to the very next
+  // high/low. No data is removed; only hierarchy changes.
+  const focusEvent=!compact?visibleEvents[0]:null;
+  let focusEndLevel=null;
+  if(focusEvent&&Number.isFinite(t.current)&&
+     focusEvent.absoluteMinute>t.nowMin&&focusEvent.absoluteMinute<=t.graphEnd&&
+     continuousTide(t.hourly,t.nowMin,focusEvent.absoluteMinute)){
+    const focusPoints=[{minute:t.nowMin,level:t.current}];
+    for(const p of t.graphSeries||[]){
+      if(p.minute>t.nowMin&&p.minute<focusEvent.absoluteMinute&&Number.isFinite(p.level))focusPoints.push(p);
+    }
+    focusEndLevel=interpolateHourly(t.hourly,focusEvent.absoluteMinute);
+    if(Number.isFinite(focusEndLevel))focusPoints.push({minute:focusEvent.absoluteMinute,level:focusEndLevel});
+    if(focusPoints.length>=2&&Number.isFinite(focusEndLevel)){
+      const glow=new Path(),line=new Path();
+      focusPoints.forEach((p,i)=>{
+        const pt=new Point(X(p.minute),Y(p.level));
+        if(i){glow.addLine(pt);line.addLine(pt)}else{glow.move(pt);line.move(pt)}
+      });
+      c.addPath(glow);c.setStrokeColor(new Color(C.t.a,.18));c.setLineWidth(12);c.strokePath();
+      c.addPath(line);c.setStrokeColor(new Color(C.t.a,.98));c.setLineWidth(7);c.strokePath();
+    }
+  }
+
   if(!compact){
     const accepted=[];
-    const events=visibleEvents;
-    for(const e of events){
+    for(const [idx,e] of visibleEvents.entries()){
       const x=X(e.absoluteMinute),lw=112,lx=Math.max(L,Math.min(width-lw,x-lw/2)),cx=lx+lw/2;
       if(accepted.some(b=>lx<b[1]+4&&lx+lw>b[0]-4))continue;
-      c.setFillColor(new Color(C.t.sub,.9));c.fillEllipse(new Rect(x-3,T+H-3,6,6));
-      drawLine(x,T+H,cx,eventY-2,C.t.sub,.72,1.2);
-      drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,cx,eventY,lw,18);
+      c.setFillColor(new Color(idx===0?C.t.a:C.t.sub,idx===0?.95:.72));c.fillEllipse(new Rect(x-3,T+H-3,6,6));
+      drawLine(x,T+H,cx,eventY-2,idx===0?C.t.a:C.t.sub,idx===0?.66:.48,1.1);
+      drawLabel(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,cx,eventY,lw,18,idx===0?C.t.fg:C.t.sub);
       accepted.push([lx,lx+lw]);
     }
   }
-  const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.92,compact?2:2.8);
+
+  const x=X(t.nowMin);drawLine(x,T,x,T+H,C.t.fg,.94,compact?2:2.8);
   if(Number.isFinite(t.current)){
-    const y=Y(t.current);c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-5,y-5,10,10));
+    const y=Y(t.current);
+    if(!compact){c.setFillColor(new Color(C.t.a,.24));c.fillEllipse(new Rect(x-9,y-9,18,18));}
+    c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(x-(compact?5:5),y-(compact?5:5),compact?10:10,compact?10:10));
+  }
+  if(!compact&&focusEvent&&Number.isFinite(focusEndLevel)){
+    const ex=X(focusEvent.absoluteMinute),ey=Y(focusEndLevel);
+    c.setFillColor(new Color(C.t.a,.26));c.fillEllipse(new Rect(ex-9,ey-9,18,18));
+    c.setFillColor(new Color(C.t.a));c.fillEllipse(new Rect(ex-5,ey-5,10,10));
+    c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(ex-2.5,ey-2.5,5,5));
   }
   if(!compact)drawLabel("今",x,T+H-24,42,16,C.t.fg);
   if(t.hasGaps)drawLabel("欠測あり",width-62,T+H-25,110,font,C.t.warn);
