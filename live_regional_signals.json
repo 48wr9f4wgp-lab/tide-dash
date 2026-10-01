@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-30T09:47:11+00:00",
+  "generatedAt": "2026-10-01T10:13:47+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -22,12 +22,6 @@
             "boats": 2,
             "kg": 81.0,
             "cpueKgPerBoat": 40.5
-          },
-          {
-            "date": "2026-09-28",
-            "boats": 8,
-            "kg": 335.0,
-            "cpueKgPerBoat": 41.9
           }
         ],
         "rankingEffect": "none",
