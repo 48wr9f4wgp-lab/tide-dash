@@ -110,7 +110,7 @@
     ],
     "automated_validation": "tests/dev29-safety.cjs 32 synthetic checks + production structure contract (41 areas); tests/dev29-graph.cjs five fixtures and all family draw equality vs dev.28 PASS",
     "device_validation": "PENDING_DEV29",
-    "known_issue": "A01/A02 fixed in candidate, native pending; A03-A06/A08 remain"
+    "known_issue": "A01/A02 automated fixed; native unknown-state pending. A03/A04 runtime fixed with normal-path confirmation; A05/A06/A08 remain."
   },
   "milestone_closeout": {
     "state": "REOPENED",
@@ -452,16 +452,17 @@
   },
   "runtime_candidate": {
     "version": "0.12.0",
-    "state": "PREPARED_NOT_INSTALLED",
+    "state": "MERGED_INSTALLED_NORMAL_PATH_CONFIRMED",
     "source_commit": "e1608ff93a724786609b8010b119410b05136ffb",
     "sha256": "85fc9717319aca090ca1d0b57a5458346272e650c4e07e68f97633aff0dd478e",
     "record": "deployments/runtime-v0.12.0.md",
     "tests": "13 mocked runtime scenarios + 10 SHA vectors + actual app source PASS",
-    "user_installation": "UNCONFIRMED",
+    "user_installation": "CONFIRMED_BY_USER_2026-10-01",
     "scope": [
       "A03",
       "A04"
-    ]
+    ],
+    "native_validation": "Normal boot/Detail user-confirmed with IMG_3149; transport/integrity/rollback paths pending"
   },
   "label_alignment_candidate": {
     "version": "0.20.0-dev.30",
