@@ -1,4 +1,4 @@
-// TIDE DASH v0.20.0-dev.29 | Fail closed on incomplete JMA data and unknown safety evidence
+// TIDE DASH v0.20.0-dev.30 | Centered graph labels and accurate version display
 const APP_VERSION="0.20.0-dev.30";
 const C={
   refresh:30,
@@ -1611,7 +1611,7 @@ function widget(t,wp,S,badge,badgeColor,err=null,distanceKm=null,locationState="
   header.addSpacer();
   const dates=header.addStack();dates.layoutVertically();
   text(dates,dateKey(reference).slice(5).replace("-","/"),small?8:large?12:9,C.t.fg,true);
-  text(dates,`${clockJST(reference)}時点${large?" · dev.29":""}`,small?7:large?9:8,C.t.sub);
+  text(dates,`${clockJST(reference)}時点${large?" · "+APP_VERSION.split("-").pop():""}`,small?7:large?9:8,C.t.sub);
   if(!small){header.addSpacer(6);const refresh=header.addStack();if(large){refresh.size=new Size(44,44);refresh.setPadding(5,9,5,9);refresh.centerAlignContent();}text(refresh,"↻",large?21:16,C.t.sub);if(refreshURL)refresh.url=refreshURL;}
   if(blocked){
     w.addSpacer(9);text(w,"釣り地点を選ぶ",small?12:large?18:14,C.t.warn,true);
