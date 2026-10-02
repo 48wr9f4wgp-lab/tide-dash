@@ -1,5 +1,5 @@
 // TIDE DASH v0.20.0-dev.29 | Fail closed on incomplete JMA data and unknown safety evidence
-const APP_VERSION="0.20.0-dev.29";
+const APP_VERSION="0.20.0-dev.30";
 const C={
   refresh:30,
   cache:"TideDashCacheV09",
@@ -1347,8 +1347,9 @@ function largeGraph(t,width=650,height=324,wp=null){
   const {L,R,T,W,H}=graphLayout(width,height,false),bottom=T+H;
   const X=m=>L+(m-t.graphStart)/(t.graphEnd-t.graphStart)*W;
   const segments=splitTideSeries(t.graphSeries),series=segments.flat();
-  const label=(txt,x,y,w,size=20,color=C.t.sub,bold=false)=>{
+  const label=(txt,x,y,w,size=20,color=C.t.sub,bold=false,center=false)=>{
     c.setFont(bold?Font.boldSystemFont(size):Font.systemFont(size));c.setTextColor(new Color(color));
+    if(center)c.setTextAlignedCenter();else c.setTextAlignedLeft();
     c.drawTextInRect(txt,new Rect(x,y,w,size+4));
   };
   const line=(x1,y1,x2,y2,color,alpha=1,lw=1)=>{
@@ -1374,7 +1375,7 @@ function largeGraph(t,width=650,height=324,wp=null){
     line(x,T,x,bottom,midnight?C.t.sub:C.t.grid,midnight?.42:.32,midnight?1.2:1);
     const date=midnight?dateKey(addDay(new Date(t.referenceAt),Math.floor(m/1440))).slice(5).replace(/^0/,"").replace("-0","/").replace("-","/")+" ":"";
     const txt=date+clockFromAbs(m),tw=midnight?120:72;
-    label(txt,Math.max(L,Math.min(L+W-tw,x-tw/2)),height-24,tw,18,C.t.sub);
+    label(txt,Math.max(L,Math.min(L+W-tw,x-tw/2)),height-24,tw,18,C.t.sub,false,true);
   }
   for(const segment of segments){
     if(segment.length<2)continue;
@@ -1386,7 +1387,7 @@ function largeGraph(t,width=650,height=324,wp=null){
     c.addPath(p);c.setStrokeColor(new Color(C.t.a,.95));c.setLineWidth(4.5);c.strokePath();
   }
   const nowX=X(t.nowMin);line(nowX,T,nowX,bottom,C.t.fg,.95,2.5);
-  label("今",Math.max(L,Math.min(L+W-36,nowX-18)),T-24,36,18,C.t.fg,true);
+  label("今",Math.max(L,Math.min(L+W-36,nowX-18)),T-24,36,18,C.t.fg,true,true);
   if(Number.isFinite(t.current)){
     c.setFillColor(new Color(C.t.fg));c.fillEllipse(new Rect(nowX-5,Y(t.current)-5,10,10));
   }
@@ -1406,7 +1407,7 @@ function largeGraph(t,width=650,height=324,wp=null){
     }
     boxes.push(lx);
   }
-  events.forEach((e,i)=>label(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,boxes[i],bottom+3,tw,20,C.t.fg,i===0));
+  events.forEach((e,i)=>label(`${e.type==="high"?"満潮":"干潮"} ${eventClock(e)}`,boxes[i],bottom+3,tw,20,C.t.fg,i===0,true));
   if(t.hasGaps)label("欠測あり",L+W-100,T+6,100,18,C.t.warn);
   return c.getImage();
 }
