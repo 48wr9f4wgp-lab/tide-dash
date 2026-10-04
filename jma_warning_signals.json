@@ -2,15 +2,36 @@
   "areas": {
     "0820200": {
       "name": "日立市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "0821500": {
       "name": "北茨城市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "0822100": {
       "name": "ひたちなか市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "0822200": {
       "name": "鹿嶋市",
@@ -36,7 +57,14 @@
     },
     "0830900": {
       "name": "大洗町",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1220200": {
       "name": "銚子市",
@@ -143,23 +171,58 @@
     },
     "1420100": {
       "name": "横須賀市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1420500": {
       "name": "藤沢市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1420600": {
       "name": "小田原市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1421000": {
       "name": "三浦市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1438300": {
       "name": "真鶴町",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1510000": {
       "name": "新潟市",
@@ -210,11 +273,25 @@
     },
     "2220500": {
       "name": "熱海市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "2220800": {
       "name": "伊東市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "2221200": {
       "name": "焼津市",
@@ -298,7 +375,7 @@
       ]
     }
   },
-  "generatedAt": "2026-10-04T18:59:56Z",
+  "generatedAt": "2026-10-04T22:13:41Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -317,14 +394,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-10-04T18:50:50Z",
+    "atomUpdated": "2026-10-04T22:10:59Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261004185051_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261004221101_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-10-05T03:50:00+09:00"
+    "reportDatetime": "2026-10-05T07:10:00+09:00"
   },
   "targetAreaCount": 41
 }
