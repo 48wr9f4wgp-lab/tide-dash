@@ -361,7 +361,7 @@
       ]
     }
   },
-  "generatedAt": "2026-10-05T15:10:48Z",
+  "generatedAt": "2026-10-05T22:00:44Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -380,14 +380,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-10-05T15:01:11Z",
+    "atomUpdated": "2026-10-05T21:50:53Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261005150114_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261005215057_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-10-06T00:00:00+09:00"
+    "reportDatetime": "2026-10-06T06:50:00+09:00"
   },
   "targetAreaCount": 41
 }
