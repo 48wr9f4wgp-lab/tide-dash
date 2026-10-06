@@ -37,9 +37,9 @@
       "name": "鹿嶋市",
       "warnings": [
         {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
+          "code": "07",
+          "name": "波浪警報",
+          "severity": 3,
           "status": "継続"
         }
       ]
@@ -48,9 +48,9 @@
       "name": "神栖市",
       "warnings": [
         {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
+          "code": "07",
+          "name": "波浪警報",
+          "severity": 3,
           "status": "継続"
         }
       ]
@@ -90,7 +90,14 @@
     },
     "1220600": {
       "name": "木更津市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1221500": {
       "name": "旭市",
@@ -127,7 +134,14 @@
     },
     "1222600": {
       "name": "富津市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "16",
+          "name": "波浪注意報",
+          "severity": 2,
+          "status": "継続"
+        }
+      ]
     },
     "1223400": {
       "name": "南房総市",
@@ -361,7 +375,7 @@
       ]
     }
   },
-  "generatedAt": "2026-10-06T02:07:23Z",
+  "generatedAt": "2026-10-06T08:57:55Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -380,14 +394,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-10-06T02:02:07Z",
+    "atomUpdated": "2026-10-06T08:50:51Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261006020209_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261006085053_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-10-06T11:00:00+09:00"
+    "reportDatetime": "2026-10-06T17:50:00+09:00"
   },
   "targetAreaCount": 41
 }
