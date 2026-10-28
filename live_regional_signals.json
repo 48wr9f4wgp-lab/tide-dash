@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-27T09:05:29+00:00",
+  "generatedAt": "2026-10-28T09:46:42+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -22,12 +22,6 @@
             "boats": 2,
             "kg": 238.0,
             "cpueKgPerBoat": 119.0
-          },
-          {
-            "date": "2026-10-24",
-            "boats": 4,
-            "kg": 356.0,
-            "cpueKgPerBoat": 89.0
           }
         ],
         "rankingEffect": "none",
@@ -54,32 +48,27 @@
       "regionId": "SHIZUOKA_EAST_IZU",
       "sourceType": "official_recent_monthly_set_net",
       "source": "https://fish-exp.pref.shizuoka.jp/02fishery/2-1-1.html",
-      "sourceMonth": "2026-08",
+      "sourceMonth": "2026-09",
       "ranking": [
-        {
-          "id": "MARUSOUDA",
-          "name": "ソウダ",
-          "tons": 59.6
-        },
         {
           "id": "KAMASU",
           "name": "カマス",
-          "tons": 51.3
+          "tons": 86.0
         },
         {
-          "id": "SABA",
-          "name": "サバ",
-          "tons": 34.6
+          "id": "MARUSOUDA",
+          "name": "ソウダ",
+          "tons": 82.0
         },
         {
           "id": "MA_AJI",
           "name": "アジ",
-          "tons": 12.0
+          "tons": 40.2
         },
         {
-          "id": "BURI",
-          "name": "ブリ",
-          "tons": 5.6
+          "id": "SABA",
+          "name": "サバ",
+          "tons": 33.5
         }
       ],
       "note": "伊豆東岸大型定置網の最新公表月実績。商業漁獲を遊漁釣果確率へ変換しない。"
