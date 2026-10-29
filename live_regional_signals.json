@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-28T09:46:42+00:00",
+  "generatedAt": "2026-10-29T10:04:43+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -12,16 +12,16 @@
       "regionId": "IBARAKI_PACIFIC",
       "sourceType": "official_fresh_bait_context",
       "source": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html",
-      "publishedDate": "2026-10-26",
+      "publishedDate": "2026-10-29",
       "freshBaitContext": {
         "species": "シラス",
         "district": "大津",
         "rows": [
           {
-            "date": "2026-10-26",
+            "date": "2026-10-29",
             "boats": 2,
-            "kg": 238.0,
-            "cpueKgPerBoat": 119.0
+            "kg": 193.0,
+            "cpueKgPerBoat": 96.5
           }
         ],
         "rankingEffect": "none",
@@ -31,8 +31,8 @@
     "NIIGATA_JAPAN_SEA": {
       "regionId": "NIIGATA_JAPAN_SEA",
       "sourceType": "official_latest_monthly_fixed_net",
-      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/508089.pdf",
-      "sourceMonth": "2026-07",
+      "source": "https://www.pref.niigata.lg.jp/uploaded/attachment/514333.pdf",
+      "sourceMonth": "2026-09",
       "observedSpecies": [
         "MA_AJI",
         "SABA",
