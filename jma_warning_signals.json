@@ -2,61 +2,30 @@
   "areas": {
     "0820200": {
       "name": "日立市",
-      "warnings": [
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0821500": {
       "name": "北茨城市",
-      "warnings": [
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0822100": {
       "name": "ひたちなか市",
-      "warnings": [
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0822200": {
       "name": "鹿嶋市",
-      "warnings": [
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0823200": {
       "name": "神栖市",
-      "warnings": [
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0830900": {
       "name": "大洗町",
+      "warnings": []
+    },
+    "1220200": {
+      "name": "銚子市",
       "warnings": [
         {
           "code": "14",
@@ -66,41 +35,93 @@
         }
       ]
     },
-    "1220200": {
-      "name": "銚子市",
-      "warnings": []
-    },
     "1220500": {
       "name": "館山市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1220600": {
       "name": "木更津市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1221500": {
       "name": "旭市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1221800": {
       "name": "勝浦市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1222300": {
       "name": "鴨川市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1222600": {
       "name": "富津市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1223400": {
       "name": "南房総市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1240300": {
       "name": "九十九里町",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1410012": {
       "name": "横浜市南部",
@@ -134,12 +155,6 @@
           "name": "波浪注意報",
           "severity": 2,
           "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
         }
       ]
     },
@@ -150,12 +165,6 @@
           "code": "16",
           "name": "波浪注意報",
           "severity": 2,
-          "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
           "status": "継続"
         }
       ]
@@ -168,12 +177,6 @@
           "name": "波浪注意報",
           "severity": 2,
           "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
         }
       ]
     },
@@ -184,12 +187,6 @@
           "code": "16",
           "name": "波浪注意報",
           "severity": 2,
-          "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
           "status": "継続"
         }
       ]
@@ -202,12 +199,6 @@
           "name": "波浪注意報",
           "severity": 2,
           "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
         }
       ]
     },
@@ -218,12 +209,6 @@
           "code": "16",
           "name": "波浪注意報",
           "severity": 2,
-          "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
           "status": "継続"
         }
       ]
@@ -236,12 +221,6 @@
           "name": "波浪注意報",
           "severity": 2,
           "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
-          "status": "継続"
         }
       ]
     },
@@ -252,12 +231,6 @@
           "code": "16",
           "name": "波浪注意報",
           "severity": 2,
-          "status": "継続"
-        },
-        {
-          "code": "14",
-          "name": "雷注意報",
-          "severity": 1,
           "status": "継続"
         }
       ]
@@ -284,14 +257,7 @@
     },
     "2221900": {
       "name": "下田市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2222200": {
       "name": "伊豆市",
@@ -303,50 +269,22 @@
     },
     "2230100": {
       "name": "東伊豆町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2230400": {
       "name": "南伊豆町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2230500": {
       "name": "松崎町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2230600": {
       "name": "西伊豆町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     }
   },
-  "generatedAt": "2026-10-31T08:38:53Z",
+  "generatedAt": "2026-10-31T14:45:11Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -365,14 +303,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-10-31T08:30:50Z",
+    "atomUpdated": "2026-10-31T14:40:59Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261031083053_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261031144101_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-10-31T17:30:00+09:00"
+    "reportDatetime": "2026-10-31T23:40:00+09:00"
   },
   "targetAreaCount": 41
 }
