@@ -2,27 +2,69 @@
   "areas": {
     "0820200": {
       "name": "日立市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "0821500": {
       "name": "北茨城市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "0822100": {
       "name": "ひたちなか市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "0822200": {
       "name": "鹿嶋市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "0823200": {
       "name": "神栖市",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "0830900": {
       "name": "大洗町",
-      "warnings": []
+      "warnings": [
+        {
+          "code": "14",
+          "name": "雷注意報",
+          "severity": 1,
+          "status": "継続"
+        }
+      ]
     },
     "1220200": {
       "name": "銚子市",
@@ -304,7 +346,7 @@
       ]
     }
   },
-  "generatedAt": "2026-10-31T02:23:13Z",
+  "generatedAt": "2026-10-31T08:38:53Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -323,14 +365,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-10-31T02:20:55Z",
+    "atomUpdated": "2026-10-31T08:30:50Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261031022058_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261031083053_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-10-31T11:20:00+09:00"
+    "reportDatetime": "2026-10-31T17:30:00+09:00"
   },
   "targetAreaCount": 41
 }
