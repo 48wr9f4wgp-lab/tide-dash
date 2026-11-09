@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-06T11:00:00+00:00",
+  "generatedAt": "2026-11-09T11:41:27+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -12,16 +12,16 @@
       "regionId": "IBARAKI_PACIFIC",
       "sourceType": "official_fresh_bait_context",
       "source": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html",
-      "publishedDate": "2026-11-04",
+      "publishedDate": "2026-11-07",
       "freshBaitContext": {
         "species": "シラス",
         "district": "大津",
         "rows": [
           {
-            "date": "2026-11-04",
-            "boats": 27,
-            "kg": 1934.0,
-            "cpueKgPerBoat": 71.6
+            "date": "2026-11-07",
+            "boats": 21,
+            "kg": 753.0,
+            "cpueKgPerBoat": 35.9
           }
         ],
         "rankingEffect": "none",
