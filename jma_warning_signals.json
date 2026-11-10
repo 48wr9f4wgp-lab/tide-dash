@@ -2,36 +2,15 @@
   "areas": {
     "0820200": {
       "name": "日立市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0821500": {
       "name": "北茨城市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0822100": {
       "name": "ひたちなか市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "0822200": {
       "name": "鹿嶋市",
@@ -57,14 +36,7 @@
     },
     "0830900": {
       "name": "大洗町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "1220200": {
       "name": "銚子市",
@@ -229,14 +201,7 @@
     },
     "2221900": {
       "name": "下田市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2222200": {
       "name": "伊豆市",
@@ -248,50 +213,22 @@
     },
     "2230100": {
       "name": "東伊豆町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2230400": {
       "name": "南伊豆町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2230500": {
       "name": "松崎町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "2230600": {
       "name": "西伊豆町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     }
   },
-  "generatedAt": "2026-11-10T11:47:05Z",
+  "generatedAt": "2026-11-10T18:52:46Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -310,14 +247,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-11-10T11:40:53Z",
+    "atomUpdated": "2026-11-10T18:50:55Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261110114055_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261110185057_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-11-10T20:40:00+09:00"
+    "reportDatetime": "2026-11-11T03:50:00+09:00"
   },
   "targetAreaCount": 41
 }
