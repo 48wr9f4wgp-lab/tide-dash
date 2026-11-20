@@ -167,14 +167,7 @@
     },
     "1410012": {
       "name": "横浜市南部",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "1420100": {
       "name": "横須賀市",
@@ -189,25 +182,11 @@
     },
     "1420500": {
       "name": "藤沢市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "1420600": {
       "name": "小田原市",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "1421000": {
       "name": "三浦市",
@@ -222,14 +201,7 @@
     },
     "1438300": {
       "name": "真鶴町",
-      "warnings": [
-        {
-          "code": "16",
-          "name": "波浪注意報",
-          "severity": 2,
-          "status": "継続"
-        }
-      ]
+      "warnings": []
     },
     "1510000": {
       "name": "新潟市",
@@ -472,7 +444,7 @@
       ]
     }
   },
-  "generatedAt": "2026-11-20T08:12:02Z",
+  "generatedAt": "2026-11-20T16:56:50Z",
   "policy": {
     "aggregateCurrentState": true,
     "clientRelevantWarningCodes": [
@@ -491,14 +463,14 @@
   "schemaVersion": 2,
   "source": {
     "agency": "気象庁",
-    "atomUpdated": "2026-11-20T08:02:10Z",
+    "atomUpdated": "2026-11-20T16:50:51Z",
     "controlTitle": "気象警報・注意報（Ｒ０６）（集約通報）",
-    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261120080218_0_VPWS50_010000.xml",
+    "entryURL": "https://www.data.jma.go.jp/developer/xml/data/20261120165057_0_VPWS50_010000.xml",
     "feedURL": "https://www.data.jma.go.jp/developer/xml/feed/regular_l.xml",
     "kind": "JMA Pull disaster XML",
     "product": "VPWS50",
     "publishingOffice": "気象庁",
-    "reportDatetime": "2026-11-20T17:00:00+09:00"
+    "reportDatetime": "2026-11-21T01:50:00+09:00"
   },
   "targetAreaCount": 41
 }
