@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-26T03:37:39+00:00",
+  "generatedAt": "2026-11-26T12:44:24+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -12,22 +12,22 @@
       "regionId": "IBARAKI_PACIFIC",
       "sourceType": "official_fresh_bait_context",
       "source": "https://www.pref.ibaraki.jp/nourinsuisan/suishi/kaiyu/funabiki/funabiki-toppage.html",
-      "publishedDate": "2026-11-25",
+      "publishedDate": "2026-11-26",
       "freshBaitContext": {
         "species": "シラス",
         "district": "大津",
         "rows": [
           {
+            "date": "2026-11-26",
+            "boats": 15,
+            "kg": 1134.0,
+            "cpueKgPerBoat": 75.6
+          },
+          {
             "date": "2026-11-25",
             "boats": 16,
             "kg": 817.0,
             "cpueKgPerBoat": 51.1
-          },
-          {
-            "date": "2026-11-21",
-            "boats": 8,
-            "kg": 286.0,
-            "cpueKgPerBoat": 35.8
           }
         ],
         "rankingEffect": "none",
@@ -54,7 +54,7 @@
       "regionId": "SHIZUOKA_EAST_IZU",
       "sourceType": "official_recent_monthly_set_net",
       "source": "https://fish-exp.pref.shizuoka.jp/02fishery/2-1-1.html",
-      "sourceMonth": "2026-09",
+      "sourceMonth": "2026-10",
       "ranking": [
         {
           "id": "KAMASU",
