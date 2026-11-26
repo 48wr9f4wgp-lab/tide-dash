@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-25T13:03:37+00:00",
+  "generatedAt": "2026-11-26T03:37:39+00:00",
   "policy": {
     "officialSourcesOnly": true,
     "absoluteCatchProbability": false,
@@ -59,22 +59,17 @@
         {
           "id": "KAMASU",
           "name": "カマス",
-          "tons": 86.0
-        },
-        {
-          "id": "MARUSOUDA",
-          "name": "ソウダ",
-          "tons": 82.0
+          "tons": 47.2
         },
         {
           "id": "MA_AJI",
           "name": "アジ",
-          "tons": 40.2
+          "tons": 37.3
         },
         {
           "id": "SABA",
           "name": "サバ",
-          "tons": 33.5
+          "tons": 31.0
         }
       ],
       "note": "伊豆東岸大型定置網の最新公表月実績。商業漁獲を遊漁釣果確率へ変換しない。"
